@@ -1,0 +1,6 @@
+.venv/
+.env
+pdfs/
+texts/
+__pycache__/
+corpus.json
