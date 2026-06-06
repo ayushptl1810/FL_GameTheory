@@ -3,4 +3,4 @@
 pdfs/
 texts/
 __pycache__/
-corpus.json
+.DS_Store
