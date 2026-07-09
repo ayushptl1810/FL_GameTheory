@@ -1,0 +1,220 @@
+{
+  "arxiv": {
+    "queries": [
+      "all:\"federated learning\" AND all:\"incentive mechanism\"",
+      "all:\"federated learning\" AND all:\"mechanism design\"",
+      "all:\"federated learning\" AND all:\"Stackelberg game\"",
+      "all:\"federated learning\" AND all:\"contract theory\" AND all:\"incentive\"",
+      "all:\"federated learning\" AND all:\"Shapley\" AND all:\"incentive\"",
+      "all:\"federated learning\" AND all:\"auction\" AND all:\"truthful\"",
+      "all:\"federated learning\" AND all:\"VCG\"",
+      "cat:cs.GT AND all:\"federated learning\" AND all:\"incentive\"",
+      "all:\"federated learning\" AND all:\"game theory\" AND all:\"payment\"",
+      "all:\"federated learning\" AND all:\"incentive compatible\""
+    ],
+    "max_results_per_query": 100,
+    "sort_by": "submittedDate",
+    "sort_order": "descending"
+  },
+  "semantic_scholar": {
+    "enabled": true,
+    "queries": [
+      "federated learning incentive mechanism design truthful",
+      "federated learning Stackelberg game theory reward",
+      "federated learning contract theory incentive compatible",
+      "federated learning Shapley value mechanism payment",
+      "federated learning auction procurement truthful IC IR"
+    ],
+    "max_results_per_query": 25,
+    "min_year": 2019
+  },
+  "relevance_keywords": [
+    "incentive",
+    "mechanism design",
+    "game theory",
+    "auction",
+    "payment rule",
+    "shapley",
+    "vcg",
+    "vickrey",
+    "stackelberg",
+    "contract theory",
+    "truthful",
+    "incentive compatible",
+    "individual rational",
+    "strategy-proof",
+    "strategyproof",
+    "nash equilibrium",
+    "cooperative game",
+    "reward mechanism",
+    "procurement",
+    "free-rider",
+    "free riding",
+    "incentivize",
+    "recruitment"
+  ],
+  "category_queries": {
+    "Shapley": {
+      "arxiv": [
+        "all:\"federated learning\" AND all:\"Shapley\" AND all:\"incentive compatible\"",
+        "all:\"federated learning\" AND all:\"Shapley\" AND all:\"strategy-proof\"",
+        "all:\"federated learning\" AND all:\"Shapley\" AND all:\"truthful\" AND all:\"mechanism\"",
+        "all:\"federated learning\" AND all:\"Shapley value\" AND all:\"IC\" AND all:\"IR\"",
+        "all:\"federated learning\" AND all:\"cooperative game\" AND all:\"incentive compatible\"",
+        "all:\"federated learning\" AND all:\"Shapley\" AND all:\"dominant strategy\"",
+        "cat:cs.GT AND all:\"Shapley\" AND all:\"federated learning\""
+      ],
+      "semantic_scholar": [
+        "federated learning Shapley value incentive compatible truthful IC IR proof mechanism",
+        "federated learning cooperative game Shapley payment DSIC strategy-proof",
+        "federated learning Shapley value dominant strategy incentive compatibility individual rationality"
+      ],
+      "relevance_keywords": [
+        "shapley",
+        "cooperative game",
+        "characteristic function",
+        "coalition",
+        "incentive compatible",
+        "truthful",
+        "strategy-proof",
+        "strategyproof",
+        "dominant strategy",
+        "ic proof",
+        "ir proof",
+        "individual rational"
+      ]
+    },
+    "VCG": {
+      "arxiv": [
+        "all:\"federated learning\" AND all:\"VCG\"",
+        "all:\"federated learning\" AND all:\"Vickrey-Clarke-Groves\"",
+        "all:\"federated learning\" AND all:\"auction\" AND all:\"dominant strategy\"",
+        "all:\"federated learning\" AND all:\"procurement auction\" AND all:\"truthful\"",
+        "all:\"federated learning\" AND all:\"reverse auction\" AND all:\"incentive compatible\"",
+        "cat:cs.GT AND all:\"federated learning\" AND all:\"auction\" AND all:\"truthful\""
+      ],
+      "semantic_scholar": [
+        "federated learning VCG auction truthful dominant strategy incentive compatible",
+        "federated learning reverse auction procurement mechanism design DSIC",
+        "federated learning Vickrey Clarke Groves payment rule individual rational"
+      ],
+      "relevance_keywords": [
+        "vcg",
+        "vickrey",
+        "clarke",
+        "groves",
+        "auction",
+        "truthful",
+        "dominant strategy",
+        "incentive compatible",
+        "allocation rule",
+        "payment rule",
+        "procurement"
+      ]
+    },
+    "Contract": {
+      "arxiv": [
+        "all:\"federated learning\" AND all:\"contract theory\"",
+        "all:\"federated learning\" AND all:\"screening\" AND all:\"incentive\"",
+        "all:\"federated learning\" AND all:\"hidden type\" AND all:\"mechanism\"",
+        "all:\"federated learning\" AND all:\"information asymmetry\" AND all:\"incentive\"",
+        "all:\"federated learning\" AND all:\"principal agent\" AND all:\"federated\"",
+        "all:\"federated learning\" AND all:\"contract menu\" AND all:\"type\""
+      ],
+      "semantic_scholar": [
+        "federated learning contract theory hidden type screening incentive compatible IR",
+        "federated learning principal agent information asymmetry mechanism design",
+        "federated learning type revelation contract menu individual rational"
+      ],
+      "relevance_keywords": [
+        "contract theory",
+        "screening",
+        "hidden type",
+        "hidden action",
+        "principal agent",
+        "information asymmetry",
+        "type",
+        "information rent",
+        "incentive compatible",
+        "individual rational",
+        "contract menu",
+        "moral hazard",
+        "adverse selection"
+      ]
+    },
+    "Stackelberg": {
+      "arxiv": [
+        "all:\"federated learning\" AND all:\"Stackelberg game\"",
+        "all:\"federated learning\" AND all:\"Stackelberg equilibrium\"",
+        "all:\"federated learning\" AND all:\"leader follower\" AND all:\"game\"",
+        "all:\"federated learning\" AND all:\"bilevel\" AND all:\"game\" AND all:\"incentive\"",
+        "cat:cs.GT AND all:\"federated learning\" AND all:\"Stackelberg\""
+      ],
+      "semantic_scholar": [
+        "federated learning Stackelberg game leader follower equilibrium incentive",
+        "federated learning bilevel game theory reward mechanism Stackelberg",
+        "federated learning hierarchical game Stackelberg Nash equilibrium"
+      ],
+      "relevance_keywords": [
+        "stackelberg",
+        "leader",
+        "follower",
+        "bilevel",
+        "hierarchical game",
+        "best response",
+        "backward induction",
+        "subgame perfect"
+      ]
+    },
+    "RL": {
+      "arxiv": [
+        "all:\"federated learning\" AND all:\"reinforcement learning\" AND all:\"incentive\"",
+        "all:\"federated learning\" AND all:\"deep reinforcement learning\" AND all:\"reward\"",
+        "all:\"federated learning\" AND all:\"multi-agent reinforcement\" AND all:\"incentive\"",
+        "all:\"federated learning\" AND all:\"DRL\" AND all:\"incentive mechanism\""
+      ],
+      "semantic_scholar": [
+        "federated learning deep reinforcement learning incentive reward mechanism",
+        "federated learning multi-agent RL incentive client selection",
+        "federated learning DQN PPO incentive mechanism design"
+      ],
+      "relevance_keywords": [
+        "reinforcement learning",
+        "drl",
+        "deep q",
+        "ppo",
+        "policy gradient",
+        "reward function",
+        "agent",
+        "state",
+        "action",
+        "q-learning",
+        "markov"
+      ]
+    },
+    "Valuation": {
+      "arxiv": [
+        "all:\"federated learning\" AND all:\"data valuation\"",
+        "all:\"federated learning\" AND all:\"contribution evaluation\"",
+        "all:\"federated learning\" AND all:\"data marketplace\" AND all:\"incentive\"",
+        "all:\"federated learning\" AND all:\"Shapley\" AND all:\"valuation\"",
+        "all:\"federated learning\" AND all:\"reputation\" AND all:\"incentive\" AND all:\"payment\""
+      ],
+      "semantic_scholar": [
+        "federated learning data valuation contribution measurement incentive payment",
+        "federated learning Shapley value contribution evaluation reward allocation",
+        "federated learning reputation mechanism payment contribution"
+      ],
+      "relevance_keywords": [
+        "data valuation",
+        "contribution evaluation",
+        "shapley",
+        "reputation",
+        "data market",
+        "reward allocation",
+        "fairness",
+        "marginal contribution"
+      ]
+    }
+  }
+}

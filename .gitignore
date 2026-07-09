@@ -4,3 +4,10 @@ pdfs/
 texts/
 __pycache__/
 .DS_Store
+.claude
+corpus/
+Task.md
+paywalled.txt
+entries/preloader/pdfs/
+research.md
+entries/

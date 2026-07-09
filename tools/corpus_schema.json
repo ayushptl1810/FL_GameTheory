@@ -1,0 +1,447 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema",
+  "$id": "fl-corpus-entry",
+  "title": "FL Incentive Mechanism Corpus Entry",
+  "type": "object",
+
+  "required": [
+    "paper_id", "title", "year", "venue",
+    "category", "paper_type", "fl_setup", "num_clients",
+    "quality_tier", "z3_validated", "notes", "mechanism"
+  ],
+
+  "properties": {
+    "paper_id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]+$",
+      "description": "Unique slug, e.g. Kang2019contract_mobile"
+    },
+    "title": { "type": "string", "minLength": 5 },
+    "year":  { "type": "integer", "minimum": 2017, "maximum": 2030 },
+    "venue": { "type": ["string", "null"] },
+
+    "category": {
+      "type": "string",
+      "enum": ["VCG", "Contract", "Stackelberg", "Shapley", "RL", "Valuation", "Naive"]
+    },
+
+    "paper_type": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["primary", "comparison", "application"] },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+
+    "fl_setup": {
+      "type": "string",
+      "enum": ["cross-device", "cross-silo", "vertical", "hierarchical", "split", "unspecified"]
+    },
+
+    "num_clients": {
+      "type": "string",
+      "enum": ["finite-small", "finite-large", "continuous", "unspecified"]
+    },
+
+    "quality_tier": {
+      "type": "string",
+      "enum": ["gold", "silver", "bronze"],
+      "description": "gold=all LaTeX fields filled+consistent; silver=partial; bronze=qualitative only"
+    },
+
+    "z3_validated": {
+      "type": ["boolean", "null"],
+      "description": "null for categories RL/Valuation/Naive. true/false for VCG/Contract/Stackelberg/Shapley."
+    },
+
+    "notes": {
+      "type": ["string", "null"],
+      "description": "Plain-English summary of what this paper actually proposes"
+    },
+
+    "mechanism": {
+      "type": "object",
+      "description": "Category-specific formal content — shape validated by allOf conditionals below"
+    },
+
+    "application": {
+      "type": "object",
+      "description": "Present only when paper_type includes 'application'",
+      "required": ["domain", "domain_constraints", "mechanism_modification"],
+      "properties": {
+        "domain": {
+          "type": "string",
+          "enum": [
+            "IoT", "UAV", "healthcare", "blockchain", "metaverse",
+            "industrial", "vehicular", "SDN", "medical", "crowdsourcing",
+            "edge", "mobile", "other"
+          ]
+        },
+        "domain_constraints": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "e.g. ['energy budget <= X mJ', 'latency <= 50ms', 'untrusted relay nodes']"
+        },
+        "mechanism_modification": {
+          "type": "string",
+          "description": "What changed from the canonical mechanism to fit this domain"
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "comparison": {
+      "type": "object",
+      "description": "Present only when paper_type includes 'comparison'",
+      "required": ["mechanisms_compared", "comparison_metric", "key_finding"],
+      "properties": {
+        "mechanisms_compared": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["VCG", "Contract", "Stackelberg", "Shapley", "RL", "Valuation", "Naive"]
+          },
+          "minItems": 2
+        },
+        "comparison_metric": {
+          "type": "string",
+          "description": "e.g. 'social welfare', 'convergence speed', 'budget utilization', 'fairness'"
+        },
+        "winning_condition": {
+          "type": "string",
+          "description": "Which mechanism wins and under what conditions"
+        },
+        "key_finding": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+
+  "additionalProperties": false,
+
+  "allOf": [
+
+    {
+      "description": "application block required when paper_type contains 'application'",
+      "if": {
+        "properties": { "paper_type": { "contains": { "const": "application" } } }
+      },
+      "then": { "required": ["application"] }
+    },
+
+    {
+      "description": "comparison block required when paper_type contains 'comparison'",
+      "if": {
+        "properties": { "paper_type": { "contains": { "const": "comparison" } } }
+      },
+      "then": { "required": ["comparison"] }
+    },
+
+    {
+      "description": "VCG mechanism shape",
+      "if": { "properties": { "category": { "const": "VCG" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/VCGMechanism" } } }
+    },
+
+    {
+      "description": "Contract mechanism shape",
+      "if": { "properties": { "category": { "const": "Contract" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/ContractMechanism" } } }
+    },
+
+    {
+      "description": "Stackelberg mechanism shape",
+      "if": { "properties": { "category": { "const": "Stackelberg" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/StackelbergMechanism" } } }
+    },
+
+    {
+      "description": "Shapley mechanism shape",
+      "if": { "properties": { "category": { "const": "Shapley" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/ShapleyMechanism" } } }
+    },
+
+    {
+      "description": "RL mechanism shape",
+      "if": { "properties": { "category": { "const": "RL" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/RLMechanism" } } }
+    },
+
+    {
+      "description": "Valuation mechanism shape",
+      "if": { "properties": { "category": { "const": "Valuation" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/ValuationMechanism" } } }
+    },
+
+    {
+      "description": "Naive mechanism shape",
+      "if": { "properties": { "category": { "const": "Naive" } }, "required": ["category"] },
+      "then": { "properties": { "mechanism": { "$ref": "#/$defs/NaiveMechanism" } } }
+    },
+
+    {
+      "description": "z3_validated must be null for RAG-only categories",
+      "if": {
+        "properties": { "category": { "enum": ["RL", "Valuation", "Naive"] } },
+        "required": ["category"]
+      },
+      "then": { "properties": { "z3_validated": { "type": "null" } } }
+    }
+
+  ],
+
+  "$defs": {
+
+    "NullableString": {
+      "type": ["string", "null"],
+      "description": "LaTeX string, or null if not extractable from the paper"
+    },
+
+    "KeyAssumptions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Explicit mathematical assumptions stated in the paper (not inferred)"
+    },
+
+    "VCGMechanism": {
+      "type": "object",
+      "required": [
+        "auction_type", "bid_space", "ic_type",
+        "budget_balance_type", "key_assumptions"
+      ],
+      "properties": {
+        "auction_type": {
+          "type": "string",
+          "enum": ["forward", "reverse", "double", "combinatorial", "multi-unit", "multi-item", "sequential", "other"]
+        },
+        "bid_space": {
+          "type": "string",
+          "description": "What clients bid on: cost, value, data volume, quality score, etc."
+        },
+        "allocation_rule_latex":    { "$ref": "#/$defs/NullableString" },
+        "payment_rule_latex":       { "$ref": "#/$defs/NullableString" },
+        "client_utility_latex":     { "$ref": "#/$defs/NullableString" },
+        "valuation_function_latex": { "$ref": "#/$defs/NullableString" },
+        "cost_function_latex":      { "$ref": "#/$defs/NullableString" },
+        "ic_condition_latex":       { "$ref": "#/$defs/NullableString" },
+        "ic_type": {
+          "type": "string",
+          "enum": ["dominant-strategy", "BNE", "ex-post", "approximate"]
+        },
+        "ir_condition_latex":       { "$ref": "#/$defs/NullableString" },
+        "objective_latex":          { "$ref": "#/$defs/NullableString" },
+        "budget_balance_latex":     { "$ref": "#/$defs/NullableString" },
+        "budget_balance_type": {
+          "type": "string",
+          "enum": ["strong", "weak", "deficit", "not-stated"]
+        },
+        "multi_round":        { "type": ["boolean", "null"] },
+        "privacy_mechanism":  { "$ref": "#/$defs/NullableString" },
+        "non_iid_handling":   { "$ref": "#/$defs/NullableString" },
+        "key_assumptions":    { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    },
+
+    "ContractMechanism": {
+      "type": "object",
+      "required": [
+        "num_types", "type_variable", "type_distribution",
+        "information_structure", "cost_function_form", "key_assumptions"
+      ],
+      "properties": {
+        "num_types": {
+          "oneOf": [
+            { "type": "integer", "minimum": 2 },
+            { "type": "string", "const": "continuous" }
+          ]
+        },
+        "type_variable": {
+          "type": "string",
+          "description": "What is privately known: data quality, computing power, bandwidth, cost"
+        },
+        "type_distribution": {
+          "type": "string",
+          "description": "e.g. 'uniform on [0,1]', 'unknown', 'Bernoulli', 'discrete finite'"
+        },
+        "client_utility_latex":   { "$ref": "#/$defs/NullableString" },
+        "cost_function_form": {
+          "type": "string",
+          "enum": ["linear", "quadratic", "convex-general", "other"]
+        },
+        "cost_function_latex":    { "$ref": "#/$defs/NullableString" },
+        "contract_menu_latex":    { "$ref": "#/$defs/NullableString" },
+        "ic_screening_latex":     { "$ref": "#/$defs/NullableString" },
+        "ir_participation_latex": { "$ref": "#/$defs/NullableString" },
+        "server_objective_latex": { "$ref": "#/$defs/NullableString" },
+        "information_structure": {
+          "type": "string",
+          "enum": ["hidden-type", "hidden-action", "both"]
+        },
+        "spence_mirrlees":     { "type": ["boolean", "null"] },
+        "multidimensional_type": { "type": ["boolean", "null"] },
+        "dynamic_contract":    { "type": ["boolean", "null"] },
+        "key_assumptions":     { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    },
+
+    "StackelbergMechanism": {
+      "type": "object",
+      "required": [
+        "leader", "follower", "leader_decision", "follower_decision",
+        "equilibrium_existence", "key_assumptions"
+      ],
+      "properties": {
+        "leader":           { "type": "string" },
+        "follower":         { "type": "string" },
+        "leader_decision":  { "type": "string" },
+        "follower_decision":{ "type": "string" },
+        "leader_objective_latex": { "$ref": "#/$defs/NullableString" },
+        "follower_utility_latex": { "$ref": "#/$defs/NullableString" },
+        "cost_function_latex":    { "$ref": "#/$defs/NullableString" },
+        "follower_foc_latex":     { "$ref": "#/$defs/NullableString" },
+        "best_response_latex":    { "$ref": "#/$defs/NullableString" },
+        "ir_follower_latex":      { "$ref": "#/$defs/NullableString" },
+        "equilibrium_existence":  { "type": "boolean" },
+        "equilibrium_uniqueness": { "type": ["boolean", "null"] },
+        "hierarchical_levels":    { "type": "integer", "minimum": 2, "default": 2 },
+        "multi_leader":           { "type": ["boolean", "null"] },
+        "drl_solver":             { "type": ["boolean", "null"] },
+        "key_assumptions":        { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    },
+
+    "ShapleyMechanism": {
+      "type": "object",
+      "required": [
+        "valuation_metric", "exact_or_approx",
+        "ic_proof_present", "ir_proof_present",
+        "axioms_satisfied", "key_assumptions"
+      ],
+      "properties": {
+        "characteristic_function_latex": { "$ref": "#/$defs/NullableString" },
+        "shapley_formula_latex":         { "$ref": "#/$defs/NullableString" },
+        "valuation_metric": {
+          "type": "string",
+          "description": "What v(S) measures: accuracy gain, loss reduction, gradient cosine similarity"
+        },
+        "exact_or_approx": {
+          "type": "string",
+          "enum": ["exact", "Monte-Carlo", "TMC", "GTG-Shapley", "other"]
+        },
+        "computational_complexity": { "$ref": "#/$defs/NullableString" },
+        "ic_proof_present": {
+          "type": "boolean",
+          "description": "HARD GATE: must be true to stay in Shapley (else reclassify to Valuation)"
+        },
+        "ir_proof_present": {
+          "type": "boolean",
+          "description": "HARD GATE: must be true to stay in Shapley"
+        },
+        "ic_condition_latex":      { "$ref": "#/$defs/NullableString" },
+        "ir_condition_latex":      { "$ref": "#/$defs/NullableString" },
+        "payment_mechanism_latex": { "$ref": "#/$defs/NullableString" },
+        "axioms_satisfied": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["efficiency", "symmetry", "dummy", "additivity", "monotonicity"]
+          }
+        },
+        "key_assumptions": { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    },
+
+    "RLMechanism": {
+      "type": "object",
+      "required": [
+        "rl_algorithm", "state_space", "action_space",
+        "reward_function", "why_rl_needed", "key_assumptions"
+      ],
+      "properties": {
+        "rl_algorithm": {
+          "type": "string",
+          "enum": ["DQN", "PPO", "DDPG", "MARL", "MAB", "actor-critic", "Q-learning", "other"]
+        },
+        "state_space":        { "type": "string" },
+        "action_space":       { "type": "string" },
+        "reward_function":    { "type": "string" },
+        "convergence_claim": {
+          "type": "string",
+          "enum": ["theoretical", "empirical", "none"]
+        },
+        "ic_approximation":   { "type": ["boolean", "null"] },
+        "ir_approximation":   { "type": ["boolean", "null"] },
+        "why_rl_needed": {
+          "type": "string",
+          "description": "Why a closed-form rule was intractable: non-stationary clients, high-dim state, etc."
+        },
+        "key_assumptions": { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    },
+
+    "ValuationMechanism": {
+      "type": "object",
+      "required": [
+        "valuation_method", "computational_complexity",
+        "ic_claimed", "why_not_shapley", "key_assumptions"
+      ],
+      "properties": {
+        "valuation_method": {
+          "type": "string",
+          "enum": [
+            "gradient-norm", "mutual-information", "reputation",
+            "fedtoken", "leave-one-out", "market-equilibrium",
+            "bandit", "data-market", "shapley-approximation", "other"
+          ]
+        },
+        "valuation_formula_latex":  { "$ref": "#/$defs/NullableString" },
+        "computational_complexity": { "$ref": "#/$defs/NullableString" },
+        "ic_claimed":          { "type": "boolean" },
+        "fairness_properties": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "why_not_shapley": {
+          "type": "string",
+          "description": "Scalability, latency, O(2^N) complexity, privacy, etc."
+        },
+        "key_assumptions": { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    },
+
+    "NaiveMechanism": {
+      "type": "object",
+      "required": [
+        "rule_type", "failure_modes", "benchmark_role", "key_assumptions"
+      ],
+      "properties": {
+        "rule_type": {
+          "type": ["string", "null"],
+          "enum": [
+            "proportional", "equal-split", "size-based",
+            "accuracy-based", "fedavg-no-incentive", "other", null
+          ]
+        },
+        "rule_definition_latex": { "$ref": "#/$defs/NullableString" },
+        "failure_modes": {
+          "type": ["array", "null"],
+          "items": { "type": "string" }
+        },
+        "when_it_works":   { "$ref": "#/$defs/NullableString" },
+        "benchmark_role": {
+          "type": "string",
+          "enum": ["lower-bound", "strawman", "surprisingly-competitive", "attack-target"]
+        },
+        "key_assumptions": { "$ref": "#/$defs/KeyAssumptions" }
+      },
+      "additionalProperties": false
+    }
+
+  }
+}
