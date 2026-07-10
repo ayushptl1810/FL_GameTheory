@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
 Normalize corpus entries in-place: coerce enum fields, fill required nulls,
-strip disallowed fields, then rebuild corpus_new.json.
+strip disallowed fields, then rebuild corpus.json.
 
 Usage:
-    python schema/normalize.py entries/ --merge corpus_new.json
+    python schema/normalize.py entries/ --merge corpus.json
 """
 
 import argparse

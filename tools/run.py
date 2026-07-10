@@ -148,7 +148,7 @@ def main() -> None:
         print("\nNext steps:")
         print("  python tools/extract.py pdfs/ --out entries/")
         print("  # fix any schema errors, then rebuild corpus:")
-        print("  python -c \"import json,glob; e=[json.load(open(p)) for p in sorted(glob.glob('entries/*.json'))]; json.dump(e,open('corpus_new.json','w'),indent=2)\"")
+        print("  python -c \"import json,glob; e=[json.load(open(p)) for p in sorted(glob.glob('entries/*.json'))]; json.dump(e,open('corpus.json','w'),indent=2)\"")
 
 
 if __name__ == "__main__":
