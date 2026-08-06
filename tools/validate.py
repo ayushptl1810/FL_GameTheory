@@ -8,8 +8,10 @@ Usage:
 """
 
 import json
+import re
 import sys
 import argparse
+from collections import Counter
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -29,6 +31,45 @@ HARD_GATES: dict[str, dict[str, object]] = {
         "ir_proof_present": True,
     }
 }
+
+# Same payment-form regex family as src/tracks/track1_z3.py's
+# _classify_vcg_payment (duplicated rather than imported so tools/ stays
+# decoupled from src/'s Z3/CVXPY/mpmath dependencies). Matches the classic
+# Groves/Clarke-pivot payment forms, which are efficient (welfare-maximizing)
+# by construction -- Groves' theorem.
+_VCG_EFFICIENT_FORM_RE = re.compile(r"\\neq\s*[a-zA-Z]|\\setminus|[Ss]\(z\^")
+
+
+def _check_green_laffont(entry: dict) -> list[str]:
+    """
+    Green-Laffont: Efficiency + DSIC + strict Budget Balance cannot coexist
+    generically. Flags VCG entries claiming dominant-strategy IC AND strong
+    (exact) budget balance AND a payment form that is a classic efficient
+    Groves/Clarke-pivot mechanism -- the textbook contradiction.
+
+    This is a heuristic on the three fields the schema actually has
+    (ic_type, budget_balance_type, payment_rule_latex), not a formal
+    proof -- "strong" budget balance combined with a Clarke-pivot-shaped
+    payment could still be correct in some restricted/quasi-linear model
+    the paper sets up, so treat a hit here as "verify this wasn't a
+    labeling slip," not "this paper contains an error."
+    """
+    if entry.get("category") != "VCG":
+        return []
+    mech = entry.get("mechanism") or {}
+    if mech.get("ic_type") != "dominant-strategy":
+        return []
+    if mech.get("budget_balance_type") != "strong":
+        return []
+    if not _VCG_EFFICIENT_FORM_RE.search(mech.get("payment_rule_latex") or ""):
+        return []
+    return [
+        "[green-laffont] claims dominant-strategy IC, strong (exact) budget "
+        "balance, and an efficient Groves/Clarke-pivot payment form "
+        "simultaneously -- Green-Laffont proves these three cannot coexist "
+        "generically. Check ic_type/budget_balance_type/payment_rule_latex "
+        "against what the paper actually proves."
+    ]
 
 
 def validate_entry(entry: dict, validator: jsonschema.Validator, strict: bool = False) -> list[str]:
@@ -52,6 +93,8 @@ def validate_entry(entry: dict, validator: jsonschema.Validator, strict: bool = 
                     f"[hard-gate] Shapley entry must have mechanism.{field}={expected}. "
                     f"Got {actual!r}. Reclassify to Valuation if IC/IR is not proved."
                 )
+
+    errors.extend(_check_green_laffont(entry))
 
     # Gold-tier LaTeX completeness (enforced always for gold, or when --strict)
     if strict or tier == "gold":
@@ -85,7 +128,7 @@ def validate_entry(entry: dict, validator: jsonschema.Validator, strict: bool = 
     return errors
 
 
-def validate_file(path: Path, strict: bool) -> dict[str, list[str]]:
+def validate_file(path: Path, strict: bool) -> tuple[dict[str, list[str]], list[dict]]:
     with open(path) as f:
         data = json.load(f)
 
@@ -102,7 +145,45 @@ def validate_file(path: Path, strict: bool) -> dict[str, list[str]]:
         errs = validate_entry(entry, validator, strict=strict)
         results[pid] = errs
 
-    return results
+    return results, entries
+
+
+def print_metadata_completeness_report(entries: list[dict]) -> None:
+    """
+    fl_setup/num_clients = "unspecified" is schema-valid (it's a real enum
+    value, not an error) but a corpus where most entries don't say what FL
+    setup they're for silently breaks Retrieval mode, which is supposed to
+    find "the closest corpus entry" by matching on exactly that. This is a
+    visibility report, not a pass/fail gate -- see Task.md "Why the Corpus
+    Matters" for the retrieval-mode dependency this is protecting.
+    """
+    total = len(entries)
+    if total == 0:
+        return
+
+    fl_setup_unspecified = sum(1 for e in entries if e.get("fl_setup") == "unspecified")
+    num_clients_unspecified = sum(1 for e in entries if e.get("num_clients") == "unspecified")
+
+    by_tier: dict[str, list[dict]] = {}
+    for e in entries:
+        by_tier.setdefault(e.get("quality_tier", "<unknown>"), []).append(e)
+
+    print(f"{'='*60}")
+    print("  Metadata Completeness Report (not a pass/fail gate)")
+    print(f"{'='*60}")
+    print(f"  fl_setup unspecified:    {fl_setup_unspecified}/{total} "
+          f"({100*fl_setup_unspecified/total:.0f}%)")
+    print(f"  num_clients unspecified: {num_clients_unspecified}/{total} "
+          f"({100*num_clients_unspecified/total:.0f}%)")
+    print(f"  By quality tier (fl_setup unspecified rate):")
+    for tier in ("gold", "silver", "bronze"):
+        tier_entries = by_tier.get(tier, [])
+        if not tier_entries:
+            continue
+        n_unspecified = sum(1 for e in tier_entries if e.get("fl_setup") == "unspecified")
+        print(f"    {tier:<8} {n_unspecified}/{len(tier_entries)} "
+              f"({100*n_unspecified/len(tier_entries):.0f}%)")
+    print(f"{'='*60}\n")
 
 
 def print_report(results: dict[str, list[str]]) -> int:
@@ -135,6 +216,8 @@ def main() -> None:
     parser.add_argument("corpus", nargs="?", type=Path, help="Path to corpus.json (list or single entry)")
     parser.add_argument("--entry", type=Path, help="Path to a single entry JSON file")
     parser.add_argument("--strict", action="store_true", help="Enforce gold-tier LaTeX completeness on all entries")
+    parser.add_argument("--metadata", action="store_true",
+                        help="Also print the fl_setup/num_clients completeness report")
     args = parser.parse_args()
 
     target = args.entry or args.corpus
@@ -145,8 +228,11 @@ def main() -> None:
     if not target.exists():
         sys.exit(f"File not found: {target}")
 
-    results = validate_file(target, strict=args.strict)
-    sys.exit(print_report(results))
+    results, entries = validate_file(target, strict=args.strict)
+    exit_code = print_report(results)
+    if args.metadata:
+        print_metadata_completeness_report(entries)
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
