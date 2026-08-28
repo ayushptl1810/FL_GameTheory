@@ -4,18 +4,52 @@ import os
 class LLMError(RuntimeError):
     pass
 
+# provider -> (base_url, api-key env var, default model)
+# All three speak the OpenAI chat-completions wire format, so one code path
+# covers them; switching provider is one env var.
+_PROVIDERS = {
+    "nvidia": ("https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY",
+               "meta/llama-3.3-70b-instruct"),
+    "groq":   ("https://api.groq.com/openai/v1", "GROQ_API_KEY",
+               "llama-3.3-70b-versatile"),
+    "openai": ("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4o"),
+}
+
+
 def llm_complete(system: str, user: str, *, json_mode: bool = False) -> str:
-    provider = os.environ.get("ARCHITECT_LLM_PROVIDER", "anthropic")
-    model = os.environ.get("ARCHITECT_LLM_MODEL", "claude-sonnet-5")
+    provider = os.environ.get("ARCHITECT_LLM_PROVIDER", "nvidia")
+    if provider not in _PROVIDERS:
+        raise LLMError(f"unknown provider {provider!r}; expected one of {sorted(_PROVIDERS)}")
+    base_url, key_env, default_model = _PROVIDERS[provider]
+    model = os.environ.get("ARCHITECT_LLM_MODEL", default_model)
+    api_key = os.environ.get("ARCHITECT_LLM_API_KEY") or os.environ.get(key_env)
+    if not api_key:
+        raise LLMError(f"no API key: set {key_env} (or ARCHITECT_LLM_API_KEY) for provider {provider!r}")
+
     try:
-        if provider == "anthropic":
-            import anthropic
-            client = anthropic.Anthropic()
-            msg = client.messages.create(
-                model=model, max_tokens=4096,
-                system=system, messages=[{"role": "user", "content": user}])
-            return msg.content[0].text
-        raise LLMError(f"unknown provider {provider!r}")
+        from openai import OpenAI
+        client = OpenAI(base_url=base_url, api_key=api_key)
+        kwargs: dict = {
+            "model": model,
+            "max_tokens": 4096,
+            "messages": [
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+        }
+        if json_mode:
+            # Supported by NVIDIA NIM / Groq / OpenAI for most instruct models.
+            # If a given model rejects it, retry once without.
+            kwargs["response_format"] = {"type": "json_object"}
+        try:
+            resp = client.chat.completions.create(**kwargs)
+        except Exception:  # noqa: BLE001
+            if "response_format" in kwargs:
+                kwargs.pop("response_format")
+                resp = client.chat.completions.create(**kwargs)
+            else:
+                raise
+        return resp.choices[0].message.content or ""
     except LLMError:
         raise
     except Exception as exc:  # noqa: BLE001
