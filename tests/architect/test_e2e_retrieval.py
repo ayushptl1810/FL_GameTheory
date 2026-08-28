@@ -7,6 +7,7 @@ from architect.ast import Const, Sym, Sum, Prod, Pow, Mechanism
 from architect.serialize import render
 from architect.mc import mc_prefilter
 from architect.inspect import inspect_mechanism, is_loop_success
+from verifier import verify
 
 
 def test_retrieval_mode_reaches_a_verdict():
@@ -30,3 +31,50 @@ def test_retrieval_mode_reaches_a_verdict():
     assert r.status in {"VERIFIED", "FAILED"}
     assert r.transcript and r.transcript[-1].get("verdict") in {
         "VERIFIED", "VERIFIED_TEMPLATE", "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED", None}
+
+
+def test_e2e_retrieval_reaches_entry_specific_verified():
+    """The CEGIS loop's ONLY success gate is is_loop_success(r) =
+    (r.verdict == "VERIFIED" and r.entry_specific is True). This proves that
+    a mechanism built as an AST, pushed through serialize.render() into the
+    real verifier.verify(), can actually reach that state.
+
+    Vehicle: a textbook Stackelberg follower-effort mechanism
+        U_i(e_i) = p_i * e_i - (1/2) * c * e_i^2
+    render() emits follower_utility_latex verbatim (utility is not wrapped
+    in "... >= 0"); the entry-specific Stackelberg path parses it, derives
+    e_i* = p_i/c by FOC, and certifies U*(e_i*) = p_i^2 / (2c) >= 0.
+
+    The three keys added below (equilibrium_existence, follower_decision,
+    num_types) are metadata that serialize.render() does NOT emit and
+    loop.run()'s inspect_mechanism meta does NOT thread through today --
+    see the report's "Fix round 1" for why the loop cannot yet reach this
+    verdict on its own, and why the Contract entry-specific paths cannot
+    reach it from render() output at all.
+    """
+    e_star_num = Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])
+    u = Sum([Prod([Sym("p_i"), Sym("e_i")]), e_star_num])
+    # follower FOC as a one-sided ">= 0" node (loop passes it to render/MC;
+    # the Stackelberg verifier ignores IC by design).
+    ic = Sum([Sym("p_i"), Prod([Const(-1), Sym("c"), Sym("e_i")])])
+    m = Mechanism("Stackelberg", utility=u, payment=Sym("p_i"), ic=ic, ir=u,
+                  params={}, type_space=["lo", "hi"])
+
+    mechanism_dict, latex = render(m)
+    assert "follower_utility_latex" in mechanism_dict
+
+    entry = {
+        "paper_id": "architect-proposal",
+        "category": "Stackelberg",
+        "num_clients": 2,
+        "mechanism": {
+            **mechanism_dict,
+            "equilibrium_existence": True,
+            "follower_decision": r"effort level \( e_i \)",
+            "num_types": 2,
+        },
+    }
+    r = verify(entry)
+    assert r.verdict == "VERIFIED", (r.verdict, r.notes)
+    assert r.entry_specific is True, r.notes
+    assert is_loop_success(r) is True
