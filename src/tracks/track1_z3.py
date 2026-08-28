@@ -1363,3 +1363,69 @@ def verify_shapley(entry: dict) -> VerificationResult:
             f"Hard-gate: ic_proof_present={ic_present}, ir_proof_present={ir_present}."
         ),
     )
+
+
+# ── Parse-only hooks (Stage 2 serializer round-trip) ─────────────────────────
+#
+# These do NOT solve. They re-run the same sympy-latex front-end the
+# entry-specific verifiers use (normalize_left_right -> parse_latex) so a
+# serializer can confirm generated LaTeX is parseable before it reaches the
+# verifier. Additive: no existing function above is modified.
+
+class ParseFailure(Exception):
+    def __init__(self, field: str, reason: str):
+        super().__init__(f"{field}: {reason}")
+        self.field = field
+        self.reason = reason
+
+
+def _parse_latex_field(field: str, latex: str) -> Any:
+    """Parse one LaTeX string with the same front-end the entry-specific
+    verifier uses, but do no solving. Raise ParseFailure on any error."""
+    try:
+        from sympy.parsing.latex import parse_latex
+        cleaned = normalize_left_right(latex)
+        expr = parse_latex(cleaned)
+        if expr is None:
+            raise ValueError("parse_latex returned None")
+        return expr
+    except Exception as exc:  # noqa: BLE001
+        raise ParseFailure(field, str(exc)) from exc
+
+
+def _parse_only(mechanism: dict, fields: "tuple[str, ...]") -> dict:
+    out: dict = {}
+    for f in fields:
+        v = mechanism.get(f)
+        if isinstance(v, str) and v.strip():
+            out[f] = _parse_latex_field(f, v)
+    return out
+
+
+# Field names below are the ones the z3_validated corpus actually uses
+# (see docs/ast-coverage.md), plus the generic *_condition_latex aliases a
+# serializer emits. Only fields Stage 1 turns into a proof obligation
+# (utility / IC / IR / payment linear part / cost) are listed; structural
+# fields (allocation_rule / objective, which carry \arg\max / \begin{cases})
+# are excluded — the audit shows Stage 1 never symbolically parses them.
+
+def parse_only_vcg(mechanism: dict) -> dict:
+    return _parse_only(mechanism, (
+        "payment_rule_latex", "client_utility_latex",
+        "ic_condition_latex", "ir_condition_latex",
+    ))
+
+
+def parse_only_contract(mechanism: dict) -> dict:
+    return _parse_only(mechanism, (
+        "client_utility_latex", "cost_function_latex",
+        "ic_screening_latex", "ir_participation_latex",
+        "ic_condition_latex", "ir_condition_latex",
+    ))
+
+
+def parse_only_stackelberg(mechanism: dict) -> dict:
+    return _parse_only(mechanism, (
+        "follower_utility_latex", "best_response_latex",
+        "follower_foc_latex", "leader_objective_latex",
+    ))

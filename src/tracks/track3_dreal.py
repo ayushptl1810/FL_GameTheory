@@ -411,3 +411,17 @@ def verify_track3(entry: dict) -> "VerificationResult | None":
         ),
         entry_specific=has_latex,
     )
+
+
+# ── Parse-only hook (Stage 2 serializer round-trip) ──────────────────────────
+# Additive: reuses track1_z3._parse_only. Covers the transcendental-carrying
+# fields (ln / exp) — same IC/IR/utility fields, routed here when Track 1's
+# polynomial path cannot represent them.
+
+def parse_only_transcendental(mechanism: dict) -> dict:
+    from tracks.track1_z3 import _parse_only
+    return _parse_only(mechanism, (
+        "follower_utility_latex", "client_utility_latex",
+        "ic_screening_latex", "ir_participation_latex",
+        "ic_condition_latex", "ir_condition_latex",
+    ))
