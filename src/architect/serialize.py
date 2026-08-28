@@ -174,5 +174,10 @@ def render(m: Mechanism):
                 f"re-parse to the proposed expression; simplify the {attr} term"
             )
 
+    # Metadata keys (e.g. equilibrium_existence, follower_decision, num_types)
+    # are not LaTeX: fold them in verbatim AFTER the round-trip check so they
+    # never pass through parse_only_* / _norm.
+    md.update({k: v for k, v in m.meta.items()})
+
     full = "\n".join(f"{k}: {v}" for k, v in md.items())
     return md, full

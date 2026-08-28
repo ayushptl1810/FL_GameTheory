@@ -44,7 +44,8 @@ def mechanism_from_json(obj) -> Mechanism:
         ir=ast_from_json(obj["ir"]),
         params=dict(obj.get("params") or {}),
         type_space=list(obj.get("type_space") or []),
-        provenance=obj.get("provenance"))
+        provenance=obj.get("provenance"),
+        meta=dict(obj.get("meta") or {}))
     for sub in (m.utility, m.payment, m.ic, m.ir):
         validate_ast(sub)
     return m
@@ -62,7 +63,10 @@ _AST_RULES = (
     "single Latin letter or a standard Greek letter name (theta, alpha, beta, "
     "gamma, delta, epsilon, lambda, mu, sigma, phi, psi, omega, tau, rho, pi, "
     "kappa, ...), and any subscript must be one short single token such as e_i "
-    "or theta_h -- never a word like e_high or cost."
+    "or theta_h -- never a word like e_high or cost. "
+    'For a Stackelberg mechanism you MUST also include "meta": '
+    '{"equilibrium_existence": true, "follower_decision": '
+    '"<the follower\'s decision variable, e.g. effort e_i>", "num_types": <int>}.'
 )
 RETRIEVAL_PROMPT = ("You adapt the closest known FL incentive mechanism to a new "
                     "setup, changing only what the new parameters require. " + _AST_RULES)

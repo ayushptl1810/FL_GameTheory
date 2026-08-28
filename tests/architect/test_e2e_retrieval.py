@@ -78,3 +78,31 @@ def test_e2e_retrieval_reaches_entry_specific_verified():
     assert r.verdict == "VERIFIED", (r.verdict, r.notes)
     assert r.entry_specific is True, r.notes
     assert is_loop_success(r) is True
+
+
+def test_loop_run_reaches_verified_via_stackelberg():
+    """The REAL loop.run closes end to end: the Stackelberg metadata keys ride
+    on Mechanism.meta, get folded into the mechanism dict by serialize.render(),
+    and reach verify() through the untouched inspect/loop call chain."""
+    e_star_num = Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])
+    u = Sum([Prod([Sym("p_i"), Sym("e_i")]), e_star_num])
+    # Stackelberg ignores IC by design; use a manifestly non-negative node so
+    # the real MC pre-filter passes it through to verify().
+    ic = Pow(Sum([Sym("p_i"), Prod([Const(-1), Sym("c"), Sym("e_i")])]), 2)
+    m = Mechanism("Stackelberg", utility=u, payment=Sym("p_i"), ic=ic, ir=u,
+                  params={}, type_space=["lo", "hi"],
+                  meta={"equilibrium_existence": True,
+                        "follower_decision": r"effort level \( e_i \)",
+                        "num_types": 2})
+    deps = _t.SimpleNamespace(
+        retrieve=lambda spec, k, index=None: [],
+        route=lambda spec, index=None: "Retrieval",
+        propose=lambda spec, mode, hits, fb: m,
+        synthesize=lambda mm, c: mm,
+        make_constraints=lambda mm: None,
+        render=render, mc_prefilter=mc_prefilter,
+        inspect=inspect_mechanism, is_success=is_loop_success)
+    r = run(ProblemSpec(raw_text="follower effort, quadratic cost, leader sets price"),
+            index=object(), deps=deps, budget_s=120)
+    assert r.status == "VERIFIED", (r.status, r.transcript)
+    assert r.transcript[-1]["verdict"] == "VERIFIED", r.transcript

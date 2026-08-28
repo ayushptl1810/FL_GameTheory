@@ -65,6 +65,10 @@ class Mechanism:
     params: dict = field(default_factory=dict)
     type_space: list = field(default_factory=list)
     provenance: dict | None = None
+    # Open bag of verifier metadata keys (e.g. equilibrium_existence,
+    # follower_decision, num_types) that are NOT LaTeX and are folded into the
+    # rendered mechanism dict verbatim, bypassing the round-trip check.
+    meta: dict = field(default_factory=dict)
 
 
 def validate_ast(node) -> None:
