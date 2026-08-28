@@ -145,6 +145,30 @@ def _ineq_latex(lhs_node) -> str:
     return f"{to_latex(lhs_node)} \\geq 0"
 
 
+def _strip_leading_neg(node):
+    """Prod([Const(-1), *rest]) -> the rest as a node; else None."""
+    if (isinstance(node, Prod) and node.factors
+            and isinstance(node.factors[0], Const) and node.factors[0].value == -1):
+        rest = node.factors[1:]
+        return rest[0] if len(rest) == 1 else Prod(rest)
+    return None
+
+
+def _contract_ic_latex(ic_node) -> str:
+    r"""Contract screening IC as the two-sided ``U_i(own) \geq U_i(other)`` form
+    that Stage 1's ``_parse_contract_entry`` needs to extract the contract
+    subscript. Expects ``ic`` authored as
+    ``Sum([<own utility>, Prod([Const(-1), <other utility>])])``.
+    Falls back to the one-sided ``>= 0`` form (mechanism stays
+    VERIFIED_TEMPLATE, no regression) when the shape differs.
+    """
+    if isinstance(ic_node, Sum) and len(ic_node.terms) == 2:
+        rhs = _strip_leading_neg(ic_node.terms[1])
+        if rhs is not None:
+            return f"{to_latex(ic_node.terms[0])} \\geq {to_latex(rhs)}"
+    return _ineq_latex(ic_node)
+
+
 def render(m: Mechanism):
     if m.category not in _FIELD_MAP:
         raise OutsideParseableFragment(
@@ -157,7 +181,12 @@ def render(m: Mechanism):
     md = {}
     for field, attr in _FIELD_MAP[m.category].items():
         node = getattr(m, attr)
-        md[field] = _ineq_latex(node) if attr in _IC_IR_ATTRS else to_latex(node)
+        if attr == "ic" and m.category == "Contract":
+            md[field] = _contract_ic_latex(node)
+        elif attr in _IC_IR_ATTRS:
+            md[field] = _ineq_latex(node)
+        else:
+            md[field] = to_latex(node)
 
     parser = _PARSERS[m.category]
     try:

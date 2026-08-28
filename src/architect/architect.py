@@ -59,6 +59,12 @@ _AST_RULES = (
     "that must be >= 0 (i.e. u_truthful - u_deviation for ic; u for ir). "
     "Use explicit Prod with Const -1 for subtraction. category must be one of "
     "VCG, Contract, Stackelberg. "
+    "For a Contract mechanism, author ic as exactly a two-term "
+    'Sum: {"t":"Sum","terms":[<type i utility at its OWN contract i>, '
+    '{"t":"Prod","factors":[{"t":"Const","value":-1},<type i utility at '
+    "contract j>]}]} -- keep the two menu items distinguished by subscript i "
+    "vs j. Also set meta.num_types to the number of discrete types and "
+    'meta.type_variable to the subscripted type symbol you used (e.g. "theta_i"). '
     "Every Sym or Unknown base (the part before any underscore) must be a "
     "single Latin letter or a standard Greek letter name (theta, alpha, beta, "
     "gamma, delta, epsilon, lambda, mu, sigma, phi, psi, omega, tau, rho, pi, "

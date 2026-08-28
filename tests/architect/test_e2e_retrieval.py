@@ -105,3 +105,67 @@ def test_loop_run_reaches_verified_via_stackelberg():
             index=object(), deps=deps, budget_s=120)
     assert r.status == "VERIFIED", (r.status, r.transcript)
     assert r.transcript[-1]["verdict"] == "VERIFIED", r.transcript
+
+
+def test_loop_run_reaches_verified_via_contract():
+    """Contract now closes end to end: the serializer renders `ic` in the
+    two-sided ``U_i(own) >= U_i(other)`` form the Stage 1 Contract verifier
+    needs, and meta.num_types / meta.type_variable ride through to it.
+    """
+    def U(r, th, e):
+        return Sum([Sym(r), Prod([Const(-1), Sym(th), Sym(e)])])
+
+    own = U("R_i", "theta_i", "e_i")
+    other = U("R_j", "theta_i", "e_j")
+    ic = Sum([own, Prod([Const(-1), other])])  # U_i(own) - U_i(other)
+    m = Mechanism("Contract", utility=own, payment=Sym("R_i"), ic=ic,
+                  ir=U("R_i", "theta_i", "e_i"), params={},
+                  type_space=["lo", "hi"],
+                  meta={"num_types": 2, "type_variable": "theta_i"})
+
+    md, _ = render(m)
+    assert "\\geq" in md["ic_screening_latex"]
+    assert md["ic_screening_latex"].split("\\geq")[1].strip()  # two-sided, RHS != ""
+
+    deps = _t.SimpleNamespace(
+        retrieve=lambda spec, k, index=None: [],
+        route=lambda spec, index=None: "Retrieval",
+        propose=lambda spec, mode, hits, fb: m,
+        synthesize=lambda mm, c: mm,
+        make_constraints=lambda mm: None,
+        render=render, mc_prefilter=mc_prefilter,
+        inspect=inspect_mechanism, is_success=is_loop_success)
+    r = run(ProblemSpec(raw_text="two-type screening menu, private cost types"),
+            index=object(), deps=deps, budget_s=120)
+    assert r.status == "VERIFIED", (r.status, r.transcript)
+    assert r.transcript[-1]["verdict"] == "VERIFIED", r.transcript
+
+
+def test_non_vcg_skips_mc_prefilter():
+    """The MC pre-filter (IC-based) must not run for Stackelberg — a one-sided
+    FOC node that MC would bounce should reach verify() untouched."""
+    called = []
+
+    def _spy_mc(mm):
+        called.append(mm.category)
+        return {"type": "x=1", "ic_gap": "-1"}  # would fail every non-Stackelberg
+
+    u = Sum([Prod([Sym("p_i"), Sym("e_i")]),
+             Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])])
+    ic = Sum([Sym("p_i"), Prod([Const(-1), Sym("c"), Sym("e_i")])])  # one-sided FOC
+    m = Mechanism("Stackelberg", utility=u, payment=Sym("p_i"), ic=ic, ir=u,
+                  params={}, type_space=["lo", "hi"],
+                  meta={"equilibrium_existence": True,
+                        "follower_decision": r"effort level \( e_i \)",
+                        "num_types": 2})
+    deps = _t.SimpleNamespace(
+        retrieve=lambda spec, k, index=None: [],
+        route=lambda spec, index=None: "Retrieval",
+        propose=lambda spec, mode, hits, fb: m,
+        synthesize=lambda mm, c: mm, make_constraints=lambda mm: None,
+        render=render, mc_prefilter=_spy_mc,
+        inspect=inspect_mechanism, is_success=is_loop_success)
+    r = run(ProblemSpec(raw_text="follower effort"), index=object(), deps=deps,
+            budget_s=120)
+    assert called == [], "mc_prefilter should not be called for Stackelberg"
+    assert r.status == "VERIFIED", (r.status, r.transcript)

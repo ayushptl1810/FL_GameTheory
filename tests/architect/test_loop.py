@@ -131,8 +131,10 @@ def test_propose_error_fails():
 
 
 def test_mc_hit_does_not_increment_solver_calls():
+    # MC pre-filter only runs for VCG, so the proposal must be a VCG mechanism.
     deps = _scripted_deps(
         verdicts=[_V("VERIFIED", entry_specific=True)],
+        propose=[_mech("VCG"), _mech("VCG")],
         mc_prefilter=[{"type": "t=1", "ic_gap": "-0.2"}])
     r = run(ProblemSpec(raw_text="x"), index=object(), deps=deps)
     assert r.status == "VERIFIED"

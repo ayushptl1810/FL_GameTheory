@@ -109,7 +109,15 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
                 return _finish("FAILED", None, None, None)
             continue
 
-        mc = deps.mc_prefilter(m)
+        # The MC pre-filter samples every symbol independently in [0.1, 1] with
+        # no structural constraints. That is a sound quick check only for VCG
+        # (dominant-strategy, independent private values). For Contract it needs
+        # a type ordering it does not have -> spurious "violations" on valid
+        # screening menus (same reason Stage 1's Z3 suppresses unordered Contract
+        # counterexamples to UNKNOWN); for Stackelberg there is no IC to check.
+        # So the pre-filter runs for VCG only; other families go straight to the
+        # real verifier, which imposes the right assumptions.
+        mc = deps.mc_prefilter(m) if m.category == "VCG" else None
         if mc is not None:
             transcript.append({"iter": iterations, "mode": mode,
                                "verdict": "MC_COUNTEREXAMPLE",
