@@ -21,6 +21,16 @@ def test_render_roundtrips_inside_fragment():
     assert latex
 
 
+def test_meta_merge_is_allowlisted():
+    """Disallowed meta keys (esp. *_latex) must not overwrite validated fields."""
+    m = _quad_contract()
+    m.meta = {"equilibrium_existence": True,
+              "follower_utility_latex": "GARBAGE"}
+    md, _ = render(m)
+    assert md["equilibrium_existence"] is True
+    assert md.get("follower_utility_latex") != "GARBAGE"
+
+
 def test_to_latex_and_back_is_equal():
     import sympy
     node = Sum([Prod([Const(2), Pow(Sym("x"), 2)]), Sym("y")])

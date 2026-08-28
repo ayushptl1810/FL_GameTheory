@@ -72,6 +72,16 @@ _FIELD_MAP = {
 
 _IC_IR_ATTRS = ("ic", "ir")
 
+# Non-LaTeX verifier metadata keys allowed to ride on Mechanism.meta and be
+# folded into the rendered dict without a round-trip check. Anything else in
+# meta (notably any *_latex key) is silently dropped so model-authored JSON
+# cannot overwrite a validated LaTeX field. Keys read by verify_stackelberg /
+# _try_stackelberg_latex per task-12-report.md.
+# ponytail: stray meta keys are ignored, not an error — the loop must not die on one.
+_META_KEYS = frozenset({
+    "equilibrium_existence", "follower_decision", "num_types", "type_variable",
+})
+
 
 def ast_to_sympy(node):
     # Symbols are built assumption-free (no positive=True): sympy treats
@@ -174,10 +184,10 @@ def render(m: Mechanism):
                 f"re-parse to the proposed expression; simplify the {attr} term"
             )
 
-    # Metadata keys (e.g. equilibrium_existence, follower_decision, num_types)
-    # are not LaTeX: fold them in verbatim AFTER the round-trip check so they
-    # never pass through parse_only_* / _norm.
-    md.update({k: v for k, v in m.meta.items()})
+    # Fold in ONLY the allowlisted non-LaTeX metadata keys, AFTER the round-trip
+    # check. This stops model-authored meta from overwriting a validated LaTeX
+    # field with unchecked content.
+    md.update({k: v for k, v in m.meta.items() if k in _META_KEYS})
 
     full = "\n".join(f"{k}: {v}" for k, v in md.items())
     return md, full
