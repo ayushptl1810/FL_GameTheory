@@ -104,11 +104,34 @@ def _norm(expr):
     return expr.xreplace(subs)
 
 
+# Greek base names -> their LaTeX command. `\theta` is the conventional type
+# variable across contract-theory / Stackelberg FL, so `Sym("theta_i")` must
+# render as `\theta_{i}` or every realistic proposal is rejected at this gate.
+_GREEK = frozenset({
+    "theta", "alpha", "beta", "gamma", "delta", "epsilon", "zeta", "eta",
+    "lambda", "mu", "nu", "xi", "rho", "sigma", "tau", "phi", "chi", "psi",
+    "omega", "pi", "kappa",
+})
+
+
+def _latex_name(sym_name: str) -> str:
+    """LaTeX rendering of a single symbol name that sympy's latex parser reads
+    straight back. Greek base -> backslash command; multi-letter non-Greek base
+    has no round-trippable form (parse_latex splits it into a product)."""
+    base, _, sub = sym_name.partition("_")
+    if base in _GREEK:
+        base = "\\" + base
+    elif len(base) > 1:
+        raise OutsideParseableFragment(
+            f"symbol {sym_name!r} has a multi-letter base; use a single-letter "
+            f"symbol base with a subscript (e.g. `e_h` not `e_high`)"
+        )
+    return f"{base}_{{{sub}}}" if sub else base
+
+
 def to_latex(node) -> str:
     expr = ast_to_sympy(node)
-    # Force plain `x_i` subscripts (not `x_{i}`); sympy's latex parser reads the
-    # former straight back, so quadratics round-trip.
-    names = {s: s.name for s in expr.free_symbols}
+    names = {s: _latex_name(s.name) for s in expr.free_symbols}
     return sympy.latex(expr, symbol_names=names)
 
 
