@@ -28,9 +28,8 @@ def test_retrieval_mode_reaches_a_verdict():
         inspect=inspect_mechanism, is_success=is_loop_success)
     r = run(ProblemSpec(raw_text="two-type screening menu, private types"),
             index=object(), deps=deps, budget_s=120)
-    assert r.status in {"VERIFIED", "FAILED"}
-    assert r.transcript and r.transcript[-1].get("verdict") in {
-        "VERIFIED", "VERIFIED_TEMPLATE", "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED", None}
+    assert r.status == "FAILED"
+    assert any(e.get("note") == "verified_template_rejected" for e in r.transcript)
 
 
 def test_e2e_retrieval_reaches_entry_specific_verified():

@@ -16,9 +16,6 @@ from architect.ast import (
 from tracks.track1_z3 import (
     parse_only_vcg, parse_only_contract, parse_only_stackelberg, ParseFailure,
 )
-from tracks.track3_dreal import parse_only_transcendental  # noqa: F401  (Task 10 reuse)
-
-MechanismDict = dict
 
 
 class OutsideParseableFragment(Exception):
@@ -65,8 +62,6 @@ _FIELD_MAP = {
     },
     "Stackelberg": {
         "follower_utility_latex": "utility",
-        "ir_follower_latex": "ir",
-        "ic_condition_latex": "ic",
     },
 }
 

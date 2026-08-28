@@ -1,6 +1,6 @@
 from __future__ import annotations
 from architect.llm import llm_complete
-from architect.rag import nearest_distance
+from architect.rag import nearest_distance, retrieve
 from architect.types import ProblemSpec
 
 ROUTER_SYSTEM_PROMPT = (
@@ -22,7 +22,7 @@ def _yes(text: str) -> bool:
 def route(spec: ProblemSpec, index, *, tau_retrieval: float = 0.15,
           complete=llm_complete):
     if nearest_distance(spec, index) < tau_retrieval:
-        title = index.entries[0].get("title", "")
+        title = retrieve(spec, 1, index=index)[0].get("title", "")
         if _yes(complete(ROUTER_SYSTEM_PROMPT, f"Setup: {spec.raw_text}\nPaper: {title}")):
             return "Retrieval"
     if len(spec.failure_modes) >= 2:

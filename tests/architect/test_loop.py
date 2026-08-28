@@ -151,6 +151,19 @@ def test_outside_parseable_fragment_triggers_repair():
                for e in r.transcript)
 
 
+def test_synthesize_exception_flows_into_syn_unsat_path():
+    def _boom(m, c):
+        raise ValueError("cannot translate log(x)")
+
+    deps = _deps([_V("VERIFIED", entry_specific=True)] * 20)
+    deps.synthesize = _boom
+    r = run(ProblemSpec(raw_text="x"), index=object(), deps=deps)
+    assert r.status == "FAILED"
+    syn = [e for e in r.transcript if e.get("verdict") == "SYN_UNSAT"]
+    assert syn and any("cannot translate log(x)" in str(e.get("note", "")) for e in syn)
+    assert sum(1 for e in r.transcript if e.get("note") == "restart") == 1
+
+
 def test_feedback_block_distinguishes_restart_from_counterexample():
     restart_txt = _feedback_block(Feedback(kind="restart", hint="VCG, Contract"))
     cex_txt = _feedback_block(

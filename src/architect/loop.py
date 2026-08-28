@@ -81,10 +81,19 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             return _finish("FAILED", None, None, None)
 
         if mode == "Synthesis":
-            out = deps.synthesize(m, deps.make_constraints(m))
+            try:
+                out = deps.synthesize(m, deps.make_constraints(m))
+            except (ValueError, TypeError) as exc:
+                out = "UNSAT"
+                _syn_exc = str(exc)
+            else:
+                _syn_exc = None
             if out == "UNSAT":
-                transcript.append({"iter": iterations, "mode": mode,
-                                   "verdict": "SYN_UNSAT", "family": m.category})
+                entry = {"iter": iterations, "mode": mode,
+                         "verdict": "SYN_UNSAT", "family": m.category}
+                if _syn_exc:
+                    entry["note"] = f"synthesize_error: {_syn_exc}"
+                transcript.append(entry)
                 if _repair(Feedback(kind="reformulate",
                                     hint="template family infeasible; different structure")) == "fail":
                     return _finish("FAILED", None, None, None)
