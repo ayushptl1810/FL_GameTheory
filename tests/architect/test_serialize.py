@@ -15,6 +15,8 @@ def _quad_contract():
 def test_render_roundtrips_inside_fragment():
     md, latex = render(_quad_contract())
     assert "client_utility_latex" in md
+    # canonical Contract field names the verifier actually consumes must be present
+    assert "ic_screening_latex" in md and "ir_participation_latex" in md
     assert "\\geq" in md["ic_condition_latex"] or ">=" in md["ic_condition_latex"]
     assert latex
 

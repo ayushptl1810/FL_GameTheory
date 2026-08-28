@@ -74,6 +74,9 @@ _IC_IR_ATTRS = ("ic", "ir")
 
 
 def ast_to_sympy(node):
+    # Symbols are built assumption-free (no positive=True): sympy treats
+    # Symbol('x', positive=True) and Symbol('x') as distinct, so keeping
+    # assumptions here would break equality against a plain sympify(...) form.
     if isinstance(node, Const):
         return sympy.Rational(node.value).limit_denominator(10 ** 6)
     if isinstance(node, (Sym, Unknown)):
