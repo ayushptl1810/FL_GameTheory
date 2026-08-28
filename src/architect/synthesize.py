@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 import z3, sympy
-from architect.ast import Const, Unknown, Sum, Prod, Pow, Func, Sym, IndexedFamily, Mechanism
+from architect.ast import Const, Unknown, Sum, Prod, Pow, Func, Mechanism
 from architect.serialize import ast_to_sympy
 
 
@@ -43,6 +43,8 @@ def _sympy_to_z3(expr, zvars):
         return out
     if expr.is_Pow:
         base = _sympy_to_z3(expr.base, zvars)
+        if not (getattr(expr.exp, "is_Integer", False) or float(expr.exp).is_integer()):
+            raise ValueError(f"cannot translate non-integer exponent {expr.exp!r} to z3 (fragment limit)")
         e = int(expr.exp)
         out = z3.RealVal(1)
         for _ in range(abs(e)):

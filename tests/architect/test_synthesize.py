@@ -1,3 +1,5 @@
+import pytest
+
 from architect.ast import Const, Sym, Unknown, Sum, Prod, Pow, Mechanism
 from architect.synthesize import synthesize, Constraints, collect_unknowns
 
@@ -27,3 +29,18 @@ def test_synthesize_rejects_too_many_unknowns():
     c = Constraints(ic=Sum([Const(1)]), ir=Sum([Const(1)]), budget_lhs=None,
                     budget_rhs=None, type_space=["t"], param_bounds={})
     assert synthesize(m, c) == "UNSAT"
+
+
+def test_synthesize_rejects_non_integer_exponent():
+    # ic contains Pow(x, 1/2): must LOUD-FAIL, not silently truncate to RealVal(1)
+    payment = Unknown("a")
+    ir = Sum([Unknown("a")])
+    frac = Pow(Sym("x"), 1)
+    frac.exp = 0.5  # fractional exponent ast_to_sympy will preserve
+    ic = Sum([frac])
+    m = Mechanism("Contract", utility=ir, payment=payment, ic=ic, ir=ir,
+                  params={}, type_space=["x"])
+    c = Constraints(ic=ic, ir=ir, budget_lhs=None, budget_rhs=None,
+                    type_space=["x"], param_bounds={"a": (0.0, 10.0)})
+    with pytest.raises(ValueError):
+        synthesize(m, c)
