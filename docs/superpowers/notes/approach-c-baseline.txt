@@ -1,0 +1,42 @@
+
+================================================================
+  Multi-Track Verification Summary  (105 entries checked)
+================================================================
+  VERIFIED           █████████████████████████  (25)
+  VERIFIED_TEMPLATE  ████████████████████████████████████████  (73)
+  UNKNOWN            ██  (2)
+  UNSUPPORTED        █████  (5)
+  NOTE: VERIFIED_TEMPLATE checks a generic structural template for the
+        category, not this entry's own math. It is not a proof about
+        the specific paper. Only VERIFIED (entry_specific=True) is.
+  ├─ Passed (98 total, 25 entry-specific):
+  │   VCG (33): 19 form-confirmed [clarke=9 marginal=3 threshold=7], 14 template-only
+  │   Contract entry-specific (LaTeX utility):   5
+  │   Contract template (linear-cost model):     31
+  │   SOS certificate (Track 2, poly degree≥2):  4
+  │   Bayesian IC (Track 4, symbolic integral):  1
+  └─ Stackelberg equilibrium IR (NOT DSIC): 29 (1 entry-specific, 28 template-only)
+  dReal δ-verified (Track 3, transcendental):   1
+================================================================
+
+────────────────────────────────────────────────────────────
+Paper    : Kang2019contract_mobile
+Category : Contract
+Track    : 3
+Verdict  : UNKNOWN
+  · IC: 9 free variables — box search intractable
+  · IR: 11 free variables — box search intractable
+Notes    : δ=0.001 | domain=[0.001,1.0] | mpmath.iv branch-and-bound | guarantee: δ-sound, not exact
+
+────────────────────────────────────────────────────────────
+Paper    : Tian2021contract
+Category : Contract
+Track    : 1
+Verdict  : UNKNOWN
+  · IR: U_i(own) ≥ 0  [entry-specific utility]
+  · IC: U_i(own) ≥ U_i(j) for all 2×1 pairs  [entry-specific utility]
+Notes    : IR:UNKNOWN IC:UNKNOWN | LaTeX-parsed utility | n=2 (capped 4) | binding: IR at type-0, adjacent upward IC | type-ordering: unidentified (counterexamples suppressed)
+
+........................................................................ [ 92%]
+...xxxxx...                                                              [100%]
+150 passed, 5 xfailed in 5.36s
