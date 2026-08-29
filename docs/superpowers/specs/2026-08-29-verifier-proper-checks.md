@@ -34,7 +34,7 @@ one-time job: *encode ~8 known node types into Z3 / SOS / interval terms.*
 
 ---
 
-## Phase 1 — Approach C: AST-native verify path
+## Phase 1 — Approach C: AST-native verify path  ✅ landed 2026-08-29
 
 Remove LaTeX from the verify path. LaTeX stays a pure *output* format (paper,
 corpus insertion).
@@ -83,6 +83,8 @@ transcript entries.
 Frozen regression gate on every task: `python -m verifier corpus.json` must stay
 **VERIFIED 25 / VERIFIED_TEMPLATE 73 / UNKNOWN 2 / UNSUPPORTED 5**, and the full
 `pytest` suite green.
+
+**Result** — `ast_to_sympy` covers all 8 node types; SymPy→solver→verdict back-half extracted behind a seam in every track. New `verify_from_ast(m, meta)` + `_classify_ast(m)` in `src/architect/ast_verify.py`; `inspect_mechanism` calls it when `ARCHITECT_AST_VERIFY=1` (default off). Parity test: matches LaTeX path on loop's VERIFIED fixtures (Stackelberg-effort + 2-type Contract), no fix needed. Regression frozen: 25/73/2/5 unchanged. Live `live_smoke` (gpt-oss-120b): 4/4 VERIFIED, zero parse-family transcript entries. Flag default stays off; Track 2 & Track 3 seam helpers still re-parse LaTeX internally (Phase 3 work).
 
 ---
 
