@@ -29,6 +29,7 @@ def test_bridge_indexed_family_is_opaque_symbol():
 # ── verify_from_ast / _classify_ast orchestrator ────────────────────────────
 from architect.ast import Mechanism, Sum, Prod, Const, Pow, Func  # noqa: E402
 from architect.ast_verify import verify_from_ast, _classify_ast  # noqa: E402
+from architect.inspect import inspect_mechanism  # noqa: E402
 
 
 def _stackelberg_effort():
@@ -84,3 +85,48 @@ def test_verify_from_ast_reaches_verified_contract():
     r = verify_from_ast(m)
     assert r is not None
     assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+# ── parity: AST-native path vs AST -> LaTeX -> verify() on the loop fixtures ──
+# Builders copied verbatim from tests/architect/test_e2e_retrieval.py
+# (test_loop_run_reaches_verified_via_stackelberg / ..._via_contract): the exact
+# Mechanism + meta the real CEGIS loop drives to an entry-specific VERIFIED.
+
+
+def _loop_stackelberg_fixture():
+    e_star_num = Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])
+    u = Sum([Prod([Sym("p_i"), Sym("e_i")]), e_star_num])
+    ic = Pow(Sum([Sym("p_i"), Prod([Const(-1), Sym("c"), Sym("e_i")])]), 2)
+    m = Mechanism("Stackelberg", utility=u, payment=Sym("p_i"), ic=ic, ir=u,
+                  params={}, type_space=["lo", "hi"],
+                  meta={"equilibrium_existence": True,
+                        "follower_decision": r"effort level \( e_i \)",
+                        "num_types": 2})
+    return m, {"paper_id": "architect-proposal", "num_clients": 2}
+
+
+def _loop_contract_fixture():
+    def U(r, th, e):
+        return Sum([Sym(r), Prod([Const(-1), Sym(th), Sym(e)])])
+
+    own = U("R_i", "theta_i", "e_i")
+    other = U("R_j", "theta_i", "e_j")
+    ic = Sum([own, Prod([Const(-1), other])])
+    m = Mechanism("Contract", utility=own, payment=Sym("R_i"), ic=ic,
+                  ir=U("R_i", "theta_i", "e_i"), params={},
+                  type_space=["lo", "hi"],
+                  meta={"num_types": 2, "type_variable": "theta_i"})
+    return m, {"paper_id": "architect-proposal", "num_clients": 2}
+
+
+def _loop_verified_fixtures():
+    return [_loop_stackelberg_fixture(), _loop_contract_fixture()]
+
+
+def test_ast_path_matches_latex_path_on_loop_fixtures():
+    for m, meta in _loop_verified_fixtures():
+        latex_verdict = inspect_mechanism(m, meta).verdict   # AST -> LaTeX -> verify()
+        ast_result = verify_from_ast(m, meta)
+        assert ast_result.verdict == latex_verdict, (
+            m.category, ast_result.verdict, latex_verdict)
+        assert ast_result.verdict == "VERIFIED" and ast_result.entry_specific is True
