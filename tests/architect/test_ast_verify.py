@@ -24,3 +24,33 @@ def test_bridge_funcs():
 def test_bridge_indexed_family_is_opaque_symbol():
     got = ast_to_sympy(IndexedFamily("R", "i", ["R_1", "R_2"]))
     assert got == sympy.Symbol("R")
+
+
+# ── verify_from_ast / _classify_ast orchestrator ────────────────────────────
+from architect.ast import Mechanism, Sum, Prod, Const, Pow, Func  # noqa: E402
+from architect.ast_verify import verify_from_ast, _classify_ast  # noqa: E402
+
+
+def _stackelberg_effort():
+    # U_i = p_i*e_i - 1/2 * c * e_i^2  — the loop's canonical VERIFIED shape
+    return Mechanism(
+        category="Stackelberg",
+        utility=Sum([Prod([Sym("p_i"), Sym("e_i")]),
+                     Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])]),
+        payment=Sym("p_i"), ic=Sym("e_i"), ir=Sym("e_i"),
+        type_space=[], meta={"follower_decision": r"\( e_i \)"})
+
+
+def test_classify_transcendental():
+    m = _stackelberg_effort()
+    m.utility = Func("ln", Sym("e_i"))
+    assert _classify_ast(m) == 3
+
+
+def test_classify_default_track1():
+    assert _classify_ast(_stackelberg_effort()) == 1
+
+
+def test_verify_from_ast_reaches_verified_stackelberg():
+    r = verify_from_ast(_stackelberg_effort())
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
