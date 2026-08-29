@@ -114,6 +114,27 @@ literature, plus a short proof-readable rendering of the certificate.
 
 ---
 
+## Part 2b — VCG entry-specific verification (found by the Task D soundness suite)
+
+**Why.** The 2026-08-29 adversarial soundness suite (`tests/verifier/`) showed the
+VCG track does **no** entry-specific check: it regex-matches the shape of
+`payment_rule_latex` and, on a match, flips its fixed template verdict to
+`VERIFIED`. A Clarke-pivot-shaped payment with the item allocated to the *lowest*
+bidder still returns entry-specific `VERIFIED`
+(`vcg_clarke_shaped_payment_wrong_allocation`, currently `xfail`). Every
+"entry-specific VERIFIED" VCG number in Task.md rests on this regex.
+
+**Work.** A real DSIC check for the discrete VCG fragment: encode allocation
+rule `x(b)` + payment rule `p(b)` + `u_i = v_i x_i − p_i` in Z3 and prove
+`∀ b_i': u_i(v_i) ≥ u_i(b_i')` over the finite type grid, exactly as Track 1
+already does for Contract screening. Until then the VCG "entry-specific" verdict
+should be renamed `VERIFIED_SHAPE` so no reader mistakes it for a proof.
+
+**Done when:** the xfail'd fixture returns `UNKNOWN`/`COUNTEREXAMPLE`, and the
+VCG entry-specific count in Task.md is recomputed against the real check.
+
+---
+
 ## Part 3 — Transcendental IC (`ln` / exponential utilities)
 
 **Why.** `iiot_log_linear` FAILED in the first eval because the model kept
