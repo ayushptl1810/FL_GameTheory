@@ -413,6 +413,8 @@ Approach C), `docs/superpowers/plans/2026-08-28-architect-cegis-loop.md` (the
 
 ### Key Differentiation from Prior Work
 
+> Full positioning against 2024–2026 work: see docs/related-work.md.
+
 A February 2025 paper (Liu, Guo, Conitzer — arXiv 2502.12203) does LLM-based automated mechanism design but enforces IC **by construction** via template-specific structural fixing — Myerson monotonicity repair and critical-price construction for pre-specified auction templates (single-item VCG, multi-bidder redistribution). Their Monte Carlo simulation estimates expected revenue as a performance metric, not to verify IC. This approach does not generalise: the fixing procedures are hard-coded for a small number of known mechanism templates and produce no machine-checkable proof certificate for novel or arbitrary LLM-proposed forms.
 
 This project verifies IC **formally** — the verifier either produces a mathematical proof certificate or a guaranteed counterexample for any mechanism expressible in the **discrete-type screening + single-parameter Stackelberg + standard-form VCG** fragment; outside this fragment the verifier returns `UNKNOWN` / `VERIFIED_TEMPLATE` and the loop reports non-success. On the 105-entry verifiable tier, 25/105 entries reach entry-specific `VERIFIED` today. "Provably correct" means something here that it does not in 2502.12203. This formal guarantee, combined with the FL-specific corpus, is the primary research contribution.
