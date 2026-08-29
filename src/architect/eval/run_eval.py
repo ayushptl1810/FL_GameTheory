@@ -43,6 +43,28 @@ def _ablations_table(rows) -> str:
     return hdr + "\n" + sep + "\n" + body
 
 
+def _baselines_table(rows) -> str:
+    hdr = "| name | method | status | ic_regret | family_match |"
+    sep = "|" + "---|" * 5
+    body = "\n".join(
+        f"| {r['name']} | {r['method']} | {r['status']} | {r['ic_regret']} | "
+        f"{r['family_match']} |" for r in rows)
+    return hdr + "\n" + sep + "\n" + body
+
+
+def _run_baselines() -> list:
+    from architect.eval.benchmarks import BENCHMARKS
+    from architect.eval.baselines.control import run_baseline as _control
+    from architect.eval.baselines.regretnet import run_baseline as _regretnet
+    from architect.eval.baselines.liu_amd_llm import run_baseline as _liu
+    rows = []
+    for method, fn in (("control", _control), ("regretnet", _regretnet),
+                       ("liu_amd_llm", _liu)):
+        for b in BENCHMARKS:
+            rows.append(fn(method, b))
+    return rows
+
+
 def _model_table(rows, model) -> str:
     hdr = "| model | name | verified_rate | iters_mean | wall_clock_mean |"
     sep = "|" + "---|" * 5
@@ -61,6 +83,9 @@ def main(argv=None) -> int:
                     help="override ARCHITECT_LLM_MODEL for this run")
     ap.add_argument("--ablations", action="store_true",
                     help="also run the ablation knobs: " + ", ".join(ABLATIONS))
+    ap.add_argument("--with-baselines", action="store_true",
+                    help="also run the control / RegretNet / Liu-et-al baselines "
+                         "over every benchmark and append a ## Baselines table")
     args = ap.parse_args(argv)
 
     if args.model:
@@ -82,6 +107,8 @@ def main(argv=None) -> int:
         parts += ["", "## Ablations", "", _ablations_table(abl)]
     if args.model:
         parts += ["", "## Model comparison", "", _model_table(base, args.model)]
+    if args.with_baselines:
+        parts += ["", "## Baselines", "", _baselines_table(_run_baselines())]
 
     pathlib.Path("docs").mkdir(exist_ok=True)
     pathlib.Path("docs/eval-results.md").write_text("\n".join(parts) + "\n")
