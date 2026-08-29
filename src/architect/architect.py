@@ -9,6 +9,7 @@ Mechanism JSON: {category, utility, payment, ic, ir, params:{}, type_space:[str]
 """
 from __future__ import annotations
 import json
+import re
 from architect.llm import llm_complete
 from architect.types import ProblemSpec, Feedback
 from architect.ast import (Const, Sym, Unknown, Sum, Prod, Pow, Func,
@@ -65,8 +66,13 @@ def mechanism_from_json(obj) -> Mechanism:
     # engage; the verifier still does the real FOC/IR/IC math.
     if m.category == "Stackelberg":
         m.meta.setdefault("equilibrium_existence", True)
-        m.meta.setdefault("follower_decision", "e_i")
         m.meta.setdefault("num_types", len(m.type_space) or 2)
+        # The Stage 1 Stackelberg parser reads follower_decision as inline LaTeX
+        # (\( ... \)). Pull the symbol token out of whatever the model gave
+        # ("effort e_i", "e_i", "\( e_i \)") and re-wrap it.
+        fd = str(m.meta.get("follower_decision", "")) or "e_i"
+        tok = re.search(r"[A-Za-z]+_[A-Za-z0-9]+|[A-Za-z]", fd)
+        m.meta["follower_decision"] = f"\\( {tok.group(0) if tok else 'e_i'} \\)"
     elif m.category == "Contract":
         m.meta.setdefault("num_types", len(m.type_space) or 2)
 
@@ -124,8 +130,10 @@ _AST_RULES = (
     "kappa, ...), and any subscript must be one short single token such as e_i "
     "or theta_h -- never a word like e_high or cost. "
     'For a Stackelberg mechanism you MUST also include "meta": '
-    '{"equilibrium_existence": true, "follower_decision": '
-    '"<the follower\'s decision variable, e.g. effort e_i>", "num_types": <int>}.'
+    '{"equilibrium_existence": true, "follower_decision": "e_i", '
+    '"num_types": <int>}, use NO Unknown nodes (the follower utility is a '
+    "closed form in the price symbol p_i and the cost symbol c), and set "
+    'follower_decision to just the bare symbol like "e_i".'
 )
 RETRIEVAL_PROMPT = ("You adapt the closest known FL incentive mechanism to a new "
                     "setup, changing only what the new parameters require. " + _AST_RULES)

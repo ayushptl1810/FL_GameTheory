@@ -52,4 +52,4 @@ def test_stackelberg_meta_defaults_filled():
                 complete=lambda s, u, **k: json.dumps(j))
     assert m.meta["equilibrium_existence"] is True
     assert m.meta["num_types"] == 2
-    assert m.meta["follower_decision"] == "e_i"
+    assert m.meta["follower_decision"] == r"\( e_i \)"

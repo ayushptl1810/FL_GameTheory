@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 import z3, sympy
-from architect.ast import Const, Unknown, Sum, Prod, Pow, Func, Mechanism
+from architect.ast import Const, Sym, Unknown, Sum, Prod, Pow, Func, Mechanism
 from architect.serialize import ast_to_sympy
 
 
@@ -53,6 +53,24 @@ def _sympy_to_z3(expr, zvars):
     raise ValueError(f"cannot translate {expr!r} to z3 (fragment limit)")
 
 
+def _unknowns_to_syms(node):
+    """Rewrite every Unknown to a plain Sym of the same name. Used for
+    Stackelberg, where a model that over-marks Unknown (e.g. tagging the
+    leader's price) really just meant 'symbol' -- keeping the structure and
+    letting verify() derive the follower FOC is far better than picking values."""
+    if isinstance(node, Unknown):
+        return Sym(node.name)
+    if isinstance(node, Sum):
+        return Sum([_unknowns_to_syms(t) for t in node.terms])
+    if isinstance(node, Prod):
+        return Prod([_unknowns_to_syms(f) for f in node.factors])
+    if isinstance(node, Pow):
+        return Pow(_unknowns_to_syms(node.base), node.exp)
+    if isinstance(node, Func):
+        return Func(node.name, _unknowns_to_syms(node.arg))
+    return node
+
+
 def _substitute_unknowns(node, model: dict):
     if isinstance(node, Unknown):
         if node.name not in model:
@@ -90,18 +108,18 @@ def synthesize(m: Mechanism, c: Constraints):
         return "UNSAT"
     if m.category == "Stackelberg":
         # Synthesis mode's ForAll(ic>=0, ir>=0) solve does not fit Stackelberg
-        # (there is no screening IC; m.ic holds an FOC), and reformulate-looping
-        # a model off parametric Stackelberg templates does not converge. Just
-        # instantiate every free coefficient at 1.0 and let verify() judge the
-        # concrete follower FOC / IR -- that is what "synthesis" means here.
-        vals = {u: 1.0 for u in unknowns}
+        # (no screening IC; m.ic holds an FOC). Models routinely over-mark
+        # Unknown here -- tagging the leader's price or the cost coefficient --
+        # so demote every Unknown back to a plain Sym and let verify() derive
+        # the follower FOC and check IR at the optimum. That keeps the structure
+        # intact instead of picking arbitrary values.
         return Mechanism(
             m.category,
-            utility=_substitute_unknowns(m.utility, vals),
-            payment=_substitute_unknowns(m.payment, vals),
-            ic=_substitute_unknowns(m.ic, vals),
-            ir=_substitute_unknowns(m.ir, vals),
-            params={**m.params, **vals}, type_space=m.type_space,
+            utility=_unknowns_to_syms(m.utility),
+            payment=_unknowns_to_syms(m.payment),
+            ic=_unknowns_to_syms(m.ic),
+            ir=_unknowns_to_syms(m.ir),
+            params=dict(m.params), type_space=m.type_space,
             provenance=m.provenance, meta=dict(m.meta))
     zvars: dict = {}
     for u in unknowns:
