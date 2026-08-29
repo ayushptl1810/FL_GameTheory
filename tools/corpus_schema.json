@@ -107,6 +107,7 @@
       "enum": [
         "VERIFIED",
         "VERIFIED_TEMPLATE",
+        "VERIFIED_SHAPE",
         "COUNTEREXAMPLE",
         "UNKNOWN",
         "UNSUPPORTED",

@@ -202,6 +202,11 @@ def print_summary(results: list[VerificationResult]) -> None:
     # bars above keep them visually separate so this table never collapses
     # them back into one misleading "N verified" headline.
     passed = [r for r in results if r.verdict in ("VERIFIED", "VERIFIED_TEMPLATE")]
+    # VERIFIED_SHAPE is a regex/structural shape match only -- never a proof and
+    # never a solver run on the entry. It is deliberately NOT in `passed`, so it
+    # cannot inflate the entry-specific / form-confirmed counts. Reported
+    # separately below as "regex-shape only (not a proof)".
+    shape_only = [r for r in results if r.verdict == "VERIFIED_SHAPE"]
 
     vcg_results = [r for r in passed if r.category == "VCG"]
     vcg_form_counts: Counter[str] = Counter()
@@ -234,7 +239,8 @@ def print_summary(results: list[VerificationResult]) -> None:
     print(f"\n{'=' * 64}")
     print(f"  Multi-Track Verification Summary  ({total} entries checked)")
     print(f"{'=' * 64}")
-    for v in ("VERIFIED", "VERIFIED_TEMPLATE", "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"):
+    for v in ("VERIFIED", "VERIFIED_TEMPLATE", "VERIFIED_SHAPE",
+              "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"):
         n = counts[v]
         if n:
             bar = "█" * min(n, 40)
@@ -265,6 +271,9 @@ def print_summary(results: list[VerificationResult]) -> None:
                   f" {len(stackelberg_passed) - stackelberg_specific} template-only)")
         if dreal_verified:
             print(f"  dReal δ-verified (Track 3, transcendental):   {dreal_verified}")
+    if shape_only:
+        print(f"  ·  VCG regex-shape only (not a proof): {len(shape_only)}"
+              f"  [structural form match; no solver run on the entry]")
     print(f"{'=' * 64}\n")
 
     for r in results:
