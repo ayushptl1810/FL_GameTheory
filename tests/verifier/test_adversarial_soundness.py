@@ -33,9 +33,12 @@ def test_broken_mechanism_is_never_verified(case):
 
 @pytest.mark.parametrize("case", TEMPLATE_FALLBACK_HOLES,
                          ids=[c["name"] for c in TEMPLATE_FALLBACK_HOLES])
+# strict=True: every case here is a KNOWN template-fallback / VCG-entry-specific
+# hole a future phase will close. When one closes it must fail loudly (forcing an
+# un-xfail), not silently xpass. None of these is run-to-run indeterminate.
 @pytest.mark.xfail(reason="generic template path ignores entry-specific math; "
                           "closing this is a verifier redesign (see task-D-report.md)",
-                   strict=False)
+                   strict=True)
 def test_template_fallback_hole_documented(case):
     res = verify(_entry(case))
     assert res.verdict not in UNSOUND, (
