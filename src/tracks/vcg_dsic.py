@@ -9,9 +9,12 @@ that into UNKNOWN/UNSUPPORTED.  Never guess.
 
 from __future__ import annotations
 
+import random
 import re
 from collections import namedtuple
 from dataclasses import dataclass
+
+from tracks import VerificationResult, finalize_verdict
 
 try:  # only ArgmaxWelfare / ExplicitFormula objective parsing needs sympy
     import sympy
@@ -240,6 +243,8 @@ def encode_utility(grid: GridCtx, alloc, pay):
             win = z3.And(*[my_bid >= o for o in others])
             if isinstance(pay, ClarkePivot):
                 price = max_other
+            elif isinstance(pay, ExplicitFormula):
+                price = _explicit_price_z3(pay.expr, my_bid, my_val)
             else:
                 raise NotImplementedError(f"payment spec {pay!r}: Task 4")
             return z3.If(win, my_val - price, z3.RealVal(0))
@@ -247,6 +252,257 @@ def encode_utility(grid: GridCtx, alloc, pay):
         raise NotImplementedError(f"allocation spec {alloc!r}: Task 4")
 
     return utility
+
+
+# --------------------------------------------------------------------------- #
+# sympy payment expr -> z3                                                     #
+# --------------------------------------------------------------------------- #
+def _salvage_scalar_expr(raw):
+    """Best-effort: turn a raw payment string like ``b_i / 2 \\text{ if } x_i=1``
+    into a sympy expr in {b_i, v_i}.  Returns the sympy expr, or the raw input
+    unchanged if it cannot be parsed cleanly."""
+    if sympy is None or not isinstance(raw, str):
+        return raw
+    head = re.split(r"\\text\{|\\quad|\\;|,|;|\bif\b|\botherwise\b", raw)[0]
+    cleaned = re.sub(r"\\[a-zA-Z]+|[{}\\]", " ", head).replace("^", "**").strip()
+    if not cleaned:
+        return raw
+    try:
+        expr = sympy.sympify(cleaned)
+    except Exception:
+        return raw
+    return expr if getattr(expr, "free_symbols", None) is not None else raw
+
+
+_PRICE_SYMS = {"b_i", "b", "v_i", "v"}
+
+
+def _explicit_price_z3(expr, my_bid, my_val):
+    """sympy payment expr (symbols subset of {b_i,b,v_i,v}) -> z3 arithmetic."""
+    if sympy is None or not hasattr(expr, "free_symbols"):
+        raise NotImplementedError(f"payment expr not symbolic: {expr!r}")
+    names = {str(s) for s in expr.free_symbols}
+    if not names <= _PRICE_SYMS:
+        raise NotImplementedError(f"payment expr symbols {names}: Task 4")
+    env = {"b_i": my_bid, "b": my_bid, "v_i": my_val, "v": my_val}
+
+    def rec(e):
+        if e.is_Symbol:
+            return env[str(e)]
+        if e.is_Integer:
+            return z3.RealVal(int(e))
+        if e.is_Rational:
+            return z3.RealVal(f"{e.p}/{e.q}")
+        if e.is_Float:
+            return z3.RealVal(float(e))
+        if e.is_Add:
+            return z3.Sum(*[rec(a) for a in e.args])
+        if e.is_Mul:
+            out = rec(e.args[0])
+            for a in e.args[1:]:
+                out = out * rec(a)
+            return out
+        if e.is_Pow:
+            base, exp = e.args
+            if exp.is_Integer and int(exp) >= 0:
+                out = z3.RealVal(1)
+                for _ in range(int(exp)):
+                    out = out * rec(base)
+                return out
+        raise NotImplementedError(f"payment expr node {e!r}: Task 4")
+
+    return rec(expr)
+
+
+# --------------------------------------------------------------------------- #
+# the real finite-grid DSIC + IR check                                        #
+# --------------------------------------------------------------------------- #
+def _n_attrs_from_value_latex(entry: dict) -> int:
+    mech = entry.get("mechanism") or {}
+    for key in ("value_latex", "client_value_latex", "valuation_latex",
+                "client_utility_latex"):
+        s = mech.get(key) or entry.get(key)
+        if isinstance(s, str) and (
+            re.search(r"\\mathbb\{R\}\^\{?\s*[dnDN]", s)
+            or re.search(r"v_\{?i\s*,", s)
+            or re.search(r"\\sum_\{?\s*a\b", s)
+        ):
+            return 2
+    return 1
+
+
+def _winner_set_direct(latex: str, bids: list[float]):
+    """Numeric winners implied by the allocation LaTeX, or None if the form is
+    not one we can evaluate directly."""
+    s = (latex or "").lower()
+    if "max" in s and "arg" not in s and "sum" not in s:
+        hi = max(bids)
+        return {i for i, b in enumerate(bids) if abs(b - hi) < 1e-9}
+    return None
+
+
+def _winner_set_encoded(alloc, bids: list[float]):
+    if isinstance(alloc, HighestBidder):
+        hi = max(bids)
+        return {i for i, b in enumerate(bids) if abs(b - hi) < 1e-9}
+    return None
+
+
+def _result(entry: dict, verdict: str, *, notes: str = "",
+            entry_specific: bool = False, counterexample=None) -> VerificationResult:
+    return VerificationResult(
+        verdict=verdict,
+        category=entry.get("category") or "VCG",
+        paper_id=entry.get("paper_id") or "?",
+        track=1,
+        notes=notes,
+        entry_specific=entry_specific,
+        counterexample=counterexample,
+    )
+
+
+def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
+    """Finite-grid Z3 proof of dominant-strategy IC + IR for a VCG entry.
+
+    Fail-closed: anything not confidently encodable returns UNKNOWN/UNSUPPORTED,
+    never VERIFIED or COUNTEREXAMPLE.
+    """
+    mech = entry.get("mechanism") or {}
+    alloc_tex = mech.get("allocation_rule_latex") or entry.get("allocation_rule_latex")
+    pay_tex = mech.get("payment_rule_latex") or entry.get("payment_rule_latex")
+
+    if not alloc_tex and not pay_tex:
+        return _result(entry, "UNSUPPORTED", notes="no allocation/payment LaTeX")
+    if not alloc_tex or not pay_tex:
+        return _result(entry, "UNKNOWN",
+                       notes="only one of allocation/payment LaTeX present")
+
+    n = int(mech.get("num_clients") or entry.get("num_clients") or 2)
+    n_attrs = _n_attrs_from_value_latex(entry)
+
+    alloc = parse_allocation(alloc_tex)
+    pay = parse_payment(pay_tex, alloc)
+    if alloc is None or pay is None:
+        return _result(entry, "UNKNOWN",
+                       notes="allocation/payment LaTeX did not parse")
+
+    # salvage a raw-string ExplicitFormula payment into a sympy expr
+    if isinstance(pay, ExplicitFormula) and isinstance(pay.expr, str):
+        salvaged = _salvage_scalar_expr(pay.expr)
+        if isinstance(salvaged, str):
+            return _result(entry, "UNKNOWN",
+                           notes="payment formula is an unparsed raw string")
+        pay = ExplicitFormula(expr=salvaged)
+
+    # reject specs that still carry raw-string / unknown parameters
+    if isinstance(alloc, TopK) and alloc.k is None:
+        return _result(entry, "UNKNOWN", notes="TopK.k unknown")
+    if isinstance(alloc, ProportionalShare) and isinstance(alloc.exponent, str):
+        return _result(entry, "UNKNOWN", notes="ProportionalShare exponent raw string")
+    if isinstance(alloc, ArgmaxWelfare) and isinstance(alloc.objective_expr, str):
+        return _result(entry, "UNKNOWN", notes="ArgmaxWelfare objective raw string")
+
+    grid = build_grid(n, n_attrs, k)
+    if grid.profile_count > _PROFILE_CAP:
+        return _result(
+            entry, "UNKNOWN",
+            notes=(f"grid too big: k={k}^(n_bidders={n}*n_attrs={n_attrs}) = "
+                   f"{grid.profile_count} > {_PROFILE_CAP}"),
+        )
+
+    try:
+        utility = encode_utility(grid, alloc, pay)
+    except NotImplementedError as exc:
+        return _result(entry, "UNKNOWN", notes=f"encode_utility: {exc}")
+
+    # ------- allocation cross-check on ~8 random grid profiles ------- #
+    rng = random.Random(0)
+    pts = grid.points
+    for _ in range(8):
+        bids = [sum(rng.choice(pts) for _ in range(n_attrs)) for _ in range(n)]
+        direct = _winner_set_direct(alloc_tex, bids)
+        enc = _winner_set_encoded(alloc, bids)
+        if direct is not None and enc is not None and direct != enc:
+            return _result(entry, "UNKNOWN",
+                           notes="allocation cross-check disagreed with LaTeX")
+
+    # ------- DSIC + IR obligation ------- #
+    def dom(var):
+        return z3.Or(*[var == p for p in pts])
+
+    # every vector of concrete grid deviations for one bidder's bid
+    def deviations():
+        import itertools
+        return [list(c) for c in itertools.product(pts, repeat=n_attrs)]
+
+    has_cex = False
+    cex = None
+    for i in range(n):
+        s = z3.Solver()
+        for a in range(n_attrs):
+            s.add(dom(grid.v[i][a]))
+        for j in range(n):
+            if j == i:
+                continue
+            for a in range(n_attrs):
+                s.add(dom(grid.b[j][a]))
+        truthful = [
+            [grid.v[i][a] for a in range(n_attrs)] if j == i
+            else [grid.b[j][a] for a in range(n_attrs)]
+            for j in range(n)
+        ]
+        u_true = utility(i, truthful)
+
+        # IR
+        s.push()
+        s.add(u_true < 0)
+        if s.check() == z3.sat:
+            m = s.model()
+            cex = {
+                "deviator": str(i),
+                "violation": "IR",
+                "profile": {str(d): str(m[d]) for d in m.decls()},
+            }
+            has_cex = True
+            s.pop()
+            break
+        s.pop()
+
+        # DSIC: no grid deviation beats truthful
+        for dev in deviations():
+            dev_profile = [
+                [z3.RealVal(f"{v}") for v in dev] if j == i
+                else [grid.b[j][a] for a in range(n_attrs)]
+                for j in range(n)
+            ]
+            u_dev = utility(i, dev_profile)
+            s.push()
+            s.add(u_true < u_dev)
+            if s.check() == z3.sat:
+                m = s.model()
+                gain = m.eval(u_dev - u_true, model_completion=True)
+                cex = {
+                    "deviator": str(i),
+                    "violation": "DSIC",
+                    "deviation_bid": str(dev),
+                    "gain": str(gain),
+                    "profile": {str(d): str(m[d]) for d in m.decls()},
+                }
+                has_cex = True
+                s.pop()
+                break
+            s.pop()
+        if has_cex:
+            break
+
+    all_ok = not has_cex
+    verdict = finalize_verdict(all_ok, has_cex, entry_specific=True)
+    notes = (f"DSIC + IR exact on grid k={k}, {grid.profile_count} profiles"
+             if all_ok else
+             f"profitable deviation found on grid k={k}, "
+             f"{grid.profile_count} profiles")
+    return _result(entry, verdict, notes=notes, entry_specific=True,
+                   counterexample=cex)
 
 
 if __name__ == "__main__":  # tiny self-check
