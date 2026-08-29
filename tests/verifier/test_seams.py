@@ -59,3 +59,35 @@ def test_contract_verdicts_unchanged_after_seam_extraction():
         r = verify(e)
         assert e["paper_id"] in expected_contract
         assert (r.verdict, r.entry_specific) == expected_contract[e["paper_id"]]
+
+
+_STACKELBERG_IDS = [
+    # the 1 currently entry-specific VERIFIED
+    "Sarikaya2019stackelberg_workers",
+    # 5 template-only entries
+    "1811_12082",
+    "2101_05628",
+    "2101_12428",
+    "2103_05866",
+    "2110_12876",
+]
+STACKELBERG = [e for e in CORPUS if e.get("paper_id") in _STACKELBERG_IDS]
+
+
+def test_stackelberg_verdicts_unchanged_after_seam_extraction():
+    # Behavior lock for Task 5: snapshot of verify() on 6 corpus Stackelberg
+    # entries, captured before extracting _stackelberg_check_core from
+    # _try_stackelberg_latex.
+    expected_stackelberg = {
+        "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
+        "1811_12082": ("VERIFIED_TEMPLATE", False),
+        "2101_05628": ("VERIFIED_TEMPLATE", False),
+        "2101_12428": ("VERIFIED_TEMPLATE", False),
+        "2103_05866": ("VERIFIED_TEMPLATE", False),
+        "2110_12876": ("VERIFIED_TEMPLATE", False),
+    }
+    assert len(STACKELBERG) == len(expected_stackelberg)
+    for e in STACKELBERG:
+        r = verify(e)
+        assert e["paper_id"] in expected_stackelberg
+        assert (r.verdict, r.entry_specific) == expected_stackelberg[e["paper_id"]]

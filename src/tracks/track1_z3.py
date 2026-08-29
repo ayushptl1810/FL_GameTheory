@@ -1217,6 +1217,46 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     if any(_base_symbol_name(str(s)) == e_base for s in util_expr.free_symbols if s != e_sym):
         return None
 
+    # Seam (Approach C): the LaTeX front-end above has resolved the paper's
+    # follower utility to `util_expr` and identified the follower's decision
+    # variable `e_sym`. Everything below -- FOC derivation, best-response
+    # solve + cross-check, IR at optimum -- is the parsed-exprs-in ->
+    # verdict-out back-half, moved verbatim into _stackelberg_check_core.
+    return _stackelberg_check_core(
+        util_expr,
+        follower_decision=e_sym,
+        best_response_expr=None,
+        meta=mech,
+        entry_specific=True,
+        paper_id=entry.get("paper_id", "<unknown>"),
+    )
+
+
+def _stackelberg_check_core(
+    follower_utility_expr: Any,
+    *,
+    follower_decision: Any,
+    best_response_expr: Any = None,
+    meta: "dict | None" = None,
+    entry_specific: bool,
+    paper_id: str,
+) -> "VerificationResult | None":
+    """Back-half of _try_stackelberg_latex: parsed follower-utility expr +
+    decision variable in -> symbolic FOC -> best-response solve and
+    cross-check against the paper's stated optimum (rejecting on a definite
+    disagreement) -> IR at that optimum -> verdict.
+
+    Behavior-preserving seam extraction (Approach C). `follower_utility_expr`
+    is the resolved multi-clause follower utility; `follower_decision` is the
+    follower's own decision symbol. `meta` is the entry's mechanism dict
+    (only `best_response_latex` is read). `best_response_expr` is accepted for
+    a future pre-parsed cross-check and is currently unused -- the check
+    below still parses `meta["best_response_latex"]` itself, verbatim.
+    """
+    util_expr = follower_utility_expr
+    e_sym = follower_decision
+    mech = meta or {}
+
     try:
         foc = _sp.diff(util_expr, e_sym)
         if foc.has(_sp.Derivative):
@@ -1299,7 +1339,6 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     assumptions = _sp.And(*[_sp.Q.positive(s) for s in remaining_syms]) if remaining_syms else _sp.S.true
     sign = _sp.ask(_sp.Q.nonnegative(U_star), assumptions)
 
-    paper_id = entry.get("paper_id", "<unknown>")
     decided_by_track3 = False
     ir_witness: "dict[str, str] | None" = None
 
@@ -1340,7 +1379,7 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
                 ir_witness = witness
                 decided_by_track3 = True
 
-    final = finalize_verdict(ir_v == "VERIFIED", ir_v == "COUNTEREXAMPLE", True)
+    final = finalize_verdict(ir_v == "VERIFIED", ir_v == "COUNTEREXAMPLE", entry_specific)
 
     return VerificationResult(
         verdict=final, category="Stackelberg", paper_id=paper_id,
@@ -1354,7 +1393,7 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
         notes=(f"IR:{ir_v} ({ir_note}) | LaTeX-parsed follower_utility_latex"
                f" | decision var '{e_sym}' identified from follower_decision/leader_objective"
                f"{best_response_note}"),
-        entry_specific=True,
+        entry_specific=entry_specific,
     )
 
 
