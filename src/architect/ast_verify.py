@@ -78,6 +78,10 @@ def _contract_from_ast(m: Mechanism, meta: dict, pid: str, track: int) -> Verifi
     """
     ic = m.ic
     rhs_node = None
+    # Assumption (matches serialize._contract_ic_latex authoring contract):
+    # a two-sided IC is Sum([U_i(own), Prod([Const(-1), U_i(other)])]), so
+    # ic.terms[0] is the own-type utility and neg-stripped ic.terms[1] is the
+    # deviating-type utility U_i(other).
     if isinstance(ic, Sum) and len(ic.terms) == 2:
         rhs_node = _strip_leading_neg(ic.terms[1])
     if rhs_node is None:
@@ -132,8 +136,12 @@ def verify_from_ast(m: Mechanism, meta: dict | None = None) -> VerificationResul
     track = _classify_ast(m)
 
     if m.category == "VCG":
+        # entry_specific=False: _vcg_check_core is a fixed threshold-payment
+        # template that never inspects this proposal's payment. VCG
+        # entry-specific verification is Phase 2; until then VERIFIED_TEMPLATE
+        # is the honest ceiling (never VERIFIED for an unproven mechanism).
         return _vcg_check_core(
-            "", "", entry_specific=True, paper_id=pid, meta=meta,
+            "", "", entry_specific=False, paper_id=pid, meta=meta,
         )
 
     if m.category == "Contract":

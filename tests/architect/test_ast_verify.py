@@ -54,3 +54,33 @@ def test_classify_default_track1():
 def test_verify_from_ast_reaches_verified_stackelberg():
     r = verify_from_ast(_stackelberg_effort())
     assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_verify_from_ast_vcg_is_template_not_verified():
+    # VCG has no entry-specific check yet (Phase 2); the AST path must not
+    # fabricate VERIFIED off the fixed threshold template.
+    m = Mechanism(
+        category="VCG",
+        utility=Sym("u_i"), payment=Sym("p_i"), ic=Sym("v_i"), ir=Sym("v_i"),
+        type_space=[], meta={})
+    r = verify_from_ast(m)
+    assert r.verdict == "VERIFIED_TEMPLATE" and r.entry_specific is False
+
+
+def test_verify_from_ast_reaches_verified_contract():
+    # Two-type screening menu, two-sided IC U_i(own) >= U_i(other).
+    def U(r, th, e):
+        return Sum([Sym(r), Prod([Const(-1), Sym(th), Sym(e)])])
+
+    own = U("R_i", "theta_i", "e_i")
+    other = U("R_j", "theta_i", "e_j")
+    m = Mechanism(
+        category="Contract",
+        utility=own, payment=Sym("R_i"),
+        ic=Sum([own, Prod([Const(-1), other])]),
+        ir=U("R_i", "theta_i", "e_i"),
+        type_space=["lo", "hi"],
+        meta={"num_types": 2, "type_variable": "theta_i"})
+    r = verify_from_ast(m)
+    assert r is not None
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
