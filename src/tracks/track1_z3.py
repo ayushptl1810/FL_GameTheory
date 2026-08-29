@@ -483,6 +483,24 @@ def _try_contract_latex(entry: dict) -> "VerificationResult | None":
 
     mech     = entry.get("mechanism") or {}
     paper_id = entry.get("paper_id", "<unknown>")
+    return _contract_check_core(
+        U_ir, U_rhs, type_sub, contract_sub, n, ir_from_ic_lhs,
+        paper_id=paper_id, meta=mech,
+    )
+
+
+def _contract_check_core(
+    U_ir: Any, U_rhs: Any, type_sub: str, contract_sub: str, n: int,
+    ir_from_ic_lhs: bool, *, paper_id: str, meta: "dict | None" = None,
+) -> "VerificationResult | None":
+    """Back-half of _try_contract_latex: parsed IC/IR SymPy exprs in ->
+    Z3 solve under type-ordering / menu-monotonicity preconditions -> verdict.
+
+    Behavior-preserving seam extraction (Approach C). Inputs are exactly the
+    tuple _parse_contract_entry returns; `meta` is the entry's mechanism dict
+    (only `type_variable` is read, by _type_family).
+    """
+    mech = meta or {}
     cache: dict = {}
 
     def _U(type_k: int, contract_l: "int | None" = None) -> Any:
