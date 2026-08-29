@@ -469,6 +469,17 @@ def _parametric_contract_certificate(entry: dict) -> "VerificationResult | None"
             continue
         sol = sols[0]
 
+        # Feasibility / vacuity gate (adversarial suite, Task D): every menu
+        # symbol is a positive real, and the ordered-increment coordinates
+        # (t0, d.., *_lo) are all declared positive. If the binding solve
+        # assigns a reward symbol an expression that is NOT provably positive
+        # in those coordinates (e.g. an additive type U = theta_i + R_i forces
+        # R_0 = -t0 < 0), the "menu" being certified is infeasible and the
+        # positivity certificate below would be vacuous. Z3's path has this
+        # gate (track1_z3 vacuity check); the parametric path was missing it.
+        if any(_posynomial_report(_sp.expand(v)) is None for v in sol.values()):
+            continue
+
         conditions: list[str] = []
         all_ok = True
         targets = (

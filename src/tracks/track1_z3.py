@@ -96,6 +96,20 @@ def verify_vcg(entry: dict) -> VerificationResult:
     paper_id     = entry.get("paper_id", "<unknown>")
     payment_rule = mechanism.get("payment_rule_latex") or ""
 
+    # Soundness gate (adversarial suite, Task D): an identically-zero payment
+    # rule is not a Groves/pivot payment -- with p_i = 0 every agent strictly
+    # gains by over-reporting, so the mechanism is not dominant-strategy IC.
+    # The fixed template checks below would still pass (they never look at the
+    # entry's own payment rule), so fail closed here before they can.
+    _pr_rhs = payment_rule.split("=", 1)[-1] if "=" in payment_rule else payment_rule
+    if re.sub(r"[\s${}\\]", "", _pr_rhs) in ("0", "0.0"):
+        return VerificationResult(
+            verdict="UNKNOWN", category="VCG", paper_id=paper_id, track=1,
+            notes="payment_rule_latex is identically zero -- not a Groves/pivot "
+                  "payment; dominant-strategy IC fails (every agent over-reports). "
+                  "Failing closed: no entry-specific DSIC proof available.",
+        )
+
     vcg_form       = _classify_vcg_payment(payment_rule)
     form_note      = _VCG_FORM_CLAIMS[vcg_form]
     form_confirmed = vcg_form in ("clarke_pivot", "marginal_welfare", "critical_bid")
@@ -394,6 +408,17 @@ def _parse_contract_entry(entry: dict) -> "tuple[Any, Any, str, str, int, bool] 
     if len(contract_sub) != 1:
         return None
     contract_sub = contract_sub[0]
+
+    # Soundness gate (adversarial suite, Task D): the IC RHS is the deviating
+    # type's utility from *another* contract, U_i(contract_j) -- it MUST depend
+    # on the deviating type i. If no symbol in U_rhs carries the type
+    # subscript (e.g. the condition was stated as U_j(contract_j) >= 0, an
+    # equilibrium-utility ordering rather than an incentive constraint, or as
+    # a bare constant), certifying it says nothing about incentive
+    # compatibility. Fail closed rather than hand a structurally-wrong proof
+    # obligation to Z3 / the parametric certificate.
+    if not any(_get_sub(s) == type_sub for s in U_rhs.free_symbols):
+        return None
 
     raw_n = mech.get("num_types")
     try:
