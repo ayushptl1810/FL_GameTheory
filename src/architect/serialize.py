@@ -78,7 +78,11 @@ _META_KEYS = frozenset({
 })
 
 
-def ast_to_sympy(node):
+def ast_to_sympy(node, opaque_families: bool = False):
+    # opaque_families: an IndexedFamily collapses to Symbol(name) (the
+    # verify_from_ast / seam consumer wants one opaque symbol). Default False
+    # keeps the subscripted Symbol(f"{name}_{index}") so the LaTeX render path
+    # (to_latex / _check_roundtrip) still emits `R_{i}`, not bare `R`.
     # Symbols are built assumption-free (no positive=True): sympy treats
     # Symbol('x', positive=True) and Symbol('x') as distinct, so keeping
     # assumptions here would break equality against a plain sympify(...) form.
@@ -92,17 +96,21 @@ def ast_to_sympy(node):
     if isinstance(node, (Sym, Unknown)):
         return sympy.Symbol(node.name)
     if isinstance(node, Sum):
-        return sympy.Add(*[ast_to_sympy(t) for t in node.terms])
+        return sympy.Add(*[ast_to_sympy(t, opaque_families) for t in node.terms])
     if isinstance(node, Prod):
-        return sympy.Mul(*[ast_to_sympy(f) for f in node.factors])
+        return sympy.Mul(*[ast_to_sympy(f, opaque_families) for f in node.factors])
     if isinstance(node, Pow):
-        return ast_to_sympy(node.base) ** node.exp
+        return ast_to_sympy(node.base, opaque_families) ** node.exp
     if isinstance(node, Func):
-        return {"ln": sympy.log, "exp": sympy.exp}[node.name](ast_to_sympy(node.arg))
+        return {"ln": sympy.log, "exp": sympy.exp}[node.name](
+            ast_to_sympy(node.arg, opaque_families))
     if isinstance(node, IndexedFamily):
-        # Opaque at the bridge: the family collapses to one symbol; per-index
-        # expansion over node.over is the caller's job, not this function's.
-        return sympy.Symbol(node.name)
+        # Rendering path (default): keep the subscripted name so to_latex emits
+        # `R_{i}`. Verify/seam path (opaque_families=True): collapse to one
+        # symbol; per-index expansion over node.over is that caller's job.
+        if opaque_families:
+            return sympy.Symbol(node.name)
+        return sympy.Symbol(f"{node.name}_{node.index}")
     raise OutsideParseableFragment(f"cannot serialize node {type(node).__name__}")
 
 

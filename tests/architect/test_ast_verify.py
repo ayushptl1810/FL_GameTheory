@@ -22,8 +22,26 @@ def test_bridge_funcs():
 
 
 def test_bridge_indexed_family_is_opaque_symbol():
-    got = ast_to_sympy(IndexedFamily("R", "i", ["R_1", "R_2"]))
+    got = ast_to_sympy(IndexedFamily("R", "i", ["R_1", "R_2"]), opaque_families=True)
     assert got == sympy.Symbol("R")
+
+
+def test_bridge_indexed_family_keeps_subscript_by_default():
+    # Rendering path (flag-off): the index must survive so to_latex emits R_{i}.
+    got = ast_to_sympy(IndexedFamily("R", "i", ["R_1", "R_2"]))
+    assert got == sympy.Symbol("R_i")
+
+
+def test_render_indexed_family_keeps_subscript():
+    from architect.serialize import render, to_latex
+    assert to_latex(IndexedFamily("R", "i", ["R_1", "R_2"])) == "R_{i}"
+    m = Mechanism(
+        category="Stackelberg",
+        utility=IndexedFamily("R", "i", ["R_1", "R_2"]),
+        payment=Sym("p_i"), ic=Sym("e_i"), ir=Sym("e_i"),
+        type_space=[], meta={})
+    _md, full = render(m, check_roundtrip=False)
+    assert "R_{i}" in full
 
 
 # ── verify_from_ast / _classify_ast orchestrator ────────────────────────────
@@ -39,7 +57,8 @@ def _stackelberg_effort():
         utility=Sum([Prod([Sym("p_i"), Sym("e_i")]),
                      Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])]),
         payment=Sym("p_i"), ic=Sym("e_i"), ir=Sym("e_i"),
-        type_space=[], meta={"follower_decision": r"\( e_i \)"})
+        type_space=[],
+        meta={"follower_decision": r"\( e_i \)", "equilibrium_existence": True})
 
 
 def test_inspect_uses_ast_path_when_flagged(monkeypatch):
@@ -66,6 +85,13 @@ def test_classify_default_track1():
 def test_verify_from_ast_reaches_verified_stackelberg():
     r = verify_from_ast(_stackelberg_effort())
     assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_verify_from_ast_stackelberg_without_equilibrium_existence_is_unsupported():
+    m = _stackelberg_effort()
+    m.meta.pop("equilibrium_existence")
+    r = verify_from_ast(m)
+    assert r.verdict == "UNSUPPORTED"
 
 
 def test_verify_from_ast_vcg_is_template_not_verified():

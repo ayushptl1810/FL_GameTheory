@@ -95,8 +95,8 @@ def _contract_from_ast(m: Mechanism, meta: dict, pid: str, track: int) -> Verifi
                   "Author IC as Sum([U_own, Prod([Const(-1), U_other])]).",
         )
 
-    U_ir = ast_to_sympy(m.ir)
-    U_rhs = ast_to_sympy(rhs_node)
+    U_ir = ast_to_sympy(m.ir, opaque_families=True)
+    U_rhs = ast_to_sympy(rhs_node, opaque_families=True)
     lhs_subs = {s for s in (_get_sub(x) for x in U_ir.free_symbols) if s}
     rhs_subs = {s for s in (_get_sub(x) for x in U_rhs.free_symbols) if s}
     if len(lhs_subs) != 1:
@@ -148,7 +148,15 @@ def verify_from_ast(m: Mechanism, meta: dict | None = None) -> VerificationResul
         return _contract_from_ast(m, meta, pid, track)
 
     if m.category == "Stackelberg":
-        util_expr = ast_to_sympy(m.utility)
+        # Mirror verify_stackelberg (track1_z3): no proved equilibrium -> no
+        # verification, before reaching _stackelberg_check_core.
+        if not meta.get("equilibrium_existence"):
+            return VerificationResult(
+                verdict="UNSUPPORTED", category="Stackelberg", paper_id=pid, track=1,
+                notes="equilibrium_existence=False — cannot verify without a "
+                      "proved equilibrium.",
+            )
+        util_expr = ast_to_sympy(m.utility, opaque_families=True)
         e_sym = _extract_follower_symbol({"mechanism": meta}, util_expr.free_symbols)
         res = _stackelberg_check_core(
             util_expr,

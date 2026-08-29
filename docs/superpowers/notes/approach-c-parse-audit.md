@@ -1,4 +1,12 @@
-# Approach C — parse-error audit (scoped)
+# Approach C — parse-error audit
+
+> **See the "Post-Task-13 re-measurement" section at the bottom for the current
+> result.** Everything between here and that section is the pre-Task-13 scoped
+> measurement (HEAD ab12a8a) and is **SUPERSEDED** — kept for history only.
+
+---
+
+# Approach C — parse-error audit (scoped) — SUPERSEDED
 
 Date: 2026-08-29
 Branch: `approach-c-ast-verify` (HEAD ab12a8a)
@@ -68,3 +76,30 @@ demonstrated by this scoped breadth run**. Whether it holds needs the full
 12-benchmark flagged eval (`eval-results.json` transcript audit), which the
 controller runs separately. Expectation per the brief remains zero; this note
 flags that the Hybrid serialization path can still emit `PARSE` even with the flag on.
+
+---
+
+## Post-Task-13 re-measurement
+
+Date: 2026-08-29
+Branch: `approach-c-ast-verify` (post-Task-13; round-trip skip on the flagged
+`inspect_mechanism` -> `verify_from_ast` path is in effect).
+Harness: `python -m architect.eval.live_smoke`, `ARCHITECT_AST_VERIFY=1`.
+Log: `ast_smoke_postT13.log` (scratchpad).
+
+| family | expected | mode | status | iters | note |
+|---|---|---|---|---|---|
+| stackelberg_effort | Stackelberg | Synthesis | VERIFIED | 1 | FOC + follower IR, entry-specific |
+| contract_screening | Contract | Synthesis | VERIFIED | 1 | entry-specific IC/IR, 2×1 pairs |
+| vcg_auction | VCG | Synthesis | VERIFIED | 7 | iter 6 MC_COUNTEREXAMPLE + restart; reframed to **Contract**, VERIFIED iter 7 |
+| hybrid_forced | (none) | Hybrid | VERIFIED | 2 | VERIFIED_TEMPLATE (AST path, no entry-specific result) -> VERIFIED iter 2 |
+
+VERIFIED: 4/4.
+Parse-family transcript entries (verdict `PARSE` / OutsideParseableFragment /
+round-trip mismatch), printed tails + whole-log grep: **0**.
+
+**This supersedes the pre-Task-13 scoped measurement above.** With Task 13's
+round-trip skip on the flagged loop path, the flagged loop produces **zero
+parse-family transcript entries** — the residual `PARSE` seen pre-Task-13
+(vcg_auction / Hybrid / iter 8, from `serialize.render`'s round-trip check) no
+longer appears, because that check is now skipped when the AST-verify flag is on.
