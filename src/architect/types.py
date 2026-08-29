@@ -16,10 +16,11 @@ class ProblemSpec:
     failure_modes: list[str] = field(default_factory=list)
     missing_fields: list[str] = field(default_factory=list)
     notes: str = ""
+    expected_family: str | None = None
 
 @dataclass
 class Feedback:
-    kind: Literal["counterexample", "parse_hint", "reformulate", "force_family", "restart"]
+    kind: Literal["counterexample", "parse_hint", "reformulate", "force_family", "restart", "wrong_family"]
     counterexample: dict | None = None
     conditions: list[str] = field(default_factory=list)
     hint: str = ""
@@ -35,3 +36,5 @@ class ArchitectResult:
     solver_calls: int
     wall_clock: float
     transcript: list[dict]
+    emitted_family: str | None = None
+    family_match: bool | None = None

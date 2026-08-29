@@ -42,6 +42,7 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
     iterations = solver_calls = 0
     repair_used = restart_used = unknown_used = unsupported_used = 0
     feedback: Feedback | None = None
+    emitted_family: str | None = None
 
     rag_hits = deps.retrieve(spec, 5, index=index)
     mode = deps.route(spec, index)
@@ -51,7 +52,10 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             status=status, mechanism_latex=latex or "",
             mechanism_dict=mech_dict or {}, certificate=cert or [],
             mode=mode, iterations=iterations, solver_calls=solver_calls,
-            wall_clock=time.monotonic() - t0, transcript=transcript)
+            wall_clock=time.monotonic() - t0, transcript=transcript,
+            emitted_family=emitted_family,
+            family_match=(None if not spec.expected_family
+                          else emitted_family == spec.expected_family))
 
     def _repair(fb: Feedback) -> str:
         """Apply repair/restart accounting. Return 'fail' | 'continue'."""
@@ -126,6 +130,22 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             transcript.append({"iter": iterations, "mode": mode, "verdict": "PARSE",
                                "family": m.category, "note": exc.hint})
             if _repair(Feedback(kind="parse_hint", hint=exc.hint)) == "fail":
+                return _finish("FAILED", None, None, None)
+            continue
+
+        # Family fidelity (Option A): the loop is hard-constrained to the
+        # intake's expected_family. An off-family proposal is fed back as a
+        # repairable event; it never silently reframes into another family.
+        emitted_family = getattr(m, "category", None) or (mech_dict or {}).get("category")
+        if spec.expected_family and emitted_family != spec.expected_family:
+            fb = Feedback(kind="wrong_family",
+                          hint=(f"You proposed a {emitted_family} mechanism, but "
+                                f"this FL setting requires a {spec.expected_family} "
+                                f"mechanism. Re-propose in the {spec.expected_family} "
+                                f"family."))
+            transcript.append({"iter": iterations, "family": emitted_family,
+                               "hint": fb.hint})
+            if _repair(fb) == "fail":
                 return _finish("FAILED", None, None, None)
             continue
 

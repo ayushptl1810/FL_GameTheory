@@ -24,10 +24,12 @@ def evaluate(names=None, *, index=None, force_mode=None) -> list:
         kw = {"index": index}
         if force_mode:
             kw["deps"] = _forced_deps(index, force_mode)
-        r = run(ProblemSpec(raw_text=b["text"]), **kw)
+        r = run(ProblemSpec(raw_text=b["text"],
+                            expected_family=b.get("expected_family")), **kw)
         rows.append({"name": b["name"], "mode": r.mode, "status": r.status,
                      "iterations": r.iterations, "solver_calls": r.solver_calls,
                      "wall_clock": round(r.wall_clock, 2), "ic_regret": _ic_regret(r),
                      "expected_family": b.get("expected_family"),
+                     "family_match": r.family_match,
                      "transcript_tail": r.transcript[-2:]})
     return rows
