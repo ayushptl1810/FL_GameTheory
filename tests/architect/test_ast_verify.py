@@ -141,3 +141,32 @@ def test_ast_path_matches_latex_path_on_loop_fixtures():
         assert ast_result.verdict == latex_verdict, (
             m.category, ast_result.verdict, latex_verdict)
         assert ast_result.verdict == "VERIFIED" and ast_result.entry_specific is True
+
+
+# ── render(check_roundtrip=False): no LaTeX parse in the AST-verify loop path ──
+import pytest  # noqa: E402
+from architect import serialize as _serialize  # noqa: E402
+from architect.serialize import render as _render  # noqa: E402
+
+
+def test_render_skip_roundtrip_returns_dict_str():
+    m, _ = _loop_contract_fixture()
+    md, full = _render(m, check_roundtrip=False)
+    assert isinstance(md, dict) and isinstance(full, str) and md
+
+
+def test_render_skip_roundtrip_does_not_call_parser(monkeypatch):
+    """check_roundtrip=False skips the re-parse step; check_roundtrip=True still
+    runs it (poisoned parser proves which path executes)."""
+    m, _ = _loop_contract_fixture()
+
+    def _boom(*a, **k):
+        raise RuntimeError("round-trip parser ran despite check_roundtrip=False")
+
+    for name in list(_serialize._PARSERS):
+        monkeypatch.setitem(_serialize._PARSERS, name, _boom)
+
+    md, _full = _render(m, check_roundtrip=False)   # no raise
+    assert isinstance(md, dict)
+    with pytest.raises(RuntimeError):               # default path still parses
+        _render(m, check_roundtrip=True)

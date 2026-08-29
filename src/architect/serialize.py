@@ -176,7 +176,7 @@ def _contract_ic_latex(ic_node) -> str:
     return _ineq_latex(ic_node)
 
 
-def render(m: Mechanism):
+def render(m: Mechanism, *, check_roundtrip: bool = True):
     if m.category not in _FIELD_MAP:
         raise OutsideParseableFragment(
             f"category {m.category!r} has no entry-specific verifier; "
@@ -195,25 +195,31 @@ def render(m: Mechanism):
         else:
             md[field] = to_latex(node)
 
-    parser = _PARSERS[m.category]
-    try:
-        reparsed = parser(md)
-    except ParseFailure as pf:
-        raise OutsideParseableFragment(
-            f"field {pf.field} did not parse ({pf.reason}); use simpler algebra: "
-            f"closed-form sums with numeric bounds, explicit products, ln/exp only"
-        ) from pf
-
-    for field, attr in _FIELD_MAP[m.category].items():
-        if attr in _IC_IR_ATTRS:
-            continue  # v1: inequality fields are not structurally round-tripped
-        want = _norm(ast_to_sympy(getattr(m, attr)))
-        got = reparsed.get(field)
-        if got is None or sympy.simplify(_norm(got) - want) != 0:
+    # The re-parse / structural-compare block is the only LaTeX parse in this
+    # function. ``check_roundtrip=False`` skips it entirely (used by the
+    # AST-native verify path, which must run no LaTeX parser in the loop); the
+    # "cannot serialize node" / missing-field raises above still fire — those are
+    # "can't even produce LaTeX", not "parse-back disagreed".
+    if check_roundtrip:
+        parser = _PARSERS[m.category]
+        try:
+            reparsed = parser(md)
+        except ParseFailure as pf:
             raise OutsideParseableFragment(
-                f"round-trip mismatch on {field}: rendered LaTeX does not "
-                f"re-parse to the proposed expression; simplify the {attr} term"
-            )
+                f"field {pf.field} did not parse ({pf.reason}); use simpler algebra: "
+                f"closed-form sums with numeric bounds, explicit products, ln/exp only"
+            ) from pf
+
+        for field, attr in _FIELD_MAP[m.category].items():
+            if attr in _IC_IR_ATTRS:
+                continue  # v1: inequality fields are not structurally round-tripped
+            want = _norm(ast_to_sympy(getattr(m, attr)))
+            got = reparsed.get(field)
+            if got is None or sympy.simplify(_norm(got) - want) != 0:
+                raise OutsideParseableFragment(
+                    f"round-trip mismatch on {field}: rendered LaTeX does not "
+                    f"re-parse to the proposed expression; simplify the {attr} term"
+                )
 
     # Fold in ONLY the allowlisted non-LaTeX metadata keys, AFTER the round-trip
     # check. This stops model-authored meta from overwriting a validated LaTeX
