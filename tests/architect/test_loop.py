@@ -75,11 +75,21 @@ def test_verified_non_entry_specific_falls_through_to_fail():
     assert r.status == "FAILED"
 
 
-def test_verified_template_verdict_fails_with_note():
+def test_verified_template_repairs_then_succeeds():
+    # VERIFIED_TEMPLATE is repairable: hint, retry, and a later entry-specific
+    # VERIFIED wins.
     r = run(ProblemSpec(raw_text="x"), index=object(),
-            deps=_deps([_V("VERIFIED_TEMPLATE")]))
+            deps=_deps([_V("VERIFIED_TEMPLATE"),
+                        _V("VERIFIED", entry_specific=True)]))
+    assert r.status == "VERIFIED"
+    assert any(e.get("verdict") == "VERIFIED_TEMPLATE" for e in r.transcript)
+
+
+def test_verified_template_exhausts_budget_then_fails():
+    r = run(ProblemSpec(raw_text="x"), index=object(),
+            deps=_deps([_V("VERIFIED_TEMPLATE")] * 13))
     assert r.status == "FAILED"
-    assert any(e.get("note") == "verified_template_rejected" for e in r.transcript)
+    assert any(e.get("verdict") == "VERIFIED_TEMPLATE" for e in r.transcript)
 
 
 def _scripted_deps(*, verdicts, render=None, mc_prefilter=None, propose=None):

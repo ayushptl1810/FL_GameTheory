@@ -28,8 +28,10 @@ def test_retrieval_mode_reaches_a_verdict():
         inspect=inspect_mechanism, is_success=is_loop_success)
     r = run(ProblemSpec(raw_text="two-type screening menu, private types"),
             index=object(), deps=deps, budget_s=120)
+    # The fixture always re-proposes the same template-only mechanism, so the
+    # loop repairs, exhausts the budget, and FAILs -- cleanly, with a transcript.
     assert r.status == "FAILED"
-    assert any(e.get("note") == "verified_template_rejected" for e in r.transcript)
+    assert any(e.get("verdict") == "VERIFIED_TEMPLATE" for e in r.transcript)
 
 
 def test_e2e_retrieval_reaches_entry_specific_verified():

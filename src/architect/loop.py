@@ -173,7 +173,24 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             continue
 
         if r.verdict == "VERIFIED_TEMPLATE":
-            transcript.append({"iter": iterations, "note": "verified_template_rejected"})
-            return _finish("FAILED", None, None, None)
+            # The math parsed but the verifier could only check a generic
+            # template, not this specific mechanism -- usually a missing piece
+            # of metadata or an FOC/IC the entry-specific parser can't isolate.
+            # That is repairable: hint and retry within the budget.
+            transcript.append({"iter": iterations, "mode": mode,
+                               "verdict": "VERIFIED_TEMPLATE", "family": r.category,
+                               "note": getattr(r, "notes", "")})
+            hint = ("the verifier could only check a GENERIC TEMPLATE of your "
+                    "mechanism, not the specific one -- that does not count as a "
+                    "proof. Make the entry-specific check engage: for Stackelberg "
+                    'include meta={"equilibrium_existence": true, '
+                    '"follower_decision": "<the follower decision var, e.g. e_i>", '
+                    '"num_types": <int>} and give the follower utility as one '
+                    "closed-form expression; for Contract author ic as the "
+                    "two-term Sum described above and set meta.num_types / "
+                    "meta.type_variable; keep the algebra simple.")
+            if _repair(Feedback(kind="reformulate", hint=hint)) == "fail":
+                return _finish("FAILED", None, None, None)
+            continue
 
         return _finish("FAILED", None, None, None)
