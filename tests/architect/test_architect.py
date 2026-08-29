@@ -31,3 +31,25 @@ def test_propose_builds_mechanism():
 
 def test_synthesis_prompt_demands_unknowns():
     assert "Unknown" in SYNTHESIS_PROMPT
+
+
+def test_extract_json_strips_fence_and_prose():
+    from architect.architect import _extract_json
+    assert _extract_json('```json\n{"a": 1}\n```') == '{"a": 1}'
+    assert _extract_json('here you go:\n{"a": 1}\nhope that helps') == '{"a": 1}'
+    assert _extract_json('{"a": 1}') == '{"a": 1}'
+
+
+def test_stackelberg_meta_defaults_filled():
+    import json
+    from architect.architect import propose
+    from architect.types import ProblemSpec
+    j = {"category": "Stackelberg",
+         "utility": {"t": "Sym", "name": "u"}, "payment": {"t": "Sym", "name": "p_i"},
+         "ic": {"t": "Sym", "name": "x"}, "ir": {"t": "Sym", "name": "u"},
+         "params": {}, "type_space": ["lo", "hi"]}  # no meta
+    m = propose(ProblemSpec(raw_text="x"), "Synthesis", [], None,
+                complete=lambda s, u, **k: json.dumps(j))
+    assert m.meta["equilibrium_existence"] is True
+    assert m.meta["num_types"] == 2
+    assert m.meta["follower_decision"] == "e_i"

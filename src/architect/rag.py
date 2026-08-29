@@ -102,11 +102,41 @@ class Index:
     vectors: np.ndarray
     embed: object
 
+_CACHE_DIR = ".architect_cache"
+
+
+def _corpus_vectors(texts, embed):
+    """Embed the corpus once and cache the (normalized) matrix on disk, keyed by
+    the corpus text + the embed model. A default-embed run then costs one query
+    embedding instead of ~185. Injected embedders (tests) are never cached."""
+    if embed is not _default_embed:
+        return _norm(embed(texts))
+    import hashlib
+    key = hashlib.sha1(
+        ("\x00".join(texts) + "|" +
+         os.environ.get("ARCHITECT_EMBED_PROVIDER", "") + "|" +
+         os.environ.get("ARCHITECT_EMBED_MODEL", "")).encode()
+    ).hexdigest()[:16]
+    path = os.path.join(_CACHE_DIR, f"corpus_{key}.npy")
+    if os.path.exists(path):
+        try:
+            return np.load(path)
+        except Exception:  # noqa: BLE001 - corrupt cache -> recompute
+            pass
+    vecs = _norm(embed(texts))
+    try:
+        os.makedirs(_CACHE_DIR, exist_ok=True)
+        np.save(path, vecs)
+    except Exception:  # noqa: BLE001 - cache is best-effort
+        pass
+    return vecs
+
+
 def build_index(corpus_path: str = "corpus.json", *, embed=None) -> Index:
     embed = embed or _default_embed
     entries = json.load(open(corpus_path))
     texts = [f"{e.get('fl_setup','')} {e.get('title','')}" for e in entries]
-    return Index(entries, _norm(embed(texts)), embed)
+    return Index(entries, _corpus_vectors(texts, embed), embed)
 
 def _rank(spec, index):
     q = _norm(index.embed([spec.raw_text]))[0]

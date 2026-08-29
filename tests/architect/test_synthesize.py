@@ -44,3 +44,12 @@ def test_synthesize_rejects_non_integer_exponent():
                     type_space=["x"], param_bounds={"a": (0.0, 10.0)})
     with pytest.raises(ValueError):
         synthesize(m, c)
+
+
+def test_synthesize_passthrough_when_no_unknowns():
+    from architect.ast import Const, Sym, Sum, Mechanism
+    m = Mechanism("Contract", utility=Sym("u"), payment=Sym("R_i"),
+                  ic=Sum([Const(1)]), ir=Sum([Const(1)]), params={}, type_space=["t"])
+    c = Constraints(ic=m.ic, ir=m.ir, budget_lhs=None, budget_rhs=None,
+                    type_space=["t"], param_bounds={})
+    assert synthesize(m, c) is m  # nothing to solve -> pass through unchanged

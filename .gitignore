@@ -8,6 +8,7 @@ __pycache__/
 corpus/
 Task.md
 paywalled.txt
+entries/
 entries/preloader/pdfs/
 research.md
-entries/
+.architect_cache/

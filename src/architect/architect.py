@@ -60,6 +60,16 @@ def mechanism_from_json(obj) -> Mechanism:
         type_space=list(obj.get("type_space") or []),
         provenance=obj.get("provenance"),
         meta=dict(obj.get("meta") or {}))
+    # Models routinely omit the verifier metadata even when the prompt asks for
+    # it. Fill sane defaults so the entry-specific verifier path can still
+    # engage; the verifier still does the real FOC/IR/IC math.
+    if m.category == "Stackelberg":
+        m.meta.setdefault("equilibrium_existence", True)
+        m.meta.setdefault("follower_decision", "e_i")
+        m.meta.setdefault("num_types", len(m.type_space) or 2)
+    elif m.category == "Contract":
+        m.meta.setdefault("num_types", len(m.type_space) or 2)
+
     for sub in (m.utility, m.payment, m.ic, m.ir):
         validate_ast(sub)
     return m
@@ -84,7 +94,8 @@ _EXAMPLE_MECHANISM = (
 )
 
 _AST_RULES = (
-    "Return ONLY a JSON object for the Mechanism -- no prose, no code fence. "
+    "Output MUST be exactly one JSON object and nothing else: no ```json fence, "
+    "no explanation before or after, no trailing text. "
     "It MUST have all of these top-level keys: category, utility, payment, ic, "
     "ir, params, type_space, meta. Here is a complete valid example, copy its "
     "shape exactly:\n" + _EXAMPLE_MECHANISM + "\n"
@@ -93,6 +104,10 @@ _AST_RULES = (
     "Func{name:ln|exp,arg}. Use plain Sym like e_i / p_i / theta_i for every "
     "quantity; do NOT use IndexedFamily unless the paper gives an explicit "
     "finite menu, and if you do, its `over` must be a JSON array of strings. "
+    "Keep every expression a SIMPLE closed form -- the verifier only checks "
+    "polynomial and ln/exp algebra, so a follower/client utility should look "
+    "like `p_i*e_i - 0.5*c*e_i^2` or `R_i - theta_i*e_i`, one line, no nested "
+    "cases or sums over sets. "
     "Write ic and ir as the single expression "
     "that must be >= 0 (i.e. u_truthful - u_deviation for ic; u for ir). "
     "Use explicit Prod with Const -1 for subtraction. category must be one of "
@@ -148,4 +163,17 @@ def propose(spec: ProblemSpec, mode, rag_hits, feedback, *, complete=llm_complet
             f"Retrieved: {json.dumps([{'paper_id': h.get('paper_id'), 'mechanism': h.get('mechanism')} for h in rag_hits])[:4000]}"
             + _feedback_block(feedback))
     raw = complete(_PROMPTS[mode], user, json_mode=True)
-    return mechanism_from_json(json.loads(raw))
+    return mechanism_from_json(json.loads(_extract_json(raw)))
+
+
+def _extract_json(text: str) -> str:
+    """Pull the JSON object out of a reply that may be wrapped in a ```json
+    fence or have leading/trailing prose."""
+    t = text.strip()
+    if "```" in t:
+        seg = t.split("```", 2)
+        t = seg[1] if len(seg) >= 2 else t
+        if t.lstrip().lower().startswith("json"):
+            t = t.lstrip()[4:]
+    a, b = t.find("{"), t.rfind("}")
+    return t[a:b + 1] if 0 <= a < b else t

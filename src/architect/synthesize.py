@@ -84,7 +84,14 @@ def _all_unknowns(m: Mechanism) -> list:
 
 def synthesize(m: Mechanism, c: Constraints):
     unknowns = _all_unknowns(m)
-    if not (1 <= len(unknowns) <= 5):
+    if not unknowns:
+        return m  # fully concrete already -- nothing to solve, let verify() run
+    if len(unknowns) > 5:
+        return "UNSAT"
+    if m.category == "Stackelberg":
+        # Synthesis mode's ForAll(ic>=0, ir>=0) solve does not fit Stackelberg
+        # (there is no screening IC; m.ic holds an FOC). A Stackelberg template
+        # with free parameters can't be solved here -- let the loop reformulate.
         return "UNSAT"
     zvars: dict = {}
     for u in unknowns:
