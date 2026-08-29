@@ -53,3 +53,32 @@ def test_stackelberg_meta_defaults_filled():
     assert m.meta["equilibrium_existence"] is True
     assert m.meta["num_types"] == 2
     assert m.meta["follower_decision"] == r"\( e_i \)"
+
+
+def test_guess_type_variable_from_two_term_ic():
+    from architect.ast import Const, Sym, Sum, Prod
+    from architect.architect import _guess_type_variable
+    own = Sum([Sym("R_i"), Prod([Const(-1), Sym("theta_i"), Sym("e_i")])])
+    other = Sum([Sym("R_j"), Prod([Const(-1), Sym("theta_i"), Sym("e_j")])])
+    ic = Sum([own, Prod([Const(-1), other])])
+    assert _guess_type_variable(ic) == "theta_i"
+
+
+def test_contract_type_variable_default_from_ic():
+    import json
+    from architect.architect import propose
+    from architect.types import ProblemSpec
+    j = {"category": "Contract",
+         "utility": {"t": "Sym", "name": "R_i"}, "payment": {"t": "Sym", "name": "R_i"},
+         "ic": {"t": "Sum", "terms": [
+             {"t": "Sum", "terms": [{"t": "Sym", "name": "R_i"},
+              {"t": "Prod", "factors": [{"t": "Const", "value": -1},
+               {"t": "Sym", "name": "theta_i"}, {"t": "Sym", "name": "e_i"}]}]},
+             {"t": "Prod", "factors": [{"t": "Const", "value": -1},
+              {"t": "Sum", "terms": [{"t": "Sym", "name": "R_j"},
+               {"t": "Prod", "factors": [{"t": "Const", "value": -1},
+                {"t": "Sym", "name": "theta_i"}, {"t": "Sym", "name": "e_j"}]}]}]}]},
+         "ir": {"t": "Sym", "name": "R_i"}, "params": {}, "type_space": ["lo", "hi"]}
+    m = propose(ProblemSpec(raw_text="x"), "Synthesis", [], None,
+                complete=lambda s, u, **k: json.dumps(j))
+    assert m.meta["type_variable"] == "theta_i"

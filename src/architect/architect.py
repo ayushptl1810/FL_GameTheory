@@ -41,6 +41,30 @@ def ast_from_json(obj):
 _REQUIRED_MECH_KEYS = ("category", "utility", "payment", "ic", "ir")
 
 
+def _sym_names(node) -> set:
+    if isinstance(node, (Sym, Unknown)):
+        return {node.name}
+    if isinstance(node, Sum):
+        return set().union(*(_sym_names(t) for t in node.terms)) if node.terms else set()
+    if isinstance(node, Prod):
+        return set().union(*(_sym_names(f) for f in node.factors)) if node.factors else set()
+    if isinstance(node, Pow):
+        return _sym_names(node.base)
+    if isinstance(node, Func):
+        return _sym_names(node.arg)
+    return set()
+
+
+def _guess_type_variable(ic) -> str | None:
+    """For a two-term screening IC Sum([own, -other]), the type symbol is the one
+    that appears in BOTH terms (each menu item is evaluated at the SAME type)."""
+    if not (isinstance(ic, Sum) and len(ic.terms) == 2):
+        return None
+    a, b = _sym_names(ic.terms[0]), _sym_names(ic.terms[1])
+    common = sorted(a & b)
+    return common[0] if len(common) == 1 else None
+
+
 def mechanism_from_json(obj) -> Mechanism:
     if not isinstance(obj, dict):
         raise ASTDecodeError(f"Mechanism must be a JSON object, got {type(obj).__name__}")
@@ -75,6 +99,14 @@ def mechanism_from_json(obj) -> Mechanism:
         m.meta["follower_decision"] = f"\\( {tok.group(0) if tok else 'e_i'} \\)"
     elif m.category == "Contract":
         m.meta.setdefault("num_types", len(m.type_space) or 2)
+        # The Stage 1 Contract parser keys type-ordering off type_variable (the
+        # subscripted type symbol, e.g. "theta_i"). If the model didn't give it,
+        # derive it: the symbol that appears on BOTH sides of the two-term IC
+        # Sum is the type; the one only on the RHS is the other contract.
+        if "type_variable" not in m.meta:
+            tv = _guess_type_variable(m.ic)
+            if tv:
+                m.meta["type_variable"] = tv
 
     for sub in (m.utility, m.payment, m.ic, m.ir):
         validate_ast(sub)
@@ -103,8 +135,9 @@ _AST_RULES = (
     "Output MUST be exactly one JSON object and nothing else: no ```json fence, "
     "no explanation before or after, no trailing text. "
     "It MUST have all of these top-level keys: category, utility, payment, ic, "
-    "ir, params, type_space, meta. Here is a complete valid example, copy its "
-    "shape exactly:\n" + _EXAMPLE_MECHANISM + "\n"
+    "ir, params, type_space, meta. NEVER omit ir -- if the participation "
+    "constraint equals the utility, repeat the utility node there. Here is a "
+    "complete valid example, copy its shape exactly:\n" + _EXAMPLE_MECHANISM + "\n"
     'Every algebra node is {"t":TypeName,...}. Allowed: Const{value}, '
     "Sym{name}, Unknown{name}, Sum{terms}, Prod{factors}, Pow{base,exp:int}, "
     "Func{name:ln|exp,arg}. Use plain Sym like e_i / p_i / theta_i for every "
@@ -118,6 +151,12 @@ _AST_RULES = (
     "that must be >= 0 (i.e. u_truthful - u_deviation for ic; u for ir). "
     "Use explicit Prod with Const -1 for subtraction. category must be one of "
     "VCG, Contract, Stackelberg. "
+    "For a VCG mechanism the payment must be a RECOGNISED truthful form -- a "
+    "critical-bid / threshold payment (the lowest losing bid), a Clarke-pivot "
+    "externality payment, or a second-price payment. The verifier only certifies "
+    "DSIC for these canonical shapes; a novel payment formula only passes as a "
+    "template. Give payment as p_i = <that closed form> and client utility as "
+    "v_i*x_i - p_i. "
     "For a Contract mechanism, author ic as exactly a two-term "
     'Sum: {"t":"Sum","terms":[<type i utility at its OWN contract i>, '
     '{"t":"Prod","factors":[{"t":"Const","value":-1},<type i utility at '
