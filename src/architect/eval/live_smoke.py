@@ -52,7 +52,8 @@ def main() -> int:
             deps.route = lambda spec, index=index, m=c["force_mode"]: m
             kw["deps"] = deps
         try:
-            r = run(ProblemSpec(raw_text=c["text"]), **kw)
+            r = run(ProblemSpec(raw_text=c["text"],
+                                expected_family=c["expected_family"]), **kw)
             row = {"name": c["name"], "expected_family": c["expected_family"],
                    "mode": r.mode, "status": r.status, "iterations": r.iterations,
                    "solver_calls": r.solver_calls, "wall_clock": round(r.wall_clock, 1),
