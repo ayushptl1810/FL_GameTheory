@@ -44,7 +44,7 @@ def run_baseline(name, bench):
     try:
         import torch
         import torch.nn as nn
-    except ModuleNotFoundError:
+    except ImportError:
         return _row(bench, "SKIPPED_NO_TORCH", None, time.time() - t0)
 
     torch.manual_seed(0)

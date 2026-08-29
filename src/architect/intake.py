@@ -8,9 +8,16 @@ INTAKE_SYSTEM_PROMPT = (
     "description. Return ONLY a JSON object with keys: n_clients (int|null), "
     "cost_structure (str|null), type_model (str|null), observability (str|null), "
     "budget (number|null), failure_modes (list from: non_iid, "
-    "unverifiable_quality, communication_externality, collusion). "
+    "unverifiable_quality, communication_externality, collusion), "
+    "expected_family (one of exactly \"VCG\", \"Contract\", \"Stackelberg\", or "
+    "null if genuinely ambiguous): VCG = auction / competitive bidding / "
+    "budget-constrained selection; Contract = private client types / "
+    "effort-reward menu / screening; Stackelberg = leader announces price, "
+    "clients best-respond. "
     "Use null when the text does not state something. Do not guess."
 )
+
+_FAMILIES = ("VCG", "Contract", "Stackelberg")
 
 _REQUIRED = ("n_clients", "cost_structure", "type_model", "observability", "budget")
 
@@ -21,8 +28,11 @@ def intake(text: str, *, complete=llm_complete) -> ProblemSpec:
     fms, notes = [], []
     for fm in data.get("failure_modes") or []:
         (fms if fm in FAILURE_MODES else notes).append(fm)
+    fam = data.get("expected_family")
+    if fam not in _FAMILIES:
+        fam = None
     spec = ProblemSpec(
-        raw_text=text,
+        raw_text=text, expected_family=fam,
         n_clients=data.get("n_clients"), cost_structure=data.get("cost_structure"),
         type_model=data.get("type_model"), observability=data.get("observability"),
         budget=data.get("budget"), failure_modes=fms,
