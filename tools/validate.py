@@ -117,6 +117,11 @@ def validate_entry(entry: dict, validator: jsonschema.Validator, strict: bool = 
         errors.append(
             f"[z3] gold-tier '{category}' entry should have z3_validated set (true or false), not null"
         )
+    verdict = entry.get("z3_verdict")
+    if z3 is True and verdict not in (None, "VERIFIED"):
+        errors.append(
+            f"[z3] z3_validated is true but z3_verdict is {verdict!r} "
+            f"(expected VERIFIED) for '{entry.get('id') or category}'")
 
     # paper_type / extension block consistency
     paper_type = entry.get("paper_type", [])
