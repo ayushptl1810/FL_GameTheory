@@ -53,4 +53,12 @@ BENCHMARKS = [
     # ref: same screening structure as contract_2type_screening (high-type IC
     # binds, low-type IR binds) with payments scaled so that
     # 0.5*w_L + 0.5*w_H = B = 1; feasible iff B >= expected client effort cost.
+
+    {"name": "contract_linear_quadratic_effort",
+     "text": "FL client with private marginal-cost type theta drawn uniformly on [1, 2]. Client utility is w(theta) - 0.5*theta*e(theta)^2; server value is 5*e(theta). Design a continuous IC + IR screening contract e(.), w(.).",
+     "expected_family": "Contract", "reference": "hand-derived"},
+    # ref: virtual surplus 5*e - 0.5*theta*e^2 - (theta-1)*e (hazard rate 1/(theta-1)
+    # for U[1,2]); FOC => e(theta) = (5 - (theta-1)) / theta = (6-theta)/theta,
+    # monotone decreasing; w(theta) = 0.5*theta*e(theta)^2 + integral_theta^2 0.5*e(s)^2 ds
+    # (info rent), top type theta=2 gets zero rent, IR binds there.
 ]
