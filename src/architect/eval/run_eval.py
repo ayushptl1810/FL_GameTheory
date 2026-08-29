@@ -9,16 +9,15 @@ from architect.rag import build_index
 from architect.eval import ABLATIONS, evaluate, summarize
 
 _MAIN_HDR = ("| name | mode | status | iters | solver | wall_s | ic_regret | "
-             "expected_family | family_match | coalition_ic_regret |")
-_MAIN_SEP = "|" + "---|" * 10
+             "expected_family | family_match |")
+_MAIN_SEP = "|" + "---|" * 9
 
 
 def _main_table(rows) -> str:
     body = "\n".join(
         f"| {r['name']} | {r['mode']} | {r['status']} | {r['iterations']} | "
         f"{r['solver_calls']} | {r['wall_clock']} | {r['ic_regret']} | "
-        f"{r.get('expected_family')} | {r.get('family_match')} | "
-        f"{r.get('coalition_ic_regret')} |" for r in rows)
+        f"{r.get('expected_family')} | {r.get('family_match')} |" for r in rows)
     return _MAIN_HDR + "\n" + _MAIN_SEP + "\n" + body
 
 

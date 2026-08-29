@@ -1401,6 +1401,9 @@ def verify_coalition_ic_contract(entry: dict, k: int = 2) -> VerificationResult:
 
     Numeric-menu-only: needs entry["menu"] with theta_i / e_i / R_i for
     i in 1..num_types. No numeric menu -> UNSUPPORTED (never a false VERIFIED).
+
+    Assumes linear-cost quasilinear utility u = R - theta * e; does not read
+    the entry's own utility_latex and does not check IR.
     """
     paper_id = entry.get("paper_id", "<unknown>")
     menu = entry.get("menu") or {}
@@ -1436,7 +1439,7 @@ def verify_coalition_ic_contract(entry: dict, k: int = 2) -> VerificationResult:
                     notes=f"types (1,2) jointly report ({r1},{r2}); gain {gain:.4g}")
     return VerificationResult(
         verdict="VERIFIED", category="Contract", paper_id=paper_id, track=1,
-        coalition_ic_k=k, entry_specific=True,
+        coalition_ic_k=k,
         notes="no profitable 2-type joint deviation")
 
 

@@ -10,39 +10,11 @@ import architect.loop as _loop
 from architect.loop import run, _default_deps
 from architect.eval.benchmarks import BENCHMARKS
 
-ABLATIONS = ("no_rag", "cap2", "cap10", "no_mc", "force_family")
+ABLATIONS = ("no_rag", "cap2", "cap10", "no_mc")
 
 
 def _ic_regret(result) -> float:
     return 0.0 if result.status == "VERIFIED" else float("nan")
-
-
-def _coalition_ic_regret(result, benchmark):
-    """2-type coalition IC-regret for VERIFIED Contract rows with a numeric menu.
-
-    0.0 when no profitable joint deviation, the reported gain on a
-    COUNTEREXAMPLE, else None (not a Contract row / not VERIFIED / no menu).
-    """
-    if benchmark.get("expected_family") != "Contract" or result.status != "VERIFIED":
-        return None
-    menu = (result.mechanism_dict or {}).get("menu")
-    if not isinstance(menu, dict) or not menu:
-        return None
-    if not all(isinstance(v, (int, float)) for v in menu.values()):
-        return None
-    from tracks.track1_z3 import verify_coalition_ic_contract
-    n = result.mechanism_dict.get("num_types") or sum(
-        1 for key in menu if key.startswith("theta_"))
-    res = verify_coalition_ic_contract(
-        {"menu": menu, "num_types": n, "paper_id": benchmark["name"]}, k=2)
-    if res.verdict == "VERIFIED":
-        return 0.0
-    if res.verdict == "COUNTEREXAMPLE":
-        try:
-            return float(res.notes.rsplit("gain", 1)[1].strip())
-        except (IndexError, ValueError):
-            return float("nan")
-    return None
 
 
 def _forced_deps(index, force_mode):
@@ -60,8 +32,6 @@ def _ablation_deps(index, ablation):
         deps.retrieve = lambda spec, k, index=None: []
     elif ablation == "no_mc":
         deps.mc_prefilter = lambda m: None
-    elif ablation == "force_family":
-        deps.route = lambda spec, index=None: spec.expected_family or "Synthesis"
     return deps
 
 
@@ -87,7 +57,6 @@ def _row(b, r, *, seed, ablation=None) -> dict:
            "expected_family": b.get("expected_family"),
            "family_match": r.family_match,
            "transcript_tail": r.transcript[-2:],
-           "coalition_ic_regret": _coalition_ic_regret(r, b),
            "seed": seed}
     if ablation is not None:
         row["ablation"] = ablation

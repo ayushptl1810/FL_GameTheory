@@ -54,7 +54,7 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             mode=mode, iterations=iterations, solver_calls=solver_calls,
             wall_clock=time.monotonic() - t0, transcript=transcript,
             emitted_family=emitted_family,
-            family_match=(None if not spec.expected_family
+            family_match=(None if emitted_family is None or not spec.expected_family
                           else emitted_family == spec.expected_family))
 
     def _repair(fb: Feedback) -> str:
@@ -134,7 +134,8 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             continue
 
         # Family fidelity (Option A): the loop is hard-constrained to the
-        # intake's expected_family. An off-family proposal is fed back as a
+        # eval-supplied expected_family (intake extraction is future work).
+        # An off-family proposal is fed back as a
         # repairable event; it never silently reframes into another family.
         emitted_family = getattr(m, "category", None) or (mech_dict or {}).get("category")
         if spec.expected_family and emitted_family != spec.expected_family:
