@@ -44,27 +44,45 @@ now:      AST → render LaTeX → parse LaTeX → solver encoding → verdict
 Phase 1:  AST ─────────────────────────────→ solver encoding → verdict
 ```
 
-**Work**
-- `verify_from_ast(ast, category, params) -> VerificationResult` alongside the
-  existing `verify(entry)`. `verify(entry)` stays the corpus-facing API;
-  `verify_from_ast` becomes the loop-facing API. Shared solver-level logic; only
-  the front end differs.
-- Per track, `build_encoding(ast_subtree)` walking AST nodes to solver terms:
-  - Track 1 → Z3 expressions (reuses the `Unknown`→free-var machinery already in
-    Synthesis mode — itself a partial AST-native encoding).
-  - Track 2 → CVXPY polynomial for the SOS certificate.
-  - Track 3 → `mpmath.iv` interval expression.
-  - Track 4 → SymPy expression for symbolic integration.
-- The serializer's round-trip gate (`parse(render(ast)) ≈ ast`) is retained only
-  for the *corpus-insertion* path, not the verify path.
+**Design refinement (2026-08-29, approved).** Every track already runs in two
+halves: **LaTeX → SymPy expression → solver encoding → verdict** (Track 1
+`_sp_to_z3`, Track 2 SymPy→CVXPY Gram, Track 3 SymPy→`mpmath.iv` lambdify,
+Track 4 stays symbolic). Approach C therefore is **not** four new solver
+encoders — it is **one new bridge plus reuse of every existing back-half**:
 
-**Done when** the loop's `inspect` step calls `verify_from_ast` and no
-`OutsideParseableFragment` rejection can occur for a well-formed AST;
-`live_smoke` + the eval run with zero parse-error transcript entries.
+- `ast_to_sympy(node) -> sympy.Expr` — new, the only genuinely new logic. Maps
+  the 8 node types (`Const, Sym, Unknown, Sum, Prod, Pow, Func{ln|exp},
+  IndexedFamily`). `Unknown` → a distinguished free symbol (same treatment
+  Synthesis mode already gives it). The entire "parser fragility" problem
+  collapses to this one bounded function.
+- **Track seams** — extract the "SymPy exprs → solver → verdict" back-half of
+  `verify_vcg` / `verify_contract` / `verify_stackelberg` / `verify_track2` /
+  `verify_track3` / `verify_track4` into helpers that the existing LaTeX path
+  *also* calls. Behavior-preserving refactor — no verdict moves.
+- `_classify_ast(m) -> int` — structural track picker over AST nodes, mirroring
+  today's regex `_classify_utility` (Func{ln|exp} → 3; Pow deg≥2 + continuous
+  type space → 2; expectation/`IndexedFamily` IC → 4; else 1).
+- `verify_from_ast(m: Mechanism, meta) -> VerificationResult` — build SymPy from
+  the AST, classify, dispatch to the seams, `finalize_verdict`. Sits alongside
+  `verify(entry)`; `verify(entry)` stays the corpus-facing API and is untouched.
+- **Loop cutover** — `architect/inspect.py:inspect_mechanism` calls
+  `verify_from_ast(m, meta)` when `ARCHITECT_AST_VERIFY=1`; default **off**.
+  `render(m)` still runs for LaTeX output either way. Flip the default on in a
+  follow-up once the eval shows zero `parse` / `OutsideParseableFragment`
+  transcript entries.
+- The serializer's round-trip gate (`parse(render(ast)) ≈ ast`) is retained for
+  the *corpus-insertion* path; it no longer gates verification.
 
-**Risk** — re-touches all four tracks and the test suite. Mitigate by keeping
-`verify(entry)` byte-identical (the corpus regression check must stay green:
-VERIFIED 25 / VERIFIED_TEMPLATE 73 / UNKNOWN 2 / UNSUPPORTED 5).
+**Done when** `verify_from_ast` is reachable from the loop behind the flag, a
+parity test shows it agrees with `verify(entry)` on every loop-reachable
+Mechanism shape (incl. the existing `test_loop_run_reaches_verified_via_*`
+fixtures), and a flagged `live_smoke` + eval run produces zero parse-error
+transcript entries.
+
+**Risk** — the seam extraction is behavior-preserving surgery on solver code.
+Frozen regression gate on every task: `python -m verifier corpus.json` must stay
+**VERIFIED 25 / VERIFIED_TEMPLATE 73 / UNKNOWN 2 / UNSUPPORTED 5**, and the full
+`pytest` suite green.
 
 ---
 
