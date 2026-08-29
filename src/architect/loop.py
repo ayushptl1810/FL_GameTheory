@@ -77,8 +77,21 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
         try:
             m = deps.propose(spec, mode, rag_hits, feedback)
         except Exception as exc:  # noqa: BLE001
-            transcript.append({"iter": iterations, "note": f"propose_error: {exc}"})
-            return _finish("FAILED", None, None, None)
+            # A malformed / unparseable proposal is a repairable event, not a
+            # hard stop: feed the exact decode error back and let the model
+            # retry within the repair budget (per the plan's error table).
+            transcript.append({"iter": iterations, "mode": mode,
+                               "verdict": "PROPOSE_ERROR",
+                               "note": f"propose_error: {exc}"})
+            if _repair(Feedback(
+                    kind="parse_hint",
+                    hint=(f"your previous reply did not decode into a valid "
+                          f"Mechanism: {exc}. Return ONLY the JSON object with "
+                          f"top-level keys category, utility, payment, ic, ir "
+                          f"(each of utility/payment/ic/ir an algebra node "
+                          f'{{"t":...}}).'))) == "fail":
+                return _finish("FAILED", None, None, None)
+            continue
 
         if mode == "Synthesis":
             try:

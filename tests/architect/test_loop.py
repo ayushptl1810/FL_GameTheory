@@ -122,9 +122,19 @@ def test_wall_clock_exceeded():
     assert any(e.get("note") == "wall_clock_exceeded" for e in r.transcript)
 
 
-def test_propose_error_fails():
+def test_propose_error_repairs_then_succeeds():
+    # A malformed proposal is repairable: feed the error back, retry, succeed.
     deps = _scripted_deps(verdicts=[_V("VERIFIED", entry_specific=True)],
-                          propose=[RuntimeError("boom")])
+                          propose=[RuntimeError("boom")])  # then falls to default _mech()
+    r = run(ProblemSpec(raw_text="x"), index=object(), deps=deps)
+    assert r.status == "VERIFIED"
+    assert any(str(e.get("note", "")).startswith("propose_error:") for e in r.transcript)
+
+
+def test_propose_error_exhausts_budget_then_fails():
+    # propose raises every time -> repair budget (5 + 1 restart + 5) exhausts -> FAIL
+    deps = _scripted_deps(verdicts=[_V("VERIFIED", entry_specific=True)],
+                          propose=[RuntimeError("boom")] * 13)
     r = run(ProblemSpec(raw_text="x"), index=object(), deps=deps)
     assert r.status == "FAILED"
     assert any(str(e.get("note", "")).startswith("propose_error:") for e in r.transcript)

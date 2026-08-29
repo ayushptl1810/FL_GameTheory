@@ -11,7 +11,7 @@ from architect.types import ProblemSpec
 # every remote path is unavailable.
 #   ARCHITECT_EMBED_PROVIDER  nvidia | huggingface | local | hashing  (force one)
 #   ARCHITECT_EMBED_MODEL     override the model id for the chosen provider
-_NVIDIA_EMBED_DEFAULT = "nvidia/nv-embedqa-e5-v5"
+_NVIDIA_EMBED_DEFAULT = "nvidia/llama-3.2-nv-embedqa-1b-v1"
 _HF_EMBED_DEFAULT = "BAAI/bge-small-en-v1.5"
 
 
@@ -77,15 +77,19 @@ _EMBED_CHAIN = [
 
 
 def _default_embed(texts):
+    # ARCHITECT_EMBED_PROVIDER just moves one backend to the front; the rest
+    # still act as fallbacks so a model EOL / outage degrades instead of crashing.
     forced = os.environ.get("ARCHITECT_EMBED_PROVIDER")
-    chain = ([(n, f) for n, f in _EMBED_CHAIN if n == forced] if forced
-             else _EMBED_CHAIN)
+    chain = _EMBED_CHAIN
+    if forced:
+        chain = ([p for p in _EMBED_CHAIN if p[0] == forced]
+                 + [p for p in _EMBED_CHAIN if p[0] != forced])
     last = None
-    for _name, fn in chain:
+    for name, fn in chain:
         try:
             return fn(texts)
         except Exception as exc:  # noqa: BLE001
-            last = exc
+            last = f"[{name}] {exc}"
     raise RuntimeError(f"all embedding backends failed; last error: {last}")
 
 def _norm(a):

@@ -31,11 +31,25 @@ def ast_from_json(obj):
     if t == "Pow": return Pow(ast_from_json(obj["base"]), int(obj["exp"]))
     if t == "Func": return Func(str(obj["name"]), ast_from_json(obj["arg"]))
     if t == "IndexedFamily":
-        return IndexedFamily(str(obj["name"]), str(obj["index"]), list(obj["over"]))
+        over = obj["over"]
+        over = [over] if isinstance(over, str) else list(over)
+        return IndexedFamily(str(obj["name"]), str(obj["index"]), over)
     raise ASTDecodeError(f"unknown node type {t!r}")
 
 
+_REQUIRED_MECH_KEYS = ("category", "utility", "payment", "ic", "ir")
+
+
 def mechanism_from_json(obj) -> Mechanism:
+    if not isinstance(obj, dict):
+        raise ASTDecodeError(f"Mechanism must be a JSON object, got {type(obj).__name__}")
+    missing = [k for k in _REQUIRED_MECH_KEYS if k not in obj]
+    if missing:
+        raise ASTDecodeError(
+            f"Mechanism JSON is missing required key(s): {missing}. "
+            f"Expected top-level keys: category, utility, payment, ic, ir "
+            f"(and optional params, type_space, meta). Got keys: {sorted(obj)}"
+        )
     m = Mechanism(
         category=obj["category"],
         utility=ast_from_json(obj["utility"]),
@@ -51,11 +65,35 @@ def mechanism_from_json(obj) -> Mechanism:
     return m
 
 
+_EXAMPLE_MECHANISM = (
+    '{"category":"Stackelberg",'
+    '"utility":{"t":"Sum","terms":['
+    '{"t":"Prod","factors":[{"t":"Sym","name":"p_i"},{"t":"Sym","name":"e_i"}]},'
+    '{"t":"Prod","factors":[{"t":"Const","value":-0.5},{"t":"Sym","name":"c"},'
+    '{"t":"Pow","base":{"t":"Sym","name":"e_i"},"exp":2}]}]},'
+    '"payment":{"t":"Sym","name":"p_i"},'
+    '"ic":{"t":"Sum","terms":[{"t":"Sym","name":"p_i"},'
+    '{"t":"Prod","factors":[{"t":"Const","value":-1},{"t":"Sym","name":"c"},'
+    '{"t":"Sym","name":"e_i"}]}]},'
+    '"ir":{"t":"Sum","terms":['
+    '{"t":"Prod","factors":[{"t":"Sym","name":"p_i"},{"t":"Sym","name":"e_i"}]},'
+    '{"t":"Prod","factors":[{"t":"Const","value":-0.5},{"t":"Sym","name":"c"},'
+    '{"t":"Pow","base":{"t":"Sym","name":"e_i"},"exp":2}]}]},'
+    '"params":{},"type_space":["lo","hi"],'
+    '"meta":{"equilibrium_existence":true,"follower_decision":"effort e_i","num_types":2}}'
+)
+
 _AST_RULES = (
-    "Return ONLY a JSON object for the Mechanism. Every algebra node is "
-    '{"t":TypeName,...}. Allowed: Const{value}, Sym{name}, Unknown{name}, '
-    "Sum{terms}, Prod{factors}, Pow{base,exp:int}, Func{name:ln|exp,arg}, "
-    "IndexedFamily{name,index,over}. Write ic and ir as the single expression "
+    "Return ONLY a JSON object for the Mechanism -- no prose, no code fence. "
+    "It MUST have all of these top-level keys: category, utility, payment, ic, "
+    "ir, params, type_space, meta. Here is a complete valid example, copy its "
+    "shape exactly:\n" + _EXAMPLE_MECHANISM + "\n"
+    'Every algebra node is {"t":TypeName,...}. Allowed: Const{value}, '
+    "Sym{name}, Unknown{name}, Sum{terms}, Prod{factors}, Pow{base,exp:int}, "
+    "Func{name:ln|exp,arg}. Use plain Sym like e_i / p_i / theta_i for every "
+    "quantity; do NOT use IndexedFamily unless the paper gives an explicit "
+    "finite menu, and if you do, its `over` must be a JSON array of strings. "
+    "Write ic and ir as the single expression "
     "that must be >= 0 (i.e. u_truthful - u_deviation for ic; u for ir). "
     "Use explicit Prod with Const -1 for subtraction. category must be one of "
     "VCG, Contract, Stackelberg. "

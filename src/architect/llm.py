@@ -18,7 +18,7 @@ def _strip_think(text: str) -> str:
 # covers them; switching provider is one env var.
 _PROVIDERS = {
     "nvidia": ("https://integrate.api.nvidia.com/v1", "NVIDIA_API_KEY",
-               "meta/llama-3.3-70b-instruct"),
+               "meta/llama-3.2-90b-vision-instruct"),
     "groq":   ("https://api.groq.com/openai/v1", "GROQ_API_KEY",
                "llama-3.3-70b-versatile"),
     "openai": ("https://api.openai.com/v1", "OPENAI_API_KEY", "gpt-4o"),
