@@ -544,7 +544,15 @@ def verify_track2(entry: dict) -> "VerificationResult | None":
         return _parametric_contract_certificate(entry)
 
     gap_expr, theta_sym = extracted
+    return track2_check_from_sympy(entry, gap_expr, theta_sym)
 
+
+def track2_check_from_sympy(entry: dict, gap_expr: Any, theta_sym: Any) -> "VerificationResult":
+    """SymPy-in seam: numeric SOS back-half of verify_track2.
+
+    Given the parsed IC-gap polynomial and its main variable, run the
+    S-procedure SOS feasibility check (IC + IR) and finalize the verdict.
+    """
     mech     = entry.get("mechanism") or {}
     paper_id = entry.get("paper_id", "<unknown>")
     category = entry.get("category", "")

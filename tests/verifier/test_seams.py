@@ -91,3 +91,27 @@ def test_stackelberg_verdicts_unchanged_after_seam_extraction():
         r = verify(e)
         assert e["paper_id"] in expected_stackelberg
         assert (r.verdict, r.entry_specific) == expected_stackelberg[e["paper_id"]]
+
+
+# Behavior lock for Task 7: every corpus entry that currently routes to
+# Track 2 (SOS, 4), Track 3 (interval, 2), or Track 4 (Bayesian, 1), captured
+# before extracting track{2,3,4}_check_from_sympy from verify_track{2,3,4}.
+# {paper_id: (verdict, entry_specific, track)}
+_EXPECTED_T234 = {
+    "2307_15975": ("VERIFIED", True, 2),
+    "Lim2020contract_healthcare": ("VERIFIED", True, 2),
+    "Sun2022coded": ("VERIFIED", True, 2),
+    "Tan2025renegotiable_contract": ("VERIFIED", True, 2),
+    "Kang2019contract_mobile": ("UNKNOWN", True, 3),
+    "Sarikaya2019stackelberg_workers": ("VERIFIED", True, 3),
+    "Li2025bayesian_incentive": ("VERIFIED", True, 4),
+}
+
+
+def test_track234_verdicts_unchanged_after_seam_extraction():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) in (2, 3, 4):
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific, r.track)
+    assert seen == _EXPECTED_T234
