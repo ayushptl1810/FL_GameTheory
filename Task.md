@@ -381,12 +381,9 @@ model dodges and Track 3 can't confirm entry-specific.
 
 ### What is left
 
-1. **Family fidelity** — the central issue for the paper. The system finds *a*
-   provably-IC mechanism, not necessarily the one the setting calls for. Options:
-   (a) constrain the router/prompt so the proposed family must match the intake's
-   `expected_family`; (b) reframe the contribution as "provably-IC mechanism
-   synthesis for FL settings" and own that the family is emergent. Needs a
-   decision before the writeup.
+1. **Family fidelity** — Resolved (Option A): the loop is hard-constrained to
+   `expected_family` and FAILs in-family rather than reframing. Per-family verify
+   rate is now the eval's primary honesty metric — see docs/eval-results.md.
 2. **`ln`/transcendental utilities** — `iiot_log_linear` shows the loop can't yet
    handle log-linear settings; the model won't produce the `Func{ln}` form and
    Track 3 doesn't engage. Prompt work + possibly a Track 3 hint path.
