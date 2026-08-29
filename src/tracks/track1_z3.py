@@ -1463,23 +1463,28 @@ def verify_stackelberg(entry: dict) -> VerificationResult:
 
 # ── Shapley ───────────────────────────────────────────────────────────────────
 
+def _shapley_check_core(*, paper_id: str) -> VerificationResult:
+    """
+    Stub seam for Shapley verification.
+    Currently returns unconditional UNSUPPORTED.
+    Phase 4 will fill in the actual verification logic.
+    """
+    return VerificationResult(
+        verdict="UNSUPPORTED", category="Shapley", paper_id=paper_id, track=1,
+        notes=(
+            "Roberts' Theorem: Shapley IC/IR is intractable in Z3 for general domains. "
+            "Hard-gate: ic_proof_present and ir_proof_present are the primary signals."
+        ),
+    )
+
+
 def verify_shapley(entry: dict) -> VerificationResult:
     """
     Shapley IC/IR is intractable in Z3 for general coalitional games.
     Hard-gate fields (ic_proof_present / ir_proof_present) are the primary signal.
     """
-    mechanism  = entry.get("mechanism", {})
-    ic_present = mechanism.get("ic_proof_present", False)
-    ir_present = mechanism.get("ir_proof_present", False)
-    paper_id   = entry.get("paper_id", "<unknown>")
-
-    return VerificationResult(
-        verdict="UNSUPPORTED", category="Shapley", paper_id=paper_id, track=1,
-        notes=(
-            "Roberts' Theorem: Shapley IC/IR is intractable in Z3 for general domains. "
-            f"Hard-gate: ic_proof_present={ic_present}, ir_proof_present={ir_present}."
-        ),
-    )
+    paper_id = entry.get("paper_id", "<unknown>")
+    return _shapley_check_core(paper_id=paper_id)
 
 
 # ── Coalition IC (bounded, discrete Contract menus) ──────────────────────────
