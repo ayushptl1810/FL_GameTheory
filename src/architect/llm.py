@@ -37,7 +37,11 @@ def llm_complete(system: str, user: str, *, json_mode: bool = False) -> str:
 
     try:
         from openai import OpenAI
-        client = OpenAI(base_url=base_url, api_key=api_key)
+        # A single hung call must not blow past the loop's wall-clock budget
+        # (the budget check only fires between iterations). One retry on timeout.
+        timeout_s = float(os.environ.get("ARCHITECT_LLM_TIMEOUT_S", "150"))
+        client = OpenAI(base_url=base_url, api_key=api_key,
+                        timeout=timeout_s, max_retries=1)
         kwargs: dict = {
             "model": model,
             "max_tokens": 4096,

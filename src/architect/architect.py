@@ -163,6 +163,9 @@ _AST_RULES = (
     "contract j>]}]} -- keep the two menu items distinguished by subscript i "
     "vs j. Also set meta.num_types to the number of discrete types and "
     'meta.type_variable to the subscripted type symbol you used (e.g. "theta_i"). '
+    "For Contract, author utility, ic AND ir as fully CONCRETE closed forms "
+    "(no Unknown nodes anywhere) -- a linear screening menu like "
+    "utility = R_i - theta_i*e_i, ir = R_i - theta_i*e_i >= 0. "
     "Every Sym or Unknown base (the part before any underscore) must be a "
     "single Latin letter or a standard Greek letter name (theta, alpha, beta, "
     "gamma, delta, epsilon, lambda, mu, sigma, phi, psi, omega, tau, rho, pi, "
