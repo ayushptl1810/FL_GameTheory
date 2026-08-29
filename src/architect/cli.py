@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 import sys
 from architect.intake import intake
 from architect.rag import build_index
@@ -13,7 +14,8 @@ def main(argv=None) -> int:
     spec = intake(argv[0])
     if spec.missing_fields:
         print(f"[intake] missing (using defaults): {spec.missing_fields}")
-    result = run(spec, index=index)
+    budget_s = float(os.environ.get("ARCHITECT_BUDGET_S", "300"))
+    result = run(spec, index=index, budget_s=budget_s)
     print(f"\nmode={result.mode}  status={result.status}  "
           f"iterations={result.iterations}  solver_calls={result.solver_calls}  "
           f"wall_clock={result.wall_clock:.1f}s")

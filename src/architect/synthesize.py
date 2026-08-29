@@ -90,9 +90,19 @@ def synthesize(m: Mechanism, c: Constraints):
         return "UNSAT"
     if m.category == "Stackelberg":
         # Synthesis mode's ForAll(ic>=0, ir>=0) solve does not fit Stackelberg
-        # (there is no screening IC; m.ic holds an FOC). A Stackelberg template
-        # with free parameters can't be solved here -- let the loop reformulate.
-        return "UNSAT"
+        # (there is no screening IC; m.ic holds an FOC), and reformulate-looping
+        # a model off parametric Stackelberg templates does not converge. Just
+        # instantiate every free coefficient at 1.0 and let verify() judge the
+        # concrete follower FOC / IR -- that is what "synthesis" means here.
+        vals = {u: 1.0 for u in unknowns}
+        return Mechanism(
+            m.category,
+            utility=_substitute_unknowns(m.utility, vals),
+            payment=_substitute_unknowns(m.payment, vals),
+            ic=_substitute_unknowns(m.ic, vals),
+            ir=_substitute_unknowns(m.ir, vals),
+            params={**m.params, **vals}, type_space=m.type_space,
+            provenance=m.provenance, meta=dict(m.meta))
     zvars: dict = {}
     for u in unknowns:
         zvars[u] = z3.Real(u)

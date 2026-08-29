@@ -107,8 +107,15 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
                 if _syn_exc:
                     entry["note"] = f"synthesize_error: {_syn_exc}"
                 transcript.append(entry)
-                if _repair(Feedback(kind="reformulate",
-                                    hint="template family infeasible; different structure")) == "fail":
+                hint = ("no parameter values satisfy IC + IR + budget for that "
+                        "template -- change the STRUCTURE (different payment "
+                        "form), not just the coefficients.")
+                if m.category == "Stackelberg":
+                    hint = ("Stackelberg mechanisms are not solved by parameter "
+                            "search. Give the follower utility with CONCRETE "
+                            "numeric coefficients (no Unknown nodes) as one "
+                            "closed-form polynomial, e.g. p_i*e_i - 0.5*e_i^2.")
+                if _repair(Feedback(kind="reformulate", hint=hint)) == "fail":
                     return _finish("FAILED", None, None, None)
                 continue
             m = out
