@@ -55,6 +55,8 @@ def _sympy_to_z3(expr, zvars):
 
 def _substitute_unknowns(node, model: dict):
     if isinstance(node, Unknown):
+        if node.name not in model:
+            raise ValueError(f"Unknown '{node.name}' has no solved value")
         return Const(model[node.name])
     if isinstance(node, Sum):
         return Sum([_substitute_unknowns(t, model) for t in node.terms])
@@ -67,8 +69,21 @@ def _substitute_unknowns(node, model: dict):
     return node
 
 
+def _all_unknowns(m: Mechanism) -> list:
+    """Every distinct Unknown name across the mechanism, not just the payment
+    subtree -- models routinely put free coefficients in ic/ir/utility too, and
+    each one needs a solved value before _substitute_unknowns runs."""
+    seen, out = set(), []
+    for sub in (m.payment, m.utility, m.ic, m.ir):
+        for n in collect_unknowns(sub):
+            if n not in seen:
+                seen.add(n)
+                out.append(n)
+    return out
+
+
 def synthesize(m: Mechanism, c: Constraints):
-    unknowns = collect_unknowns(m.payment)
+    unknowns = _all_unknowns(m)
     if not (1 <= len(unknowns) <= 5):
         return "UNSAT"
     zvars: dict = {}
