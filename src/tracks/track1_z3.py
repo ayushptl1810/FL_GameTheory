@@ -1390,6 +1390,56 @@ def verify_shapley(entry: dict) -> VerificationResult:
     )
 
 
+# ── Coalition IC (bounded, discrete Contract menus) ──────────────────────────
+
+def verify_coalition_ic_contract(entry: dict, k: int = 2) -> VerificationResult:
+    """Bounded joint-deviation IC for a numeric discrete Contract menu.
+
+    Every other IC check in this project is against *individual* deviations.
+    This adds a k=n=2 coalition check: do types 1 and 2 have a profitable
+    *joint* misreport (both picking some other pair of menu items)?
+
+    Numeric-menu-only: needs entry["menu"] with theta_i / e_i / R_i for
+    i in 1..num_types. No numeric menu -> UNSUPPORTED (never a false VERIFIED).
+    """
+    paper_id = entry.get("paper_id", "<unknown>")
+    menu = entry.get("menu") or {}
+    n = int(entry.get("num_types") or 0)
+    if not menu or n == 0 or k > n:
+        return VerificationResult(
+            verdict="UNSUPPORTED", category="Contract", paper_id=paper_id, track=1,
+            notes=f"coalition size {k} vs {n} types / no numeric menu")
+    if k != 2 or n != 2:
+        return VerificationResult(
+            verdict="UNSUPPORTED", category="Contract", paper_id=paper_id, track=1,
+            notes="only k=n=2 supported in this round")
+
+    try:
+        def u(i: int, r: int) -> float:
+            return menu[f"R_{r}"] - menu[f"theta_{i}"] * menu[f"e_{r}"]
+
+        truthful = u(1, 1) + u(2, 2)
+    except (KeyError, TypeError):
+        return VerificationResult(
+            verdict="UNSUPPORTED", category="Contract", paper_id=paper_id, track=1,
+            notes="menu is not fully numeric (theta_i / e_i / R_i)")
+
+    for r1 in (1, 2):
+        for r2 in (1, 2):
+            if (r1, r2) == (1, 2):
+                continue
+            if u(1, r1) + u(2, r2) > truthful + 1e-9:
+                gain = u(1, r1) + u(2, r2) - truthful
+                return VerificationResult(
+                    verdict="COUNTEREXAMPLE", category="Contract", paper_id=paper_id,
+                    track=1, coalition_ic_k=k,
+                    notes=f"types (1,2) jointly report ({r1},{r2}); gain {gain:.4g}")
+    return VerificationResult(
+        verdict="VERIFIED", category="Contract", paper_id=paper_id, track=1,
+        coalition_ic_k=k, entry_specific=True,
+        notes="no profitable 2-type joint deviation")
+
+
 # ── Parse-only hooks (Stage 2 serializer round-trip) ─────────────────────────
 #
 # These do NOT solve. They re-run the same sympy-latex front-end the
