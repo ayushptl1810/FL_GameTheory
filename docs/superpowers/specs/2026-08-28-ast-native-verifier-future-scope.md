@@ -1,15 +1,20 @@
 # Future Scope — Architect + Verifier
 
 **Date:** 2026-08-28 (Part 1); merged 2026-08-29 (Parts 2–5)
-**Status:** Deferred. Not part of the current round.
+**Status:** Partially promoted. See below.
 **Parent:** `2026-08-28-architect-cegis-loop-design.md`
-**Sibling:** `2026-08-29-novelty-hardening.md` (the active, this-round spec)
+**Sibling:** `2026-08-29-novelty-hardening.md` (merged), `2026-08-29-verifier-proper-checks.md` (the active roadmap)
 
-Parts 2–3 were split out of the 2026-08-29 external-scope review: they are the
-items that need a real research result or a multi-week build, so they do not
-belong in the this-round hardening spec. (The original Parts 4 "coalition IC" and
-5 "corpus trust-gap" turned out to be small and self-contained — they moved into
-`2026-08-29-novelty-hardening.md` as Tasks 7 and 8.)
+**PROMOTED 2026-08-29:** Part 1 (Approach C) and Part 2b (real VCG check) moved
+into `2026-08-29-verifier-proper-checks.md` as Phases 1–2 of a sequenced
+verifier proper-check plan, after the live eval failed 4/4 VCG benchmarks. What
+remains genuine research future-scope here: **Part 2** (a novel certified FL
+mechanism) and **Part 3** (multivariable transcendental IC). Parts 1 and 2b
+below are kept for their detailed sketches, which the roadmap references.
+
+The original Parts 4 "coalition IC" and 5 "corpus trust-gap" were small and
+self-contained — they shipped in `2026-08-29-novelty-hardening.md` as Tasks 7–8
+(the 2-type Contract coalition check is now in `track1_z3.py`).
 
 ---
 

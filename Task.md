@@ -403,12 +403,44 @@ model dodges and Track 3 can't confirm entry-specific.
 - Deferred, non-blocking: `\pi`/`\lambda` Greek-map collision risk;
   budget-constraint plumbing half-wired.
 
+### Verifier proper-check roadmap (planned 2026-08-29)
+
+The 2026-08-29 live eval (`docs/eval-results.md`, `gpt-oss-120b`, 12 benchmarks)
+came back **8/12 VERIFIED, all 4 failures VCG**. Combined with the Task D
+adversarial soundness suite — which showed the VCG track does no real
+entry-specific check (regex on the payment-rule LaTeX shape → canned verdict) and
+that all three category verifiers fall back to a generic template that returns
+`VERIFIED_TEMPLATE` regardless of the entry's own math — the decision is to give
+every covered family a **real solver-backed proof or a real counterexample**.
+Sequenced in `docs/superpowers/specs/2026-08-29-verifier-proper-checks.md`:
+
+1. **Phase 1 — Approach C:** AST goes straight to the solvers; no LaTeX parser in
+   the verify path. Most current failures are parser failures, not math failures;
+   this makes each per-family checker a bounded job instead of a fight with
+   SymPy's LaTeX parser.
+2. **Phase 2 — real VCG check:** finite-bid-grid Z3 proof of `∀ lie:
+   u_i(honest) ≥ u_i(lie)` + IR; retire the regex path (rename `VERIFIED_SHAPE`
+   then delete). Generation: fix the payment to Clarke-pivot form, search only
+   the allocation + affine-maximizer weights.
+3. **Phase 3 — fail-close the template fallbacks** (`VERIFIED_TEMPLATE` →
+   `UNKNOWN`; ~61 corpus entries drop — that lower number is the honest one) and
+   widen the entry-specific parsers now that they are AST-fed.
+4. **Phase 4 — bounded coalition / small-Shapley** (k ≤ 3): encode `v(S)`, prove
+   IC for Shapley payments over the restricted coalition space.
+
+Formal ceiling (named, not to be coded past): general Shapley IC (Roberts),
+n−1 collusion, VCG under interdependent values, output-signal manipulability.
+
 ### Design docs
 
 `docs/superpowers/specs/2026-08-28-architect-cegis-loop-design.md` (spec),
-`docs/superpowers/specs/2026-08-28-ast-native-verifier-future-scope.md` (deferred
-Approach C), `docs/superpowers/plans/2026-08-28-architect-cegis-loop.md` (the
-13-task implementation plan).
+`docs/superpowers/specs/2026-08-29-verifier-proper-checks.md` (verifier
+proper-check roadmap — active),
+`docs/superpowers/specs/2026-08-28-ast-native-verifier-future-scope.md`
+(research future-scope: novel certified mechanism, transcendental IC),
+`docs/superpowers/specs/2026-08-29-novelty-hardening.md` (merged),
+`docs/superpowers/plans/2026-08-28-architect-cegis-loop.md`,
+`docs/superpowers/plans/2026-08-29-novelty-hardening.md`.
 
 ---
 
