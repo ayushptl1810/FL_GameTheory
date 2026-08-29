@@ -42,6 +42,17 @@ def _stackelberg_effort():
         type_space=[], meta={"follower_decision": r"\( e_i \)"})
 
 
+def test_inspect_uses_ast_path_when_flagged(monkeypatch):
+    # _loop_stackelberg_fixture is the in-file fixture proven VERIFIED on BOTH
+    # paths (see test_ast_path_matches_latex_path_on_loop_fixtures); the bare
+    # _stackelberg_effort()'s trivial IC is UNSUPPORTED on the LaTeX path.
+    m, meta = _loop_stackelberg_fixture()
+    monkeypatch.setenv("ARCHITECT_AST_VERIFY", "1")
+    assert inspect_mechanism(m, meta).verdict == "VERIFIED"
+    monkeypatch.delenv("ARCHITECT_AST_VERIFY")
+    assert inspect_mechanism(m, meta).verdict == "VERIFIED"   # LaTeX path still works
+
+
 def test_classify_transcendental():
     m = _stackelberg_effort()
     m.utility = Func("ln", Sym("e_i"))
