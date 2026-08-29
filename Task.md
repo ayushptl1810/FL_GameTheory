@@ -414,10 +414,10 @@ that all three category verifiers fall back to a generic template that returns
 every covered family a **real solver-backed proof or a real counterexample**.
 Sequenced in `docs/superpowers/specs/2026-08-29-verifier-proper-checks.md`:
 
-1. **Phase 1 — Approach C:** AST goes straight to the solvers; no LaTeX parser in
+1. **Phase 1 — Approach C: landed 2026-08-29.** AST goes straight to the solvers; no LaTeX parser in
    the verify path. Most current failures are parser failures, not math failures;
    this makes each per-family checker a bounded job instead of a fight with
-   SymPy's LaTeX parser.
+   SymPy's LaTeX parser. Flag: `ARCHITECT_AST_VERIFY` (default off). Result: verify_from_ast parity holds, corpus regression frozen 25/73/2/5, live_smoke 4/4 VERIFIED with zero parse entries.
 2. **Phase 2 — real VCG check:** finite-bid-grid Z3 proof of `∀ lie:
    u_i(honest) ≥ u_i(lie)` + IR; retire the regex path (rename `VERIFIED_SHAPE`
    then delete). Generation: fix the payment to Clarke-pivot form, search only

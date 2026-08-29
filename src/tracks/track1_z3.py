@@ -114,6 +114,41 @@ def verify_vcg(entry: dict) -> VerificationResult:
     form_note      = _VCG_FORM_CLAIMS[vcg_form]
     form_confirmed = vcg_form in ("clarke_pivot", "marginal_welfare", "critical_bid")
 
+    # Seam: the LaTeX front-end above has produced VCG's parsed representation
+    # of the payment rule (the form classification -> form_confirmed / form_note).
+    # Everything below is the parsed-payment-in / verdict-out back-half, moved
+    # verbatim into _vcg_check_core. VCG's fixed template Z3 model does not read
+    # the payment/utility exprs themselves, so they are accepted but unused here.
+    client_utility_latex = mechanism.get("client_utility_latex") or ""
+    return _vcg_check_core(
+        payment_rule, client_utility_latex,
+        entry_specific=form_confirmed, paper_id=paper_id,
+        meta={"form_note": form_note, "auction_type": auction_type, "ic_type": ic_type},
+    )
+
+
+def _vcg_check_core(
+    payment_latex: str,
+    utility_latex: str,
+    *,
+    entry_specific: bool,
+    paper_id: str,
+    meta: dict | None = None,
+) -> VerificationResult:
+    """Back-half of verify_vcg: parsed-payment-in -> Z3 solve -> verdict.
+
+    Behavior-preserving seam extraction (Approach C). `payment_latex` /
+    `utility_latex` carry VCG's parsed payment/utility representation; the
+    fixed threshold-payment template below does not consult them (VCG
+    classifies on the string in the front-end), so they are currently unused.
+    `entry_specific` is the front-end's `form_confirmed` classification.
+    """
+    meta = meta or {}
+    form_note      = meta.get("form_note", "")
+    auction_type   = meta.get("auction_type", "reverse")
+    ic_type        = meta.get("ic_type", "dominant-strategy")
+    form_confirmed = entry_specific
+
     c = Real("c")
     t = Real("t")
 
@@ -448,6 +483,24 @@ def _try_contract_latex(entry: dict) -> "VerificationResult | None":
 
     mech     = entry.get("mechanism") or {}
     paper_id = entry.get("paper_id", "<unknown>")
+    return _contract_check_core(
+        U_ir, U_rhs, type_sub, contract_sub, n, ir_from_ic_lhs,
+        paper_id=paper_id, meta=mech,
+    )
+
+
+def _contract_check_core(
+    U_ir: Any, U_rhs: Any, type_sub: str, contract_sub: str, n: int,
+    ir_from_ic_lhs: bool, *, paper_id: str, meta: "dict | None" = None,
+) -> "VerificationResult | None":
+    """Back-half of _try_contract_latex: parsed IC/IR SymPy exprs in ->
+    Z3 solve under type-ordering / menu-monotonicity preconditions -> verdict.
+
+    Behavior-preserving seam extraction (Approach C). Inputs are exactly the
+    tuple _parse_contract_entry returns; `meta` is the entry's mechanism dict
+    (only `type_variable` is read, by _type_family).
+    """
+    mech = meta or {}
     cache: dict = {}
 
     def _U(type_k: int, contract_l: "int | None" = None) -> Any:
@@ -1164,6 +1217,46 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     if any(_base_symbol_name(str(s)) == e_base for s in util_expr.free_symbols if s != e_sym):
         return None
 
+    # Seam (Approach C): the LaTeX front-end above has resolved the paper's
+    # follower utility to `util_expr` and identified the follower's decision
+    # variable `e_sym`. Everything below -- FOC derivation, best-response
+    # solve + cross-check, IR at optimum -- is the parsed-exprs-in ->
+    # verdict-out back-half, moved verbatim into _stackelberg_check_core.
+    return _stackelberg_check_core(
+        util_expr,
+        follower_decision=e_sym,
+        best_response_expr=None,
+        meta=mech,
+        entry_specific=True,
+        paper_id=entry.get("paper_id", "<unknown>"),
+    )
+
+
+def _stackelberg_check_core(
+    follower_utility_expr: Any,
+    *,
+    follower_decision: Any,
+    best_response_expr: Any = None,
+    meta: "dict | None" = None,
+    entry_specific: bool,
+    paper_id: str,
+) -> "VerificationResult | None":
+    """Back-half of _try_stackelberg_latex: parsed follower-utility expr +
+    decision variable in -> symbolic FOC -> best-response solve and
+    cross-check against the paper's stated optimum (rejecting on a definite
+    disagreement) -> IR at that optimum -> verdict.
+
+    Behavior-preserving seam extraction (Approach C). `follower_utility_expr`
+    is the resolved multi-clause follower utility; `follower_decision` is the
+    follower's own decision symbol. `meta` is the entry's mechanism dict
+    (only `best_response_latex` is read). `best_response_expr` is accepted for
+    a future pre-parsed cross-check and is currently unused -- the check
+    below still parses `meta["best_response_latex"]` itself, verbatim.
+    """
+    util_expr = follower_utility_expr
+    e_sym = follower_decision
+    mech = meta or {}
+
     try:
         foc = _sp.diff(util_expr, e_sym)
         if foc.has(_sp.Derivative):
@@ -1246,7 +1339,6 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     assumptions = _sp.And(*[_sp.Q.positive(s) for s in remaining_syms]) if remaining_syms else _sp.S.true
     sign = _sp.ask(_sp.Q.nonnegative(U_star), assumptions)
 
-    paper_id = entry.get("paper_id", "<unknown>")
     decided_by_track3 = False
     ir_witness: "dict[str, str] | None" = None
 
@@ -1287,7 +1379,7 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
                 ir_witness = witness
                 decided_by_track3 = True
 
-    final = finalize_verdict(ir_v == "VERIFIED", ir_v == "COUNTEREXAMPLE", True)
+    final = finalize_verdict(ir_v == "VERIFIED", ir_v == "COUNTEREXAMPLE", entry_specific)
 
     return VerificationResult(
         verdict=final, category="Stackelberg", paper_id=paper_id,
@@ -1301,7 +1393,7 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
         notes=(f"IR:{ir_v} ({ir_note}) | LaTeX-parsed follower_utility_latex"
                f" | decision var '{e_sym}' identified from follower_decision/leader_objective"
                f"{best_response_note}"),
-        entry_specific=True,
+        entry_specific=entry_specific,
     )
 
 
@@ -1371,23 +1463,28 @@ def verify_stackelberg(entry: dict) -> VerificationResult:
 
 # ── Shapley ───────────────────────────────────────────────────────────────────
 
+def _shapley_check_core(*, paper_id: str) -> VerificationResult:
+    """
+    Stub seam for Shapley verification.
+    Currently returns unconditional UNSUPPORTED.
+    Phase 4 will fill in the actual verification logic.
+    """
+    return VerificationResult(
+        verdict="UNSUPPORTED", category="Shapley", paper_id=paper_id, track=1,
+        notes=(
+            "Roberts' Theorem: Shapley IC/IR is intractable in Z3 for general domains. "
+            "Hard-gate: ic_proof_present and ir_proof_present are the primary signals."
+        ),
+    )
+
+
 def verify_shapley(entry: dict) -> VerificationResult:
     """
     Shapley IC/IR is intractable in Z3 for general coalitional games.
     Hard-gate fields (ic_proof_present / ir_proof_present) are the primary signal.
     """
-    mechanism  = entry.get("mechanism", {})
-    ic_present = mechanism.get("ic_proof_present", False)
-    ir_present = mechanism.get("ir_proof_present", False)
-    paper_id   = entry.get("paper_id", "<unknown>")
-
-    return VerificationResult(
-        verdict="UNSUPPORTED", category="Shapley", paper_id=paper_id, track=1,
-        notes=(
-            "Roberts' Theorem: Shapley IC/IR is intractable in Z3 for general domains. "
-            f"Hard-gate: ic_proof_present={ic_present}, ir_proof_present={ir_present}."
-        ),
-    )
+    paper_id = entry.get("paper_id", "<unknown>")
+    return _shapley_check_core(paper_id=paper_id)
 
 
 # ── Coalition IC (bounded, discrete Contract menus) ──────────────────────────

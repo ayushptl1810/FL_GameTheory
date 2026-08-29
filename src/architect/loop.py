@@ -1,6 +1,7 @@
 """CEGIS loop controller: propose -> synthesize -> render -> MC pre-filter -> verify,
 with a per-verdict repair/restart policy (spec S3)."""
 from __future__ import annotations
+import os
 import time
 import types as _t
 
@@ -125,7 +126,12 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
             m = out
 
         try:
-            mech_dict, latex = deps.render(m)
+            if os.environ.get("ARCHITECT_AST_VERIFY") == "1":
+                # Verification runs on the AST directly; skip the serialize
+                # round-trip parse so no LaTeX parser runs in the loop.
+                mech_dict, latex = deps.render(m, check_roundtrip=False)
+            else:
+                mech_dict, latex = deps.render(m)   # byte-identical to pre-Task-13
         except OutsideParseableFragment as exc:
             transcript.append({"iter": iterations, "mode": mode, "verdict": "PARSE",
                                "family": m.category, "note": exc.hint})

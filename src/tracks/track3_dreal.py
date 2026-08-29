@@ -332,6 +332,22 @@ def verify_track3(entry: dict) -> "VerificationResult | None":
     if theta_min >= theta_max:
         theta_min, theta_max = 0.001, 1.0
 
+    return track3_check_from_sympy(entry, paper_id, category, mech, theta_min, theta_max)
+
+
+def track3_check_from_sympy(
+    entry: dict,
+    paper_id: str,
+    category: str,
+    mech: dict,
+    theta_min: float,
+    theta_max: float,
+) -> "VerificationResult":
+    """SymPy-in seam: interval back-half of verify_track3.
+
+    Builds the IC/IR SymPy expressions from the entry's LaTeX fields and runs
+    the mpmath.iv branch-and-bound δ-check over the type box.
+    """
     conditions: list[str] = []
     verdicts:   list[Verdict] = []
     counterexample: "dict[str, str] | None" = None

@@ -78,23 +78,38 @@ _META_KEYS = frozenset({
 })
 
 
-def ast_to_sympy(node):
+def ast_to_sympy(node, opaque_families: bool = False):
+    # opaque_families: an IndexedFamily collapses to Symbol(name) (the
+    # verify_from_ast / seam consumer wants one opaque symbol). Default False
+    # keeps the subscripted Symbol(f"{name}_{index}") so the LaTeX render path
+    # (to_latex / _check_roundtrip) still emits `R_{i}`, not bare `R`.
     # Symbols are built assumption-free (no positive=True): sympy treats
     # Symbol('x', positive=True) and Symbol('x') as distinct, so keeping
     # assumptions here would break equality against a plain sympify(...) form.
     if isinstance(node, Const):
-        return sympy.Rational(node.value).limit_denominator(10 ** 6)
+        # Integer-valued constants stay on the exact Rational path every other
+        # branch already relies on; non-integer literals map to sympy.Float so
+        # a decimal Const round-trips as itself instead of a surprise fraction.
+        if float(node.value).is_integer():
+            return sympy.Rational(node.value).limit_denominator(10 ** 6)
+        return sympy.Float(node.value)
     if isinstance(node, (Sym, Unknown)):
         return sympy.Symbol(node.name)
     if isinstance(node, Sum):
-        return sympy.Add(*[ast_to_sympy(t) for t in node.terms])
+        return sympy.Add(*[ast_to_sympy(t, opaque_families) for t in node.terms])
     if isinstance(node, Prod):
-        return sympy.Mul(*[ast_to_sympy(f) for f in node.factors])
+        return sympy.Mul(*[ast_to_sympy(f, opaque_families) for f in node.factors])
     if isinstance(node, Pow):
-        return ast_to_sympy(node.base) ** node.exp
+        return ast_to_sympy(node.base, opaque_families) ** node.exp
     if isinstance(node, Func):
-        return {"ln": sympy.log, "exp": sympy.exp}[node.name](ast_to_sympy(node.arg))
+        return {"ln": sympy.log, "exp": sympy.exp}[node.name](
+            ast_to_sympy(node.arg, opaque_families))
     if isinstance(node, IndexedFamily):
+        # Rendering path (default): keep the subscripted name so to_latex emits
+        # `R_{i}`. Verify/seam path (opaque_families=True): collapse to one
+        # symbol; per-index expansion over node.over is that caller's job.
+        if opaque_families:
+            return sympy.Symbol(node.name)
         return sympy.Symbol(f"{node.name}_{node.index}")
     raise OutsideParseableFragment(f"cannot serialize node {type(node).__name__}")
 
@@ -169,7 +184,7 @@ def _contract_ic_latex(ic_node) -> str:
     return _ineq_latex(ic_node)
 
 
-def render(m: Mechanism):
+def render(m: Mechanism, *, check_roundtrip: bool = True):
     if m.category not in _FIELD_MAP:
         raise OutsideParseableFragment(
             f"category {m.category!r} has no entry-specific verifier; "
@@ -188,25 +203,31 @@ def render(m: Mechanism):
         else:
             md[field] = to_latex(node)
 
-    parser = _PARSERS[m.category]
-    try:
-        reparsed = parser(md)
-    except ParseFailure as pf:
-        raise OutsideParseableFragment(
-            f"field {pf.field} did not parse ({pf.reason}); use simpler algebra: "
-            f"closed-form sums with numeric bounds, explicit products, ln/exp only"
-        ) from pf
-
-    for field, attr in _FIELD_MAP[m.category].items():
-        if attr in _IC_IR_ATTRS:
-            continue  # v1: inequality fields are not structurally round-tripped
-        want = _norm(ast_to_sympy(getattr(m, attr)))
-        got = reparsed.get(field)
-        if got is None or sympy.simplify(_norm(got) - want) != 0:
+    # The re-parse / structural-compare block is the only LaTeX parse in this
+    # function. ``check_roundtrip=False`` skips it entirely (used by the
+    # AST-native verify path, which must run no LaTeX parser in the loop); the
+    # "cannot serialize node" / missing-field raises above still fire — those are
+    # "can't even produce LaTeX", not "parse-back disagreed".
+    if check_roundtrip:
+        parser = _PARSERS[m.category]
+        try:
+            reparsed = parser(md)
+        except ParseFailure as pf:
             raise OutsideParseableFragment(
-                f"round-trip mismatch on {field}: rendered LaTeX does not "
-                f"re-parse to the proposed expression; simplify the {attr} term"
-            )
+                f"field {pf.field} did not parse ({pf.reason}); use simpler algebra: "
+                f"closed-form sums with numeric bounds, explicit products, ln/exp only"
+            ) from pf
+
+        for field, attr in _FIELD_MAP[m.category].items():
+            if attr in _IC_IR_ATTRS:
+                continue  # v1: inequality fields are not structurally round-tripped
+            want = _norm(ast_to_sympy(getattr(m, attr)))
+            got = reparsed.get(field)
+            if got is None or sympy.simplify(_norm(got) - want) != 0:
+                raise OutsideParseableFragment(
+                    f"round-trip mismatch on {field}: rendered LaTeX does not "
+                    f"re-parse to the proposed expression; simplify the {attr} term"
+                )
 
     # Fold in ONLY the allowlisted non-LaTeX metadata keys, AFTER the round-trip
     # check. This stops model-authored meta from overwriting a validated LaTeX

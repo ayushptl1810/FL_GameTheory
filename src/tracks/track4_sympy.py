@@ -346,6 +346,28 @@ def verify_track4(entry: dict) -> "VerificationResult | None":
     ir_expr = _parse_geq_lhs(ir_raw)
     theta_sym = _find_theta_sym(ir_expr)
 
+    return track4_check_from_sympy(
+        paper_id, category, theta_min, theta_max, distribution,
+        ir_raw, ic_raw, ir_expr, theta_sym,
+    )
+
+
+def track4_check_from_sympy(
+    paper_id: str,
+    category: str,
+    theta_min: float,
+    theta_max: float,
+    distribution: str,
+    ir_raw: str,
+    ic_raw: str,
+    ir_expr: Any,
+    theta_sym: Any,
+) -> "VerificationResult":
+    """SymPy-in seam: continuous Bayesian back-half of verify_track4.
+
+    Given the parsed IR utility expression and type symbol, run the Myerson
+    envelope check, the Bayesian IC integral, and the symbolic IR minimum.
+    """
     conditions: list[str] = []
     verdicts:   list[Verdict] = []
 
