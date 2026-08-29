@@ -114,6 +114,41 @@ def verify_vcg(entry: dict) -> VerificationResult:
     form_note      = _VCG_FORM_CLAIMS[vcg_form]
     form_confirmed = vcg_form in ("clarke_pivot", "marginal_welfare", "critical_bid")
 
+    # Seam: the LaTeX front-end above has produced VCG's parsed representation
+    # of the payment rule (the form classification -> form_confirmed / form_note).
+    # Everything below is the parsed-payment-in / verdict-out back-half, moved
+    # verbatim into _vcg_check_core. VCG's fixed template Z3 model does not read
+    # the payment/utility exprs themselves, so they are accepted but unused here.
+    client_utility_latex = mechanism.get("client_utility_latex") or ""
+    return _vcg_check_core(
+        payment_rule, client_utility_latex,
+        entry_specific=form_confirmed, paper_id=paper_id,
+        meta={"form_note": form_note, "auction_type": auction_type, "ic_type": ic_type},
+    )
+
+
+def _vcg_check_core(
+    payment_latex: str,
+    utility_latex: str,
+    *,
+    entry_specific: bool,
+    paper_id: str,
+    meta: dict | None = None,
+) -> VerificationResult:
+    """Back-half of verify_vcg: parsed-payment-in -> Z3 solve -> verdict.
+
+    Behavior-preserving seam extraction (Approach C). `payment_latex` /
+    `utility_latex` carry VCG's parsed payment/utility representation; the
+    fixed threshold-payment template below does not consult them (VCG
+    classifies on the string in the front-end), so they are currently unused.
+    `entry_specific` is the front-end's `form_confirmed` classification.
+    """
+    meta = meta or {}
+    form_note      = meta.get("form_note", "")
+    auction_type   = meta.get("auction_type", "reverse")
+    ic_type        = meta.get("ic_type", "dominant-strategy")
+    form_confirmed = entry_specific
+
     c = Real("c")
     t = Real("t")
 
