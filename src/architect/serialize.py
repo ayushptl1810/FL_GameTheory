@@ -87,12 +87,12 @@ def ast_to_sympy(node, opaque_families: bool = False):
     # Symbol('x', positive=True) and Symbol('x') as distinct, so keeping
     # assumptions here would break equality against a plain sympify(...) form.
     if isinstance(node, Const):
-        # Integer-valued constants stay on the exact Rational path every other
-        # branch already relies on; non-integer literals map to sympy.Float so
-        # a decimal Const round-trips as itself instead of a surprise fraction.
-        if float(node.value).is_integer():
-            return sympy.Rational(node.value).limit_denominator(10 ** 6)
-        return sympy.Float(node.value)
+        # Every Const rides the exact Rational path: both z3 converters
+        # (_sympy_to_z3, _sp_to_z3) take Rational fine, and the render path
+        # (to_latex / mechanism_latex / corpus dict) must emit \frac{1}{2},
+        # not 0.5. str(value) so a float literal like 0.1 rationalises from
+        # its decimal text, not its binary expansion.
+        return sympy.Rational(str(node.value)).limit_denominator(10 ** 6)
     if isinstance(node, (Sym, Unknown)):
         return sympy.Symbol(node.name)
     if isinstance(node, Sum):

@@ -4,9 +4,18 @@ from architect.serialize import ast_to_sympy
 
 
 def test_bridge_atoms():
-    assert ast_to_sympy(Const(2.5)) == sympy.Float(2.5)
+    assert ast_to_sympy(Const(2.5)) == sympy.Rational(5, 2)
     assert ast_to_sympy(Sym("theta")) == sympy.Symbol("theta")
     assert ast_to_sympy(Unknown("a")) == sympy.Symbol("a")
+
+
+def test_const_half_is_rational_not_float():
+    # Fix #9: every Const rides the exact Rational path so the render / corpus
+    # dict keeps \frac{1}{2}, never 0.5.
+    assert ast_to_sympy(Const(0.5)) == sympy.Rational(1, 2)
+    from architect.serialize import to_latex
+    tex = to_latex(Prod([Const(0.5), Sym("c")]))
+    assert "0.5" not in tex and ("frac" in tex or "1}{2" in tex)
 
 
 def test_bridge_compound():
@@ -167,6 +176,19 @@ def test_ast_path_matches_latex_path_on_loop_fixtures():
         assert ast_result.verdict == latex_verdict, (
             m.category, ast_result.verdict, latex_verdict)
         assert ast_result.verdict == "VERIFIED" and ast_result.entry_specific is True
+
+
+def test_ast_path_matches_latex_path_on_non_verified():
+    # Fix #10: the VERIFIED fixtures can't catch a divergence in the
+    # non-VERIFIED directions. A Stackelberg mechanism whose meta LACKS
+    # equilibrium_existence lands UNSUPPORTED on BOTH paths (AST path gates in
+    # verify_from_ast; LaTeX path gates in verify_stackelberg).
+    m, meta = _loop_stackelberg_fixture()
+    m.meta.pop("equilibrium_existence")
+    latex_verdict = inspect_mechanism(m, meta).verdict
+    ast_verdict = verify_from_ast(m, meta).verdict
+    assert ast_verdict == latex_verdict, (ast_verdict, latex_verdict)
+    assert ast_verdict != "VERIFIED"
 
 
 # ── render(check_roundtrip=False): no LaTeX parse in the AST-verify loop path ──
