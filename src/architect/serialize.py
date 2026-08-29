@@ -83,7 +83,12 @@ def ast_to_sympy(node):
     # Symbol('x', positive=True) and Symbol('x') as distinct, so keeping
     # assumptions here would break equality against a plain sympify(...) form.
     if isinstance(node, Const):
-        return sympy.Rational(node.value).limit_denominator(10 ** 6)
+        # Integer-valued constants stay on the exact Rational path every other
+        # branch already relies on; non-integer literals map to sympy.Float so
+        # a decimal Const round-trips as itself instead of a surprise fraction.
+        if float(node.value).is_integer():
+            return sympy.Rational(node.value).limit_denominator(10 ** 6)
+        return sympy.Float(node.value)
     if isinstance(node, (Sym, Unknown)):
         return sympy.Symbol(node.name)
     if isinstance(node, Sum):
@@ -95,7 +100,9 @@ def ast_to_sympy(node):
     if isinstance(node, Func):
         return {"ln": sympy.log, "exp": sympy.exp}[node.name](ast_to_sympy(node.arg))
     if isinstance(node, IndexedFamily):
-        return sympy.Symbol(f"{node.name}_{node.index}")
+        # Opaque at the bridge: the family collapses to one symbol; per-index
+        # expansion over node.over is the caller's job, not this function's.
+        return sympy.Symbol(node.name)
     raise OutsideParseableFragment(f"cannot serialize node {type(node).__name__}")
 
 
