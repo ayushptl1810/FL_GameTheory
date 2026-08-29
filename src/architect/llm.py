@@ -1,8 +1,17 @@
 from __future__ import annotations
 import os
+import re
 
 class LLMError(RuntimeError):
     pass
+
+# Reasoning models (DeepSeek-R1, Nemotron "reasoning on", QwQ, ...) prefix the
+# answer with a <think>...</think> block that breaks json.loads downstream.
+_THINK_RE = re.compile(r"^\s*<think>.*?</think>\s*", re.DOTALL | re.IGNORECASE)
+
+
+def _strip_think(text: str) -> str:
+    return _THINK_RE.sub("", text or "", count=1)
 
 # provider -> (base_url, api-key env var, default model)
 # All three speak the OpenAI chat-completions wire format, so one code path
@@ -49,7 +58,7 @@ def llm_complete(system: str, user: str, *, json_mode: bool = False) -> str:
                 resp = client.chat.completions.create(**kwargs)
             else:
                 raise
-        return resp.choices[0].message.content or ""
+        return _strip_think(resp.choices[0].message.content or "")
     except LLMError:
         raise
     except Exception as exc:  # noqa: BLE001
