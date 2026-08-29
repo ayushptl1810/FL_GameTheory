@@ -93,6 +93,7 @@ class VerificationResult:
     counterexample: dict[str, str] | None = None
     notes: str = ""
     entry_specific: bool = False
+    coalition_ic_k: int | None = None
 
     def __str__(self) -> str:
         tick = "✓" if self.verdict in ("VERIFIED", "VERIFIED_TEMPLATE") else "·"

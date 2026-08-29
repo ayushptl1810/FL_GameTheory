@@ -6,9 +6,9 @@ __pycache__/
 .DS_Store
 .claude
 corpus/
-Task.md
 paywalled.txt
 entries/
 entries/preloader/pdfs/
 research.md
 .architect_cache/
+eval-results.json

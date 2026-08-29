@@ -212,7 +212,13 @@ def propose(spec: ProblemSpec, mode, rag_hits, feedback, *, complete=llm_complet
             f"budget={spec.budget}, failure_modes={spec.failure_modes}\n"
             f"Retrieved: {json.dumps([{'paper_id': h.get('paper_id'), 'mechanism': h.get('mechanism')} for h in rag_hits])[:4000]}"
             + _feedback_block(feedback))
-    raw = complete(_PROMPTS[mode], user, json_mode=True)
+    system = _PROMPTS[mode]
+    if spec.expected_family:
+        system = (f"You MUST propose a mechanism in the {spec.expected_family} "
+                  f"family. Do not switch families. "
+                  f"Any Synthesis or Hybrid routing must stay within the "
+                  f"{spec.expected_family} family. " + system)
+    raw = complete(system, user, json_mode=True)
     return mechanism_from_json(json.loads(_extract_json(raw)))
 
 

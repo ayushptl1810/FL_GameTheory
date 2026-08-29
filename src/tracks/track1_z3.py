@@ -96,6 +96,20 @@ def verify_vcg(entry: dict) -> VerificationResult:
     paper_id     = entry.get("paper_id", "<unknown>")
     payment_rule = mechanism.get("payment_rule_latex") or ""
 
+    # Soundness gate (adversarial suite, Task D): an identically-zero payment
+    # rule is not a Groves/pivot payment -- with p_i = 0 every agent strictly
+    # gains by over-reporting, so the mechanism is not dominant-strategy IC.
+    # The fixed template checks below would still pass (they never look at the
+    # entry's own payment rule), so fail closed here before they can.
+    _pr_rhs = payment_rule.split("=", 1)[-1] if "=" in payment_rule else payment_rule
+    if re.sub(r"[\s${}\\]", "", _pr_rhs) in ("0", "0.0"):
+        return VerificationResult(
+            verdict="UNKNOWN", category="VCG", paper_id=paper_id, track=1,
+            notes="payment_rule_latex is identically zero -- not a Groves/pivot "
+                  "payment; dominant-strategy IC fails (every agent over-reports). "
+                  "Failing closed: no entry-specific DSIC proof available.",
+        )
+
     vcg_form       = _classify_vcg_payment(payment_rule)
     form_note      = _VCG_FORM_CLAIMS[vcg_form]
     form_confirmed = vcg_form in ("clarke_pivot", "marginal_welfare", "critical_bid")
@@ -394,6 +408,17 @@ def _parse_contract_entry(entry: dict) -> "tuple[Any, Any, str, str, int, bool] 
     if len(contract_sub) != 1:
         return None
     contract_sub = contract_sub[0]
+
+    # Soundness gate (adversarial suite, Task D): the IC RHS is the deviating
+    # type's utility from *another* contract, U_i(contract_j) -- it MUST depend
+    # on the deviating type i. If no symbol in U_rhs carries the type
+    # subscript (e.g. the condition was stated as U_j(contract_j) >= 0, an
+    # equilibrium-utility ordering rather than an incentive constraint, or as
+    # a bare constant), certifying it says nothing about incentive
+    # compatibility. Fail closed rather than hand a structurally-wrong proof
+    # obligation to Z3 / the parametric certificate.
+    if not any(_get_sub(s) == type_sub for s in U_rhs.free_symbols):
+        return None
 
     raw_n = mech.get("num_types")
     try:
@@ -1363,6 +1388,59 @@ def verify_shapley(entry: dict) -> VerificationResult:
             f"Hard-gate: ic_proof_present={ic_present}, ir_proof_present={ir_present}."
         ),
     )
+
+
+# ── Coalition IC (bounded, discrete Contract menus) ──────────────────────────
+
+def verify_coalition_ic_contract(entry: dict, k: int = 2) -> VerificationResult:
+    """Bounded joint-deviation IC for a numeric discrete Contract menu.
+
+    Every other IC check in this project is against *individual* deviations.
+    This adds a k=n=2 coalition check: do types 1 and 2 have a profitable
+    *joint* misreport (both picking some other pair of menu items)?
+
+    Numeric-menu-only: needs entry["menu"] with theta_i / e_i / R_i for
+    i in 1..num_types. No numeric menu -> UNSUPPORTED (never a false VERIFIED).
+
+    Assumes linear-cost quasilinear utility u = R - theta * e; does not read
+    the entry's own utility_latex and does not check IR.
+    """
+    paper_id = entry.get("paper_id", "<unknown>")
+    menu = entry.get("menu") or {}
+    n = int(entry.get("num_types") or 0)
+    if not menu or n == 0 or k > n:
+        return VerificationResult(
+            verdict="UNSUPPORTED", category="Contract", paper_id=paper_id, track=1,
+            notes=f"coalition size {k} vs {n} types / no numeric menu")
+    if k != 2 or n != 2:
+        return VerificationResult(
+            verdict="UNSUPPORTED", category="Contract", paper_id=paper_id, track=1,
+            notes="only k=n=2 supported in this round")
+
+    try:
+        def u(i: int, r: int) -> float:
+            return menu[f"R_{r}"] - menu[f"theta_{i}"] * menu[f"e_{r}"]
+
+        truthful = u(1, 1) + u(2, 2)
+    except (KeyError, TypeError):
+        return VerificationResult(
+            verdict="UNSUPPORTED", category="Contract", paper_id=paper_id, track=1,
+            notes="menu is not fully numeric (theta_i / e_i / R_i)")
+
+    for r1 in (1, 2):
+        for r2 in (1, 2):
+            if (r1, r2) == (1, 2):
+                continue
+            if u(1, r1) + u(2, r2) > truthful + 1e-9:
+                gain = u(1, r1) + u(2, r2) - truthful
+                return VerificationResult(
+                    verdict="COUNTEREXAMPLE", category="Contract", paper_id=paper_id,
+                    track=1, coalition_ic_k=k,
+                    notes=f"types (1,2) jointly report ({r1},{r2}); gain {gain:.4g}")
+    return VerificationResult(
+        verdict="VERIFIED", category="Contract", paper_id=paper_id, track=1,
+        coalition_ic_k=k,
+        notes="no profitable 2-type joint deviation")
 
 
 # ── Parse-only hooks (Stage 2 serializer round-trip) ─────────────────────────
