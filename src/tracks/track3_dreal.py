@@ -332,21 +332,48 @@ def verify_track3(entry: dict) -> "VerificationResult | None":
     if theta_min >= theta_max:
         theta_min, theta_max = 0.001, 1.0
 
-    return track3_check_from_sympy(entry, paper_id, category, mech, theta_min, theta_max)
+    # Front-end: LaTeX → SymPy + bound extraction. The seam helper below takes
+    # only parsed exprs + bounds and never touches `entry`.
+    ic_expr, ic_err = _build_ic_expr(entry)
+    ir_expr, ir_err = _build_ir_expr(entry)
+    ic_bounds = _bounds_for(ic_expr, theta_min, theta_max) if ic_expr is not None else []
+    ir_bounds = _bounds_for(ir_expr, theta_min, theta_max) if ir_expr is not None else []
+
+    has_latex = bool(
+        mech.get("ic_screening_latex") or
+        mech.get("ir_participation_latex")
+    )
+
+    return track3_check_from_sympy(
+        ic_expr, ir_expr, ic_bounds, ir_bounds, _DELTA,
+        ic_err=ic_err, ir_err=ir_err,
+        entry_specific=has_latex, paper_id=paper_id, category=category,
+        theta_min=theta_min, theta_max=theta_max,
+    )
 
 
 def track3_check_from_sympy(
-    entry: dict,
+    ic_expr: "Any | None",
+    ir_expr: "Any | None",
+    ic_bounds: "list[tuple[Any, float, float]]",
+    ir_bounds: "list[tuple[Any, float, float]]",
+    delta: float,
+    *,
+    ic_err: str = "",
+    ir_err: str = "",
+    entry_specific: bool,
     paper_id: str,
-    category: str,
-    mech: dict,
-    theta_min: float,
-    theta_max: float,
+    category: str = "",
+    theta_min: float = 0.001,
+    theta_max: float = 1.0,
 ) -> "VerificationResult":
     """SymPy-in seam: interval back-half of verify_track3.
 
-    Builds the IC/IR SymPy expressions from the entry's LaTeX fields and runs
-    the mpmath.iv branch-and-bound δ-check over the type box.
+    Given the parsed IC/IR SymPy expressions and their per-symbol bound lists
+    (``[(sympy_symbol, lo, hi), ...]``), run the mpmath.iv branch-and-bound
+    δ-check over the type box and finalize the verdict. Does no ``entry`` or
+    LaTeX parsing. δ-soundness semantics unchanged: δ-UNSAT → VERIFIED,
+    δ-SAT (1-D) → COUNTEREXAMPLE.
     """
     conditions: list[str] = []
     verdicts:   list[Verdict] = []
@@ -361,13 +388,12 @@ def track3_check_from_sympy(
     # a SUPERSET of the coupled domain) but suppresses box counterexamples
     # to UNKNOWN when the expression has more than one free symbol.
 
-    def _run(kind: str, expr: Any, err: str) -> None:
+    def _run(kind: str, expr: Any, err: str, bounds: "list[tuple[Any, float, float]]") -> None:
         nonlocal counterexample
         if expr is None:
             verdicts.append("UNKNOWN")
             conditions.append(f"{kind}: could not build formula — {err}")
             return
-        bounds = _bounds_for(expr, theta_min, theta_max)
         if not bounds:
             verdicts.append("UNKNOWN")
             conditions.append(f"{kind}: constant expression — nothing to check")
@@ -376,12 +402,12 @@ def track3_check_from_sympy(
             verdicts.append("UNKNOWN")
             conditions.append(f"{kind}: {len(bounds)} free variables — box search intractable")
             return
-        status, witness = check_nonneg_box(expr, bounds, _DELTA)
+        status, witness = check_nonneg_box(expr, bounds, delta)
         dims = len(bounds)
         if status == "verified":
             verdicts.append("VERIFIED")
             conditions.append(
-                f"{kind}: δ-UNSAT (no violation within δ={_DELTA}) over "
+                f"{kind}: δ-UNSAT (no violation within δ={delta}) over "
                 f"{dims}-dim box, θ∈[{theta_min},{theta_max}]  [mpmath.iv]"
             )
         elif status == "counterexample":
@@ -400,19 +426,13 @@ def track3_check_from_sympy(
             verdicts.append("UNKNOWN")
             conditions.append(f"{kind}: interval search inconclusive (unsupported op or budget)")
 
-    ic_expr, ic_err = _build_ic_expr(entry)
-    _run("IC", ic_expr, ic_err)
-    ir_expr, ir_err = _build_ir_expr(entry)
-    _run("IR", ir_expr, ir_err)
+    _run("IC", ic_expr, ic_err, ic_bounds)
+    _run("IR", ir_expr, ir_err, ir_bounds)
 
     all_ok  = all(v == "VERIFIED"       for v in verdicts)
     has_cex = any(v == "COUNTEREXAMPLE" for v in verdicts)
 
-    has_latex = bool(
-        mech.get("ic_screening_latex") or
-        mech.get("ir_participation_latex")
-    )
-    final: Verdict = finalize_verdict(all_ok, has_cex, has_latex)
+    final: Verdict = finalize_verdict(all_ok, has_cex, entry_specific)
 
     return VerificationResult(
         verdict=final,
@@ -422,10 +442,10 @@ def track3_check_from_sympy(
         conditions=conditions,
         counterexample=counterexample,
         notes=(
-            f"δ={_DELTA} | domain=[{theta_min},{theta_max}]"
+            f"δ={delta} | domain=[{theta_min},{theta_max}]"
             " | mpmath.iv branch-and-bound | guarantee: δ-sound, not exact"
         ),
-        entry_specific=has_latex,
+        entry_specific=entry_specific,
     )
 
 

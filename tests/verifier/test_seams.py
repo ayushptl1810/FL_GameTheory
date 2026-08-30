@@ -140,3 +140,24 @@ def test_track2_verdicts_unchanged_after_sympy_native_refactor():
         if getattr(r, "track", None) == 2:
             seen[e["paper_id"]] = (r.verdict, r.entry_specific)
     assert seen == _EXPECTED_TRACK2
+
+
+# Behavior lock for Task 6: the corpus entries that route to Track 3 (interval
+# arithmetic), captured BEFORE track3_check_from_sympy was made SymPy-native
+# (signature changed from (entry, paper_id, category, mech, theta_min,
+# theta_max) to (ic_expr, ir_expr, ic_bounds, ir_bounds, delta, *,
+# entry_specific, paper_id, category, ...) with all entry/LaTeX parsing and
+# bound extraction lifted into verify_track3's front-end).
+_EXPECTED_TRACK3 = {
+    "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
+    "Kang2019contract_mobile": ("UNKNOWN", True),
+}
+
+
+def test_track3_verdicts_unchanged_after_sympy_native_refactor():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) == 3:
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific)
+    assert seen == _EXPECTED_TRACK3
