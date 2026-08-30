@@ -23,8 +23,12 @@ from typing import Literal
 # COUNTEREXAMPLE    — a violation was found (entry-specific or template).
 # UNKNOWN           — solver/parse inconclusive.
 # UNSUPPORTED       — no verifier attempted for this category/track.
+# VERIFIED_SHAPE    — regex/structural shape match only — NOT a proof; strictly
+#                      weaker than VERIFIED_TEMPLATE (never ran a solver on the
+#                      entry).
 Verdict = Literal[
-    "VERIFIED", "VERIFIED_TEMPLATE", "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"
+    "VERIFIED", "VERIFIED_TEMPLATE", "VERIFIED_SHAPE",
+    "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"
 ]
 
 

@@ -183,6 +183,35 @@ BROKEN = [
     # why unsound: winner-take-all, zero payment -- a bidder with value v_i = 1
     #              reports b_i = 100, wins an item worth 1, pays 0, utility +1
     #              > 0 truthful; not dominant-strategy IC.
+
+    # VCG: payment depends on the winner's own bid (Myerson violation).
+    {"name": "vcg_payment_depends_on_own_bid", "category": "VCG",
+     "mechanism": {
+        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
+        "payment_rule_latex": r"p_i = b_i / 2"}},
+    # why unsound: a DSIC payment cannot depend on the winner's own report
+    #              except through the allocation. Phase 2: parse_payment reads
+    #              this as ExplicitFormula(b_i/2), so the finite-grid DSIC check
+    #              runs and returns a real COUNTEREXAMPLE -- a winner shades its
+    #              bid down toward the second price, still wins, and pays
+    #              strictly less than it would when truthful (price = b_i/2
+    #              decreases with the report).
+
+    # VCG: Clarke-shaped payment but non-welfare-maximising allocation.
+    {"name": "vcg_clarke_shaped_payment_wrong_allocation", "category": "VCG",
+     "mechanism": {
+        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \min_j b_j",
+        "payment_rule_latex": r"p_i = \max_{j \neq i} b_j"}},
+    # why unsound: the payment IS the second-price / Clarke-pivot form
+    #              (parse_payment -> ClarkePivot), but the allocation gives the
+    #              item to the LOWEST bidder, so Groves does not apply. Phase 2:
+    #              verify_vcg_dsic parses "b_i = min_j b_j"
+    #              (HighestBidder(lowest=True)) and the finite-grid check returns
+    #              a real COUNTEREXAMPLE -- a winning low bidder pays the higher
+    #              competing bid, so truthful participation nets < 0 (IR breaks).
+    #              (A sum-externality payment here is now UNKNOWN, not a
+    #              counterexample; the single-competing-bid form keeps the case
+    #              decisive.)
 ]
 
 
@@ -221,23 +250,4 @@ TEMPLATE_FALLBACK_HOLES = [
     #              all j, forcing a constant menu that ignores type. Both
     #              entry-specific tracks now bail (vacuity / feasibility gate);
     #              the generic template still reports VERIFIED_TEMPLATE.
-    {"name": "vcg_payment_depends_on_own_bid", "category": "VCG",
-     "expected_bad": "VERIFIED_TEMPLATE",
-     "mechanism": {
-        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
-        "payment_rule_latex": r"p_i = b_i / 2"}},
-    # why unsound: Myerson -- a DSIC payment cannot depend on the winner's own
-    #              report except through the allocation. p_i = b_i/2 lets a
-    #              bidder shade b_i down to cut payment while still winning. The
-    #              VCG track runs a fixed Z3 template and never reads p_i.
-    {"name": "vcg_clarke_shaped_payment_wrong_allocation", "category": "VCG",
-     "expected_bad": "VERIFIED",
-     "mechanism": {
-        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \min_j b_j",
-        "payment_rule_latex": r"p_i = \sum_{j \neq i} b_j"}},
-    # why unsound: allocation goes to the LOWEST bidder, so the mechanism is not
-    #              welfare-maximising and Groves does not apply -- yet the
-    #              payment LaTeX regex-matches the Clarke-pivot form, the ONLY
-    #              thing the VCG track checks, so it returns an entry-specific
-    #              VERIFIED. Headline soundness hole.
 ]

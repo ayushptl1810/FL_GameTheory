@@ -110,6 +110,16 @@ def verify_vcg(entry: dict) -> VerificationResult:
                   "Failing closed: no entry-specific DSIC proof available.",
         )
 
+    # Phase 2: try the real finite-grid Z3 DSIC + IR proof first. Only its
+    # decisive verdicts win; UNKNOWN / UNSUPPORTED fall through to the regex
+    # shape path below, whose success is now VERIFIED_SHAPE (a structural
+    # match, never a proof about this entry's own math).
+    from tracks.vcg_dsic import verify_vcg_dsic
+
+    r = verify_vcg_dsic(entry)
+    if r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+        return r
+
     vcg_form       = _classify_vcg_payment(payment_rule)
     form_note      = _VCG_FORM_CLAIMS[vcg_form]
     form_confirmed = vcg_form in ("clarke_pivot", "marginal_welfare", "critical_bid")
@@ -120,11 +130,20 @@ def verify_vcg(entry: dict) -> VerificationResult:
     # verbatim into _vcg_check_core. VCG's fixed template Z3 model does not read
     # the payment/utility exprs themselves, so they are accepted but unused here.
     client_utility_latex = mechanism.get("client_utility_latex") or ""
-    return _vcg_check_core(
+    result = _vcg_check_core(
         payment_rule, client_utility_latex,
         entry_specific=form_confirmed, paper_id=paper_id,
         meta={"form_note": form_note, "auction_type": auction_type, "ic_type": ic_type},
     )
+    # The regex path is a payment-shape match only -- it never runs a solver
+    # on the entry's own math. Demote its success to VERIFIED_SHAPE (strictly
+    # weaker than VERIFIED_TEMPLATE). COUNTEREXAMPLE / UNKNOWN pass through.
+    # (_vcg_check_core itself is unchanged -- the AST caller verify_from_ast
+    # still gets the old verdicts until Phase 2 Task 7.)
+    if result.verdict in ("VERIFIED", "VERIFIED_TEMPLATE"):
+        result.verdict = "VERIFIED_SHAPE"
+        result.entry_specific = False
+    return result
 
 
 def _vcg_check_core(

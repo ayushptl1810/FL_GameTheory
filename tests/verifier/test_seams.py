@@ -7,17 +7,20 @@ VCG = [e for e in CORPUS if e.get("category") == "VCG"][:8]
 
 
 def test_vcg_verdicts_unchanged_after_seam_extraction():
-    # Behavior lock for Task 3: snapshot of verify() on the first 8 corpus VCG
-    # entries, captured before extracting _vcg_check_core from verify_vcg.
+    # Phase 2 Task 5: verify_vcg now dispatches to the real finite-grid DSIC
+    # check first; every one of these 8 entries fails that check closed
+    # (UNKNOWN/UNSUPPORTED) and falls through to the regex path, whose success
+    # is now VERIFIED_SHAPE (a structural match, not a proof) with
+    # entry_specific=False. Was VERIFIED/True (5) or VERIFIED_TEMPLATE/False (3).
     expected = {
-        "2404_13841": ("VERIFIED", True),
-        "2504_05563": ("VERIFIED", True),
-        "3626307_3626311": ("VERIFIED", True),
-        "Ahmed2023frimfl": ("VERIFIED_TEMPLATE", False),
-        "Batool2022fl_mab": ("VERIFIED_TEMPLATE", False),
-        "Cheng2022uav": ("VERIFIED", True),
-        "Cong2020vcg": ("VERIFIED", True),
-        "Cui2024auction_market": ("VERIFIED_TEMPLATE", False),
+        "2404_13841": ("VERIFIED_SHAPE", False),
+        "2504_05563": ("VERIFIED_SHAPE", False),
+        "3626307_3626311": ("VERIFIED_SHAPE", False),
+        "Ahmed2023frimfl": ("VERIFIED_SHAPE", False),
+        "Batool2022fl_mab": ("VERIFIED_SHAPE", False),
+        "Cheng2022uav": ("VERIFIED_SHAPE", False),
+        "Cong2020vcg": ("VERIFIED_SHAPE", False),
+        "Cui2024auction_market": ("VERIFIED_SHAPE", False),
     }
     for e in VCG:
         r = verify(e)

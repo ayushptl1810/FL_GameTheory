@@ -9,7 +9,12 @@ Phase 1 the AST path always routes through the Track-1 core for the category
 from __future__ import annotations
 
 from architect.ast import Func, IndexedFamily, Mechanism, Pow, Sum
-from architect.serialize import _strip_leading_neg, ast_to_sympy
+from architect.serialize import (
+    OutsideParseableFragment,
+    _strip_leading_neg,
+    ast_to_sympy,
+    render,
+)
 from tracks import VerificationResult
 from tracks.track1_z3 import (
     _contract_check_core,
@@ -19,6 +24,7 @@ from tracks.track1_z3 import (
     _stackelberg_check_core,
     _vcg_check_core,
 )
+from tracks.vcg_dsic import parse_allocation, verify_vcg_dsic
 
 
 def _contains(node, kinds) -> bool:
@@ -130,19 +136,79 @@ def _contract_from_ast(m: Mechanism, meta: dict, pid: str, track: int) -> Verifi
     return res
 
 
+def _vcg_from_ast(m: Mechanism, meta: dict, pid: str) -> VerificationResult:
+    """Real entry-specific VCG check for the AST path.
+
+    The Mechanism AST has no allocation node and cannot express a Clarke
+    pivot, so the allocation rule (and, when the payment is not AST-expressible,
+    the payment rule) ride on ``meta`` as LaTeX -- exactly what the generator
+    supplies. Build a minimal ``entry`` and route through the finite-grid
+    ``verify_vcg_dsic``:
+
+      * VERIFIED / COUNTEREXAMPLE  -> return it (real, entry_specific honest).
+      * missing / unparseable allocation -> UNKNOWN (never fabricate a verdict
+        off the fixed payment template -- that would be dishonest here).
+      * parseable allocation but the grid proof was inconclusive for another
+        reason (grid too big, combo not encodable) -> fall back to the
+        payment-shape template, demoted to VERIFIED_SHAPE (a structural match,
+        never a proof about this entry's own math).
+    """
+    try:
+        mech_dict, _ = render(m, check_roundtrip=False)
+    except OutsideParseableFragment as exc:
+        return VerificationResult(
+            verdict="UNKNOWN", category="VCG", paper_id=pid, track=1,
+            entry_specific=False,
+            notes=f"AST path: VCG mechanism does not serialize ({exc}).",
+        )
+
+    alloc_tex = meta.get("allocation_rule_latex")
+    pay_tex = meta.get("payment_rule_latex") or mech_dict.get("payment_rule_latex", "")
+    util_tex = mech_dict.get("client_utility_latex", "")
+    n = meta.get("num_clients") or (len(m.type_space) or 2)
+
+    entry = {
+        "paper_id": pid,
+        "category": "VCG",
+        "num_clients": n,
+        "mechanism": {
+            "client_utility_latex": util_tex,
+            "payment_rule_latex": pay_tex,
+            "allocation_rule_latex": alloc_tex,
+        },
+    }
+    r = verify_vcg_dsic(entry)
+    if r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+        return r
+
+    if not alloc_tex or parse_allocation(alloc_tex) is None:
+        return VerificationResult(
+            verdict="UNKNOWN", category="VCG", paper_id=pid, track=1,
+            entry_specific=False,
+            notes=(
+                "AST path: VCG allocation rule missing or unparseable "
+                f"({r.notes}); no entry-specific DSIC proof. Supply "
+                "meta['allocation_rule_latex'] in a form parse_allocation reads."
+            ),
+        )
+
+    res = _vcg_check_core(
+        pay_tex, util_tex, entry_specific=False, paper_id=pid,
+        meta={"auction_type": meta.get("auction_type", "reverse")},
+    )
+    if res.verdict in ("VERIFIED", "VERIFIED_TEMPLATE"):
+        res.verdict = "VERIFIED_SHAPE"
+        res.entry_specific = False
+    return res
+
+
 def verify_from_ast(m: Mechanism, meta: dict | None = None) -> VerificationResult:
     meta = {**m.meta, **(meta or {})}
     pid = meta.get("paper_id", "architect-proposal")
     track = _classify_ast(m)
 
     if m.category == "VCG":
-        # entry_specific=False: _vcg_check_core is a fixed threshold-payment
-        # template that never inspects this proposal's payment. VCG
-        # entry-specific verification is Phase 2; until then VERIFIED_TEMPLATE
-        # is the honest ceiling (never VERIFIED for an unproven mechanism).
-        return _vcg_check_core(
-            "", "", entry_specific=False, paper_id=pid, meta=meta,
-        )
+        return _vcg_from_ast(m, meta, pid)
 
     if m.category == "Contract":
         return _contract_from_ast(m, meta, pid, track)

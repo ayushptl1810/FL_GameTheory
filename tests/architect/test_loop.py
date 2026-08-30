@@ -92,6 +92,16 @@ def test_verified_template_exhausts_budget_then_fails():
     assert any(e.get("verdict") == "VERIFIED_TEMPLATE" for e in r.transcript)
 
 
+def test_verified_shape_repairs_then_succeeds():
+    # I2: VERIFIED_SHAPE (payment-shape match, no solver run) no longer hard-
+    # fails the loop -- it hints and retries within budget like VERIFIED_TEMPLATE.
+    r = run(ProblemSpec(raw_text="x"), index=object(),
+            deps=_deps([_V("VERIFIED_SHAPE"),
+                        _V("VERIFIED", entry_specific=True)]))
+    assert r.status == "VERIFIED"
+    assert any(e.get("verdict") == "VERIFIED_SHAPE" for e in r.transcript)
+
+
 def _scripted_deps(*, verdicts, render=None, mc_prefilter=None, propose=None):
     """Per-call scriptable deps. `render`/`mc_prefilter`/`propose` may be a list
     (one entry consumed per call; a value is returned, an Exception is raised)."""

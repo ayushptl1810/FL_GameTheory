@@ -31,6 +31,19 @@ def test_broken_mechanism_is_never_verified(case):
         f"{case['name']}: verifier returned {res.verdict} for an unsound mechanism")
 
 
+def test_vcg_clarke_shaped_payment_wrong_allocation_is_counterexample():
+    """Clarke-shaped payment + item to the LOWEST bidder. No longer a
+    VERIFIED_SHAPE non-proof: verify_vcg_dsic now parses "b_i = min_j b_j"
+    (HighestBidder(lowest=True)) and the finite-grid check finds a real
+    violation -- a winning low bidder pays the (higher) competing bid and
+    nets negative utility, so truthful participation breaks IR."""
+    case = next(c for c in BROKEN
+                if c["name"] == "vcg_clarke_shaped_payment_wrong_allocation")
+    res = verify(_entry(case))
+    assert res.verdict == "COUNTEREXAMPLE", res.verdict
+    assert res.counterexample is not None
+
+
 @pytest.mark.parametrize("case", TEMPLATE_FALLBACK_HOLES,
                          ids=[c["name"] for c in TEMPLATE_FALLBACK_HOLES])
 # strict=True: every case here is a KNOWN template-fallback / VCG-entry-specific

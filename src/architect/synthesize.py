@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 import z3, sympy
 from architect.ast import Const, Sym, Unknown, Sum, Prod, Pow, Func, Mechanism
 from architect.serialize import ast_to_sympy
+from tracks.vcg_dsic import parse_allocation, ArgmaxWelfare
 
 
 @dataclass
@@ -100,27 +101,64 @@ def _all_unknowns(m: Mechanism) -> list:
     return out
 
 
-def synthesize(m: Mechanism, c: Constraints):
+# --------------------------------------------------------------------------- #
+# VCG: payment is FIXED to the Clarke pivot; search is only over the          #
+# allocation rule (a small menu) + non-negative affine-maximizer weights.     #
+# The Mechanism AST has no allocation node and cannot express a Clarke pivot, #
+# so both rules ride out on m.meta as LaTeX -- exactly what verify_from_ast's #
+# VCG branch and verify_vcg_dsic read.                                        #
+# --------------------------------------------------------------------------- #
+_VCG_ALLOC_MENU = {
+    "highest-bidder": r"x_i = 1 \text{ if } b_i = \max_j b_j",
+}
+
+
+def _pick_vcg_allocation(proposed) -> str:
+    """Keep a model-proposed allocation only if parse_allocation reads it as a
+    form the DSIC grid check can certify (highest-bidder / top-k). An
+    argmax-welfare proposal -> Clarke pivot is a sum-externality payment that
+    verify_vcg_dsic now returns UNKNOWN for, so fall back to highest-bidder."""
+    if isinstance(proposed, str) and proposed.strip():
+        spec = parse_allocation(proposed)
+        if spec is not None and not isinstance(spec, ArgmaxWelfare):
+            return proposed
+    return _VCG_ALLOC_MENU["highest-bidder"]
+
+
+def _clarke_payment_latex(alloc_tex: str) -> str:
+    """Clarke-pivot payment derived from the chosen allocation. Second-price
+    form for single-item / top-k; externality form for weighted welfare max."""
+    if isinstance(parse_allocation(alloc_tex), ArgmaxWelfare):
+        return r"p_i = W_{-i} - \sum_{k \neq i} v_k"
+    return r"p_i = \max_{j \neq i} b_j"
+
+
+def _synthesize_vcg(m: Mechanism, c: Constraints):
+    alloc_tex = _pick_vcg_allocation(m.meta.get("allocation_rule_latex"))
+    pay_tex = _clarke_payment_latex(alloc_tex)  # overwrite any model-authored payment
     unknowns = _all_unknowns(m)
-    if not unknowns:
-        return m  # fully concrete already -- nothing to solve, let verify() run
     if len(unknowns) > 5:
         return "UNSAT"
-    if m.category == "Stackelberg":
-        # Synthesis mode's ForAll(ic>=0, ir>=0) solve does not fit Stackelberg
-        # (no screening IC; m.ic holds an FOC). Models routinely over-mark
-        # Unknown here -- tagging the leader's price or the cost coefficient --
-        # so demote every Unknown back to a plain Sym and let verify() derive
-        # the follower FOC and check IR at the optimum. That keeps the structure
-        # intact instead of picking arbitrary values.
-        return Mechanism(
-            m.category,
-            utility=_unknowns_to_syms(m.utility),
-            payment=_unknowns_to_syms(m.payment),
-            ic=_unknowns_to_syms(m.ic),
-            ir=_unknowns_to_syms(m.ir),
-            params=dict(m.params), type_space=m.type_space,
-            provenance=m.provenance, meta=dict(m.meta))
+    if unknowns:
+        # remaining free leaves are per-agent weights w_i >= 0 (+ optional boosts)
+        c = Constraints(c.ic, c.ir, c.budget_lhs, c.budget_rhs, c.type_space,
+                        {**c.param_bounds, **{u: (0.0, 10.0) for u in unknowns}})
+        out = _solve_over_unknowns(m, c, unknowns)
+        if out == "UNSAT":
+            return "UNSAT"
+        m = out
+    else:
+        # unit weights -- Clarke + highest-bidder is DSIC by construction
+        m = Mechanism(m.category, utility=m.utility, payment=m.payment,
+                      ic=m.ic, ir=m.ir, params=dict(m.params),
+                      type_space=m.type_space, provenance=m.provenance,
+                      meta=dict(m.meta))
+    m.meta["allocation_rule_latex"] = alloc_tex
+    m.meta["payment_rule_latex"] = pay_tex
+    return m
+
+
+def _solve_over_unknowns(m: Mechanism, c: Constraints, unknowns: list):
     zvars: dict = {}
     for u in unknowns:
         zvars[u] = z3.Real(u)
@@ -157,4 +195,30 @@ def synthesize(m: Mechanism, c: Constraints):
                      ic=_substitute_unknowns(m.ic, vals),
                      ir=_substitute_unknowns(m.ir, vals),
                      params={**m.params, **vals}, type_space=m.type_space,
-                     provenance=m.provenance)
+                     provenance=m.provenance, meta=dict(m.meta))
+
+
+def synthesize(m: Mechanism, c: Constraints):
+    if m.category == "VCG":
+        return _synthesize_vcg(m, c)
+    unknowns = _all_unknowns(m)
+    if not unknowns:
+        return m  # fully concrete already -- nothing to solve, let verify() run
+    if len(unknowns) > 5:
+        return "UNSAT"
+    if m.category == "Stackelberg":
+        # Synthesis mode's ForAll(ic>=0, ir>=0) solve does not fit Stackelberg
+        # (no screening IC; m.ic holds an FOC). Models routinely over-mark
+        # Unknown here -- tagging the leader's price or the cost coefficient --
+        # so demote every Unknown back to a plain Sym and let verify() derive
+        # the follower FOC and check IR at the optimum. That keeps the structure
+        # intact instead of picking arbitrary values.
+        return Mechanism(
+            m.category,
+            utility=_unknowns_to_syms(m.utility),
+            payment=_unknowns_to_syms(m.payment),
+            ic=_unknowns_to_syms(m.ic),
+            ir=_unknowns_to_syms(m.ir),
+            params=dict(m.params), type_space=m.type_space,
+            provenance=m.provenance, meta=dict(m.meta))
+    return _solve_over_unknowns(m, c, unknowns)
