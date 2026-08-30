@@ -182,7 +182,12 @@ RETRIEVAL_PROMPT = ("You adapt the closest known FL incentive mechanism to a new
 SYNTHESIS_PROMPT = ("You propose a STRUCTURAL TEMPLATE for an FL incentive "
                     "mechanism. Mark each free payment coefficient as "
                     '{"t":"Unknown","name":...}; use 3 to 5 Unknown nodes total, '
-                    "only inside the payment subtree. A solver will fill them. " + _AST_RULES)
+                    "only inside the payment subtree. A solver will fill them. "
+                    "For VCG, propose ONLY an allocation rule (choose from: "
+                    "highest-bidder, top-k, weighted-welfare-max) and optional "
+                    "non-negative per-agent weights as the Unknown nodes. Do NOT "
+                    "author the payment -- it is fixed to the Clarke pivot (each "
+                    "winner pays the externality it imposes on others). " + _AST_RULES)
 HYBRID_PROMPT = ("You combine elements from multiple known FL incentive "
                  "mechanisms into one. Set provenance to a map of subtree->paper_id. "
                  + _AST_RULES)
