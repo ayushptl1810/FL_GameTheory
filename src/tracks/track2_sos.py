@@ -253,27 +253,27 @@ def _sos_check_bounded(
 
 # ── IR check via SOS ──────────────────────────────────────────────────────────
 
-def _verify_ir_sos(
-    entry: dict,
-    theta_sym: Any,
-    theta_min: float,
-    theta_max: float,
-) -> "tuple[str, str]":
-    """Check IR: U(θ, own) ≥ 0 for all θ in [theta_min, theta_max]."""
+def _parse_ir_expr(entry: dict, theta_sym: Any) -> "tuple[Any | None, str]":
+    """Front-end for the IR SOS check: parse ir_participation_latex into a
+    SymPy expression for U(θ, own), symbol-aligned to theta_sym.
+
+    Returns (ir_expr, note). ir_expr is None when parsing cannot proceed;
+    note carries the reason so the caller can surface it verbatim.
+    """
     if not _SYMPY_OK:
-        return "UNKNOWN", "sympy not installed"
+        return None, "sympy not installed"
 
     mech   = entry.get("mechanism") or {}
     ir_raw = mech.get("ir_participation_latex") or ""
     if not ir_raw:
-        return "UNKNOWN", "no ir_participation_latex"
+        return None, "no ir_participation_latex"
 
     for sep in (r"\geq", r"\ge", "≥"):
         if sep in ir_raw:
             lhs_s, _ = ir_raw.split(sep, 1)
             break
     else:
-        return "UNKNOWN", "IR missing ≥ separator"
+        return None, "IR missing ≥ separator"
 
     def _clean(s: str) -> str:
         s = re.sub(r"^[Uu]_?\{?[a-zA-Z,_]+\}?\s*=\s*", "", s.strip())
@@ -284,7 +284,7 @@ def _verify_ir_sos(
     try:
         U_ir = _lx_parse(_clean(lhs_s))
     except Exception:
-        return "UNKNOWN", "SymPy parse failed for IR"
+        return None, "SymPy parse failed for IR"
 
     # Align symbol: find matching symbol in U_ir if theta_sym is not present
     if theta_sym not in U_ir.free_symbols:
@@ -293,7 +293,20 @@ def _verify_ir_sos(
         if match:
             U_ir = U_ir.subs(match, theta_sym)
 
-    verdict, note = _sos_check_bounded(U_ir, theta_sym, theta_min, theta_max)
+    return U_ir, ""
+
+
+def _ir_sos_from_expr(
+    ir_expr: "Any | None",
+    parse_note: str,
+    theta_sym: Any,
+    theta_min: float,
+    theta_max: float,
+) -> "tuple[str, str]":
+    """Run the IR SOS check on an already-parsed U(θ, own) expression."""
+    if ir_expr is None:
+        return "UNKNOWN", f"IR: {parse_note}"
+    verdict, note = _sos_check_bounded(ir_expr, theta_sym, theta_min, theta_max)
     return verdict, f"IR: {note}"
 
 
@@ -544,15 +557,7 @@ def verify_track2(entry: dict) -> "VerificationResult | None":
         return _parametric_contract_certificate(entry)
 
     gap_expr, theta_sym = extracted
-    return track2_check_from_sympy(entry, gap_expr, theta_sym)
 
-
-def track2_check_from_sympy(entry: dict, gap_expr: Any, theta_sym: Any) -> "VerificationResult":
-    """SymPy-in seam: numeric SOS back-half of verify_track2.
-
-    Given the parsed IC-gap polynomial and its main variable, run the
-    S-procedure SOS feasibility check (IC + IR) and finalize the verdict.
-    """
     mech     = entry.get("mechanism") or {}
     paper_id = entry.get("paper_id", "<unknown>")
     category = entry.get("category", "")
@@ -562,6 +567,34 @@ def track2_check_from_sympy(entry: dict, gap_expr: Any, theta_sym: Any) -> "Veri
     if theta_min >= theta_max:
         theta_min, theta_max = 0.0, 1.0
 
+    ir_expr, ir_parse_note = _parse_ir_expr(entry, theta_sym)
+
+    return track2_check_from_sympy(
+        gap_expr, theta_sym, theta_min, theta_max,
+        ir_expr=ir_expr, ir_parse_note=ir_parse_note,
+        entry_specific=True, paper_id=paper_id, category=category,
+    )
+
+
+def track2_check_from_sympy(
+    gap_expr: Any,
+    theta_sym: Any,
+    theta_min: float,
+    theta_max: float,
+    *,
+    ir_expr: "Any | None" = None,
+    ir_parse_note: str = "no ir_participation_latex",
+    entry_specific: bool,
+    paper_id: str,
+    category: str = "",
+) -> "VerificationResult":
+    """SymPy-in seam: numeric SOS back-half of verify_track2.
+
+    Given the parsed IC-gap polynomial, its main variable, the type-space
+    bounds, and (optionally) the parsed IR expression, run the S-procedure
+    SOS feasibility check (IC + IR) and finalize the verdict. Takes SymPy
+    exprs — does no ``entry``/LaTeX parsing.
+    """
     conditions: list[str] = []
     verdicts:   list[str] = []
 
@@ -571,7 +604,9 @@ def track2_check_from_sympy(entry: dict, gap_expr: Any, theta_sym: Any) -> "Veri
         f"IC: U(θ,own) − U(θ,other) ≥ 0  ∀θ∈[{theta_min},{theta_max}]  [SOS certificate]"
     )
 
-    ir_v, ir_note = _verify_ir_sos(entry, theta_sym, theta_min, theta_max)
+    ir_v, ir_note = _ir_sos_from_expr(
+        ir_expr, ir_parse_note, theta_sym, theta_min, theta_max
+    )
     verdicts.append(ir_v)
     conditions.append(
         f"IR: U(θ,own) ≥ 0  ∀θ∈[{theta_min},{theta_max}]  [SOS certificate]"
@@ -596,5 +631,5 @@ def track2_check_from_sympy(entry: dict, gap_expr: Any, theta_sym: Any) -> "Veri
                f" | poly degree={deg}"
                f" | domain=[{theta_min},{theta_max}]"
                f" | S-procedure SOS via CVXPY+SCS"),
-        entry_specific=True,
+        entry_specific=entry_specific,
     )

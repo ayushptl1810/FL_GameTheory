@@ -118,3 +118,25 @@ def test_track234_verdicts_unchanged_after_seam_extraction():
         if getattr(r, "track", None) in (2, 3, 4):
             seen[e["paper_id"]] = (r.verdict, r.entry_specific, r.track)
     assert seen == _EXPECTED_T234
+
+
+# Behavior lock for Task 5: the 4 corpus entries that route to Track 2 (SOS),
+# captured BEFORE track2_check_from_sympy was made SymPy-native (signature
+# changed from (entry, gap_expr, theta_sym) to
+# (gap_expr, theta_sym, theta_min, theta_max, *, ir_expr, ...) with all
+# entry/LaTeX parsing lifted into verify_track2's front-end).
+_EXPECTED_TRACK2 = {
+    "2307_15975": ("VERIFIED", True),
+    "Lim2020contract_healthcare": ("VERIFIED", True),
+    "Sun2022coded": ("VERIFIED", True),
+    "Tan2025renegotiable_contract": ("VERIFIED", True),
+}
+
+
+def test_track2_verdicts_unchanged_after_sympy_native_refactor():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) == 2:
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific)
+    assert seen == _EXPECTED_TRACK2
