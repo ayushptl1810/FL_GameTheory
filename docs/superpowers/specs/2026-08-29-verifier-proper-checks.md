@@ -88,7 +88,7 @@ Frozen regression gate on every task: `python -m verifier corpus.json` must stay
 
 ---
 
-## Phase 2 — Real VCG check + constrained VCG generation
+## Phase 2 — Real VCG check + constrained generation  ✅ landed 2026-08-30
 
 **2a — Verifier.** A genuine Track-1 DSIC check for the discrete VCG fragment:
 encode allocation `x(b)`, payment `p(b)`, `u_i = v_i · x_i − p_i` over a finite
@@ -133,6 +133,29 @@ adversarial list (they now return `VERIFIED_SHAPE`, a documented non-proof).
 Still open for "Done when": widen `vcg_dsic.py`'s allocation/payment parsers so
 real entries reach `VERIFIED` / `COUNTEREXAMPLE`, and wire the AST caller
 (`verify_from_ast`) — Phase 2 Task 7.
+
+### Result (2026-08-30)
+
+- **`verify_vcg_dsic`** (`src/tracks/vcg_dsic.py`) — finite-grid Z3 DSIC + IR
+  proof. Encodable combos today: highest-bidder / lowest-bidder allocation +
+  Clarke-pivot or explicit-formula payment. Multi-attribute values and
+  argmax-welfare allocation → `UNKNOWN` (fail-closed).
+- **Regex path retired to `VERIFIED_SHAPE`** — a new 6th verdict, explicitly not
+  a proof (regex-matches the payment-rule LaTeX shape only). Kept as a fallback
+  through Phase 3; delete in Phase 3b.
+- **Corpus:** 0/33 VCG entries reach a real DSIC proof today — the 19 old
+  "form-confirmed" VERIFIED were regex only. Parser widening to cover the
+  corpus's `\frac` / `argmax` allocation forms is Phase 3. New corpus totals:
+  VERIFIED 25→6 (Contract 5 + Stackelberg 1), VERIFIED_TEMPLATE 73→59,
+  VERIFIED_SHAPE 33. Non-VCG FROZEN throughout.
+- **Generation:** Synthesis mode now fixes the VCG payment to the Clarke pivot
+  and searches only affine-maximizer weights. A synthesized
+  highest-bidder + Clarke mechanism is certified `VERIFIED` by `verify_vcg_dsic`
+  (Vickrey).
+- **AST path:** `verify_from_ast`'s VCG branch calls the real check; the
+  Approach C `entry_specific=False` stopgap is removed. Limitation: the
+  `Mechanism` AST has no allocation node, so allocation/payment LaTeX ride on
+  `meta` — a real VCG allocation node is Phase 3.
 
 ---
 

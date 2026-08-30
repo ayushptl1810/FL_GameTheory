@@ -116,6 +116,8 @@ Adversarial soundness suite (`tests/verifier/`): 22 known-unsound mechanisms, 0 
 > **Three Stackelberg parser bugs fixed 2026-07-18** (all in `src/tracks/track1_z3.py`, all verified via the 33-test pytest suite plus a targeted regression check confirming no verdict changed from a previously-safe result to a wrong one): (1) `_DEFINITION_CLAUSE_RE`'s LHS regex didn't allow `,`/`()`/`-` inside braces or superscripts, rejecting common multi-index/time-index notation like `C_{i,t}` or `P_i^{(t)}` outright; (2) `_demote_stray_function_calls` crashed with `ValueError: substitution cannot create dummy dependencies` on a simultaneous multi-symbol substitution — now falls back to sequential substitution, then to a no-op, instead of raising; (3) font-styling LaTeX commands (`\mathcal{X}`, `\mathbf{X}`, `\boldsymbol{X}`) were not recognized by sympy's parser and got silently mistokenized as literal symbols, corrupting formulas into nonsense (e.g. an entire utility function collapsing to `U*mathcal`) instead of failing cleanly — this was a real soundness risk (a corrupted-but-"successful" parse is worse than an honest failure) and is now stripped before parsing. None of these three fixes changed the entry-specific VERIFIED count (still 1/30) — they fixed real bugs and made the pipeline safer for future entries, but the remaining blockers are the deeper `\sum`/comma-subscript sympy limitations above, deliberately not attempted given the risk of a silently wrong FOC.
 
 > **Phase 2 — real VCG check wired in (2026-08-30, branch `phase2-vcg-real-check` Task 5).** `verify_vcg` now dispatches to `verify_vcg_dsic` (a real finite-bid-grid Z3 DSIC + IR proof, `src/tracks/vcg_dsic.py`) first; only its `VERIFIED` / `COUNTEREXAMPLE` short-circuit. The old regex payment-shape classifier is now a pure fallback and its success is post-mapped to the new `VERIFIED_SHAPE` verdict (never `VERIFIED` / `VERIFIED_TEMPLATE`), `entry_specific=False`. The identically-zero-payment soundness gate still runs first. **VCG verdict counts moved by design** (33 entries): VERIFIED (real DSIC) **0**, VERIFIED_SHAPE **33**, COUNTEREXAMPLE **0**, UNKNOWN **0** — every corpus VCG entry currently fails the real check closed (allocation/payment LaTeX not yet parseable into an encodable spec, or absent) and falls through to `VERIFIED_SHAPE`. Was: 19 entry-specific `VERIFIED` (regex form-confirmed) + 14 `VERIFIED_TEMPLATE`. Per-entry before→after→reason table: `docs/superpowers/notes/phase2-vcg-verdict-delta.md`. Corpus headline: `VERIFIED` 25→6, `VERIFIED_TEMPLATE` 73→59, `VERIFIED_SHAPE` 0→33; all non-VCG counts frozen (Contract 5 entry-specific / 31 template, Stackelberg 1/28, Track 2 SOS 4, Track 3 1, Track 4 1). `_vcg_check_core` itself is unchanged — the Approach C AST caller (`architect/ast_verify.py::verify_from_ast`) still gets the old verdicts until Phase 2 Task 7. The two VCG "template-fallback holes" moved from `xfail` to the hard `BROKEN` adversarial list (they now honestly return `VERIFIED_SHAPE`, a documented non-proof). Suite: 190 passed / 3 xfailed / 0 failed; `tools/validate.py` 185/185.
+>
+> **Phase 2 landed (2026-08-30).** VCG entry-specific proofs: **0** (real `verify_vcg_dsic`); 33 `VERIFIED_SHAPE` (regex shape, not a proof). Corpus real machine-checked proofs: **6** (Contract 5, Stackelberg 1). `verify_vcg_dsic` proves DSIC+IR over a finite bid grid for highest-/lowest-bidder allocation + Clarke-pivot or explicit-formula payment; multi-attribute & argmax-welfare → `UNKNOWN` (fail-closed). `verify_from_ast`'s VCG branch calls the real check (Approach C `entry_specific=False` stopgap removed).
 
 **Stackelberg now has a real entry-specific path** (`_try_stackelberg_latex` in `src/tracks/track1_z3.py`): parses `follower_utility_latex` (resolving multi-clause "U = R - C, R = ..., C = ..." definitions), symbolically derives the follower's FOC and best response, and checks IR at that optimum — instead of the old placeholder. It fails closed by design (12 unit tests in `tests/test_stackelberg.py` cover the happy path, IR counterexamples, ambiguous-decision-variable cases, and a best-response cross-check that rejects rather than certifies when its own derived optimum disagrees with the paper's stated `best_response_latex`).
 
@@ -420,10 +422,17 @@ Sequenced in `docs/superpowers/specs/2026-08-29-verifier-proper-checks.md`:
    the verify path. Most current failures are parser failures, not math failures;
    this makes each per-family checker a bounded job instead of a fight with
    SymPy's LaTeX parser. Flag: `ARCHITECT_AST_VERIFY` (default off). Result: verify_from_ast parity holds, corpus regression frozen 25/73/2/5, live_smoke 4/4 VERIFIED with zero parse entries.
-2. **Phase 2 — real VCG check:** finite-bid-grid Z3 proof of `∀ lie:
-   u_i(honest) ≥ u_i(lie)` + IR; retire the regex path (rename `VERIFIED_SHAPE`
-   then delete). Generation: fix the payment to Clarke-pivot form, search only
-   the allocation + affine-maximizer weights.
+2. **Phase 2 — real VCG check: landed 2026-08-30.** `verify_vcg_dsic`
+   (`src/tracks/vcg_dsic.py`) is a finite-bid-grid Z3 proof of `∀ lie:
+   u_i(honest) ≥ u_i(lie)` + IR, wired into `verify()` and `verify_from_ast`;
+   the regex path was demoted to the new `VERIFIED_SHAPE` verdict (not a proof,
+   kept as a fallback through Phase 3, delete in Phase 3b). Generation: Synthesis
+   mode now fixes the VCG payment to Clarke-pivot form and searches only the
+   affine-maximizer weights. Result: **0** corpus VCG entry-specific DSIC proofs
+   (33 `VERIFIED_SHAPE`; parser widening to the corpus `\frac`/`argmax`
+   allocation forms is Phase 3); a synthesized highest-bidder+Clarke mechanism is
+   certified `VERIFIED` (Vickrey). Corpus real machine-checked proofs: **6**
+   (Contract 5, Stackelberg 1).
 3. **Phase 3 — fail-close the template fallbacks** (`VERIFIED_TEMPLATE` →
    `UNKNOWN`; ~61 corpus entries drop — that lower number is the honest one) and
    widen the entry-specific parsers now that they are AST-fed.
