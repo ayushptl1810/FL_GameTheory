@@ -183,6 +183,28 @@ BROKEN = [
     # why unsound: winner-take-all, zero payment -- a bidder with value v_i = 1
     #              reports b_i = 100, wins an item worth 1, pays 0, utility +1
     #              > 0 truthful; not dominant-strategy IC.
+
+    # VCG: payment depends on the winner's own bid (Myerson violation).
+    {"name": "vcg_payment_depends_on_own_bid", "category": "VCG",
+     "mechanism": {
+        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
+        "payment_rule_latex": r"p_i = b_i / 2"}},
+    # why unsound: a DSIC payment cannot depend on the winner's own report
+    #              except through the allocation. Phase 2: the real DSIC check
+    #              fails closed (payment formula unparsed -> UNKNOWN) and the
+    #              regex path now returns VERIFIED_SHAPE (an explicit non-proof),
+    #              not VERIFIED/VERIFIED_TEMPLATE -- no longer a soundness hole.
+
+    # VCG: Clarke-shaped payment but non-welfare-maximising allocation.
+    {"name": "vcg_clarke_shaped_payment_wrong_allocation", "category": "VCG",
+     "mechanism": {
+        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \min_j b_j",
+        "payment_rule_latex": r"p_i = \sum_{j \neq i} b_j"}},
+    # why unsound: allocation goes to the LOWEST bidder so Groves does not apply,
+    #              yet the payment LaTeX regex-matches the Clarke-pivot form.
+    #              Phase 2: real DSIC check fails closed (allocation did not
+    #              parse -> UNKNOWN); regex path now yields VERIFIED_SHAPE, a
+    #              documented non-proof, not an entry-specific VERIFIED.
 ]
 
 
@@ -221,23 +243,4 @@ TEMPLATE_FALLBACK_HOLES = [
     #              all j, forcing a constant menu that ignores type. Both
     #              entry-specific tracks now bail (vacuity / feasibility gate);
     #              the generic template still reports VERIFIED_TEMPLATE.
-    {"name": "vcg_payment_depends_on_own_bid", "category": "VCG",
-     "expected_bad": "VERIFIED_TEMPLATE",
-     "mechanism": {
-        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
-        "payment_rule_latex": r"p_i = b_i / 2"}},
-    # why unsound: Myerson -- a DSIC payment cannot depend on the winner's own
-    #              report except through the allocation. p_i = b_i/2 lets a
-    #              bidder shade b_i down to cut payment while still winning. The
-    #              VCG track runs a fixed Z3 template and never reads p_i.
-    {"name": "vcg_clarke_shaped_payment_wrong_allocation", "category": "VCG",
-     "expected_bad": "VERIFIED",
-     "mechanism": {
-        "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \min_j b_j",
-        "payment_rule_latex": r"p_i = \sum_{j \neq i} b_j"}},
-    # why unsound: allocation goes to the LOWEST bidder, so the mechanism is not
-    #              welfare-maximising and Groves does not apply -- yet the
-    #              payment LaTeX regex-matches the Clarke-pivot form, the ONLY
-    #              thing the VCG track checks, so it returns an entry-specific
-    #              VERIFIED. Headline soundness hole.
 ]

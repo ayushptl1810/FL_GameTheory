@@ -390,7 +390,10 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
         return _result(entry, "UNKNOWN",
                        notes="only one of allocation/payment LaTeX present")
 
-    n = int(mech.get("num_clients") or entry.get("num_clients") or 2)
+    _raw_n = mech.get("num_clients") or entry.get("num_clients") or 2
+    # num_clients is free-form in the corpus ("unspecified", "N", ...); a
+    # non-numeric value means the count is unknown -> same as absent (n=2).
+    n = int(_raw_n) if str(_raw_n).strip().lstrip("-").isdigit() else 2
     n_attrs = _n_attrs_from_value_latex(entry)
     if n < 2:
         return _result(entry, "UNKNOWN",

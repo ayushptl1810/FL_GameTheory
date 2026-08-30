@@ -112,6 +112,28 @@ class" (already the wording in `Task.md` after novelty-hardening Task A).
 `VERIFIED` with a Z3 certificate, and `vcg_clarke_shaped_payment_wrong_allocation`
 (currently `xfail` in `tests/verifier/`) returns `COUNTEREXAMPLE`.
 
+**Progress (2026-08-30, Task 5 — dispatcher wired):** `verify_vcg` now calls
+`verify_vcg_dsic` (Tasks 3–4, `src/tracks/vcg_dsic.py`) first; the regex path is
+a pure fallback whose success is post-mapped to `VERIFIED_SHAPE`. Corpus VCG
+distribution (33 entries), before → after:
+
+| verdict | before | after |
+|---------|--------|-------|
+| VERIFIED (real DSIC) | 19 (regex form-confirmed) | **0** |
+| VERIFIED_TEMPLATE | 14 | **0** |
+| VERIFIED_SHAPE | 0 | **33** |
+| COUNTEREXAMPLE | 0 | **0** |
+| UNKNOWN | 0 | **0** |
+
+Every corpus VCG entry currently fails the real check closed (allocation/payment
+LaTeX not yet parseable into an encodable spec, or absent — see
+`docs/superpowers/notes/phase2-vcg-verdict-delta.md` for the per-entry reason).
+Non-VCG counts all frozen. The two `xfail` VCG holes moved to the hard `BROKEN`
+adversarial list (they now return `VERIFIED_SHAPE`, a documented non-proof).
+Still open for "Done when": widen `vcg_dsic.py`'s allocation/payment parsers so
+real entries reach `VERIFIED` / `COUNTEREXAMPLE`, and wire the AST caller
+(`verify_from_ast`) — Phase 2 Task 7.
+
 ---
 
 ## Phase 3 — Fail-close the template fallbacks; widen the entry-specific parsers

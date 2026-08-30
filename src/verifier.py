@@ -277,7 +277,7 @@ def print_summary(results: list[VerificationResult]) -> None:
     print(f"{'=' * 64}\n")
 
     for r in results:
-        if r.verdict not in ("VERIFIED", "VERIFIED_TEMPLATE", "UNSUPPORTED"):
+        if r.verdict not in ("VERIFIED", "VERIFIED_TEMPLATE", "VERIFIED_SHAPE", "UNSUPPORTED"):
             print(r)
             print()
 
