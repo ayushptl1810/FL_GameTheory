@@ -109,10 +109,37 @@ def test_oversize_grid_is_unknown():
     assert verify_vcg_dsic(big, k=6).verdict == "UNKNOWN"
 
 
-def test_argmax_welfare_clarke_is_unknown_not_crash():  # C1: closure raises at call time
-    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax",
+def test_unit_weight_welfare_max_clarke_verified():  # Task 2: plain VCG via argmax
+    # \arg\max_x \sum_i v_i x_i  (all weights 1) + Clarke pivot == second-price
+    # single-item auction -> DSIC + IR exact on the grid.
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax_unit",
          "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
-                       "allocation_rule_latex": r"x^* \in \arg\max_x \sum_i v_i x_i"}}
+                       "allocation_rule_latex": r"x^* \in \arg\max_x \sum_i v_i x_i",
+                       "payment_rule_latex":
+                           r"p_i = \max_{j \neq i} b_j \text{ if } x_i = 1, \text{ else } 0"}}
+    r = verify_vcg_dsic(e, k=4)
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_affine_maximizer_numeric_weights_verified():  # Task 2: Roberts affine max
+    # w_1 = 2, w_2 = 1 affine maximizer + affine-maximizer Clarke pivot.
+    # Winner = argmax_i w_i b_i, price = (max_{k!=i} w_k b_k) / w_i.  DSIC by
+    # construction (Roberts 1979); Z3 grid unsat confirms.
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_affine_max",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "allocation_rule_latex":
+                           r"x^* \in \arg\max_x [ 2 v_1 x_1 + 1 v_2 x_2 ]",
+                       "payment_rule_latex":
+                           r"p_i = \max_{j \neq i} b_j \text{ if } x_i = 1, \text{ else } 0"}}
+    r = verify_vcg_dsic(e, k=3)
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_argmax_welfare_raw_string_objective_is_unknown():  # C1: fail closed
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax_raw",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "allocation_rule_latex":
+                           r"W^\star(\hat c) \in \arg\max [SW := v(W) - \hat c f(W)]"}}
     assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
 
 

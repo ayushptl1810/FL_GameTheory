@@ -184,11 +184,10 @@ SYNTHESIS_PROMPT = ("You propose a STRUCTURAL TEMPLATE for an FL incentive "
                     '{"t":"Unknown","name":...}; use 3 to 5 Unknown nodes total, '
                     "only inside the payment subtree. A solver will fill them. "
                     "For VCG, propose an allocation rule -- highest-bidder "
-                    "(recommended, fully certifiable) or a top-k rule (author the "
-                    "LaTeX) -- and optional non-negative per-agent weights as the "
-                    "Unknown nodes. Do NOT author the payment -- it is fixed to "
-                    "the Clarke pivot (each winner pays the externality it imposes "
-                    "on others). " + _AST_RULES)
+                    "(recommended) or weighted-welfare-max with non-negative "
+                    "per-agent weights; payment fixed to the affine-maximizer "
+                    "Clarke pivot. A top-k rule (author the LaTeX) is also "
+                    "certifiable. Do NOT author the payment. " + _AST_RULES)
 HYBRID_PROMPT = ("You combine elements from multiple known FL incentive "
                  "mechanisms into one. Set provenance to a map of subtree->paper_id. "
                  + _AST_RULES)

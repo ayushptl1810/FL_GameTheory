@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import z3, sympy
 from architect.ast import Const, Sym, Unknown, Sum, Prod, Pow, Func, Mechanism
 from architect.serialize import ast_to_sympy
-from tracks.vcg_dsic import parse_allocation, ArgmaxWelfare
+from tracks.vcg_dsic import parse_allocation, ArgmaxWelfare, _argmax_welfare_weights
 
 
 @dataclass
@@ -110,26 +110,34 @@ def _all_unknowns(m: Mechanism) -> list:
 # --------------------------------------------------------------------------- #
 _VCG_ALLOC_MENU = {
     "highest-bidder": r"x_i = 1 \text{ if } b_i = \max_j b_j",
+    # affine maximizer with NUMERIC per-agent weights; verify_vcg_dsic now
+    # encodes the winner (argmax_i w_i b_i) + affine-maximizer Clarke pivot.
+    "weighted-welfare-max": r"x^* \in \arg\max_x [ 2 v_1 x_1 + 1 v_2 x_2 ]",
 }
 
 
 def _pick_vcg_allocation(proposed) -> str:
     """Keep a model-proposed allocation only if parse_allocation reads it as a
-    form the DSIC grid check can certify (highest-bidder / top-k). An
-    argmax-welfare proposal -> Clarke pivot is a sum-externality payment that
-    verify_vcg_dsic now returns UNKNOWN for, so fall back to highest-bidder."""
+    form the DSIC grid check can certify: highest-bidder / top-k, or an
+    argmax-welfare-max whose weights are numeric (verify_vcg_dsic encodes the
+    affine-maximizer Clarke pivot for those). Anything else -> highest-bidder."""
     if isinstance(proposed, str) and proposed.strip():
         spec = parse_allocation(proposed)
-        if spec is not None and not isinstance(spec, ArgmaxWelfare):
-            return proposed
+        if spec is None:
+            return _VCG_ALLOC_MENU["highest-bidder"]
+        if isinstance(spec, ArgmaxWelfare):
+            if _argmax_welfare_weights(proposed, 8) is not None:
+                return proposed
+            return _VCG_ALLOC_MENU["highest-bidder"]
+        return proposed
     return _VCG_ALLOC_MENU["highest-bidder"]
 
 
 def _clarke_payment_latex(alloc_tex: str) -> str:
-    """Clarke-pivot payment derived from the chosen allocation. Second-price
-    form for single-item / top-k; externality form for weighted welfare max."""
-    if isinstance(parse_allocation(alloc_tex), ArgmaxWelfare):
-        return r"p_i = W_{-i} - \sum_{k \neq i} v_k"
+    """Clarke-pivot payment derived from the chosen allocation. The single-item
+    second-price form parses as ClarkePivot for every menu allocation; for
+    weighted-welfare-max verify_vcg_dsic applies the affine-maximizer 1/w_i
+    scaling from the parsed weights itself."""
     return r"p_i = \max_{j \neq i} b_j"
 
 
