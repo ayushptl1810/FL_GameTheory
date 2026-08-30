@@ -280,45 +280,77 @@ def build_grid(n_bidders: int, n_attrs: int, k: int) -> GridCtx:
 # affine-maximizer (weighted-welfare-max) weight extraction                    #
 # --------------------------------------------------------------------------- #
 # The alloc parser only tags ArgmaxWelfare; it does not resolve the weights.
-# We accept exactly two shapes, both single-item single-attribute:
-#   * unit-weight welfare max:  \arg\max ... \sum_i v_i x_i   (no coefficient,
-#     no weight symbol)  -> every w_i = 1  (this is plain VCG / second price).
-#   * numeric affine maximizer: \arg\max ... [ c_1 v_1 x_1 + c_2 v_2 x_2 ... ]
-#     with a CONCRETE number in front of every v_k, k in 1..n.
-# A symbolic weight (w_k, \omega_k, \lambda_k, an Unknown left unsolved) or any
-# shape we cannot read cleanly -> return None -> caller fails closed to UNKNOWN.
-_WEIGHT_SYM_RE = re.compile(r"\b[wW]_?\{?\d|\\omega|\\lambda|\bomega\b|\blambda\b")
+# This extractor FAILS CLOSED: it returns weights only when the objective is
+# UNAMBIGUOUSLY a clean non-negative linear welfare sum, one of exactly two
+# single-item single-attribute shapes:
+#   * unit-weight welfare max:  \arg\max ... \sum_i v_i x_i  -- literally the sum
+#     bound then v_i then an optional x_i, NOTHING in between -> every w_i = 1.
+#   * explicit numeric affine maximizer: \arg\max ... [ c_1 v_1 x_1 + c_2 v_2 x_2
+#     + ... ] -- exactly n terms, each "(nonneg number) v_k x_k", joined by '+',
+#     no '-', no '/', no '^', no non-whitespace between the number and v_k.
+# Anything else -- a symbolic/greek/letter-subscripted weight before a v term,
+# subtraction, ratio, power, wrong term count, extra factors -> None -> the
+# caller (verify_vcg_dsic / _pick_vcg_allocation) turns that into UNKNOWN.
+
+# any weight-like token sitting in front of a v term: w/W with any subscript,
+# \omega \lambda or any \greek, or a bare letter-subscripted coefficient a_i.
+_WEIGHT_BEFORE_V_RE = re.compile(
+    r"(?:[wW]_?\{?[A-Za-z0-9]+\}?"
+    r"|\\(?:omega|lambda|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota"
+    r"|kappa|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi)\b"
+    r"|\b[a-zA-Z]_\{?[A-Za-z0-9]+\}?)"
+    r"\s*\\?[a-zA-Z]*\s*v_?\{?[A-Za-z0-9]+\}?"
+)
+# clean unit-weight welfare sum: \sum (opt _{bound}) then v_i then opt x_i, end.
+_UNIT_WELFARE_RE = re.compile(
+    r"\\sum(?:_\{?i\}?)?\s*v_\{?i\}?\s*(?:x_\{?i\}?)?\s*$"
+)
+# one explicit term: <nonneg number><no gap>v_k<ws>x_k   (k filled in per index)
+_NUM_TERM = r"([0-9]+(?:\.[0-9]+)?)v_\{?%d\}?\s*x_\{?%d\}?"
 
 
 def _argmax_welfare_weights(alloc_latex, n):
-    """LaTeX of an \\arg\\max welfare objective -> {i: float weight} or None."""
+    """LaTeX of an \\arg\\max welfare objective -> {i: float weight} or None.
+
+    Fails closed: only a clean non-negative linear welfare sum yields weights.
+    """
     if not isinstance(alloc_latex, str) or not alloc_latex.strip():
         return None
-    # only look at the objective side of the \arg\max, dropping any s.t. clause
+    # objective side of the \arg\max, dropping any s.t. clause; normalise ws.
     body = re.split(
         r"\\quad|\\text\{s\.t\.|\bs\.t\.|\\;|\\leq|<=|\\geq", alloc_latex)[0]
+    obj = re.sub(r"^.*?arg\s*\\?max_?(?:\{[^}]*\}|[_^]?\w+)?\s*", "", body,
+                 count=1, flags=re.I).strip()
+    obj = obj.strip("[]() ").strip()
+    # drop a leading "SW :=" / "F =" style label
+    obj = re.sub(r"^[A-Za-z]\w*\s*:?=\s*", "", obj).strip()
 
-    if _WEIGHT_SYM_RE.search(body):
-        return None  # symbolic / unsolved weight -> fail closed
+    # any weight-like symbol in front of a v term -> not machine-resolvable.
+    if _WEIGHT_BEFORE_V_RE.search(obj):
+        return None
 
-    # unit-weight welfare max:  \sum ... v_i x_i  with no numeric coefficient
-    if re.search(r"\\sum", body) and re.search(r"v_?\{?i\}?", body):
-        if re.search(r"[0-9]\s*v_?\{?i\}?", body) is None:
-            return {k: 1.0 for k in range(1, n + 1)}
+    # unit-weight welfare max: exactly \sum_i v_i x_i (x_i optional), nothing else
+    compact = re.sub(r"\s+", " ", obj).strip()
+    if _UNIT_WELFARE_RE.fullmatch(re.sub(r"\s+", "", obj)):
+        return {k: 1.0 for k in range(1, n + 1)}
 
-    # numeric affine maximizer: a concrete number in front of every v_k
-    if not re.search(r"v_?\{?1\}?", body):
+    # explicit numeric affine maximizer: exactly n "num v_k x_k" terms, +-joined
+    nospace_terms = re.sub(r"\s*\+\s*", "+", re.sub(r"\s+", " ", obj)).split("+")
+    if len(nospace_terms) != n:
         return None
     w = {}
     for k in range(1, n + 1):
-        mm = re.search(
-            r"([0-9]+(?:\.[0-9]+)?)?\s*\*?\s*v_?\{?" + str(k) + r"\}?", body)
-        if mm is None:
+        term = nospace_terms[k - 1].strip()
+        m = re.fullmatch(
+            r"([0-9]+(?:\.[0-9]+)?)v_\{?" + str(k) + r"\}?\s*x_\{?" + str(k)
+            + r"\}?", term.replace(" ", ""))
+        if m is None:
             return None
-        w[k] = float(mm.group(1)) if mm.group(1) else 1.0
-    if not w or any(v < 0 for v in w.values()):
-        return None
-    return w
+        val = float(m.group(1))
+        if val < 0:
+            return None
+        w[k] = val
+    return w or None
 
 
 def encode_utility(grid: GridCtx, alloc, pay, alloc_latex=None):

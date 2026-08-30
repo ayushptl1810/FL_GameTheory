@@ -143,6 +143,38 @@ def test_argmax_welfare_raw_string_objective_is_unknown():  # C1: fail closed
     assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
 
 
+def _argmax_entry(alloc_latex, num_clients=2):
+    return {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_aw",
+            "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                          "allocation_rule_latex": alloc_latex,
+                          "payment_rule_latex":
+                              r"p_i = \max_{j \neq i} b_j \text{ if } x_i = 1, "
+                              r"\text{ else } 0",
+                          "num_clients": num_clients}}
+
+
+def test_symbolic_letter_weight_welfare_is_unknown():  # fix round 1: fail closed
+    # \sum_i w_i v_i x_i -- literal w_i, the STANDARD affine-maximizer notation.
+    # The extractor must NOT read this as unit-weight.
+    e = _argmax_entry(r"x^* \in \arg\max_x \sum_i w_i v_i x_i")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_subtraction_objective_is_unknown():  # not a welfare fn
+    e = _argmax_entry(r"x^* \in \arg\max_x [2 v_1 x_1 - 3 v_2 x_2]")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_ratio_objective_is_unknown():  # not linear
+    e = _argmax_entry(r"x^* \in \arg\max_x [v_1/q_1 + v_2/q_2]")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_quadratic_objective_is_unknown():  # not linear
+    e = _argmax_entry(r"x^* \in \arg\max_x [2 v_1^2 x_1 + v_2 x_2]")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
 def test_topk_highest_not_verified():  # C3: multi-winner must not be HighestBidder
     e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_top2",
          "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],

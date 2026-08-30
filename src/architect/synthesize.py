@@ -116,7 +116,7 @@ _VCG_ALLOC_MENU = {
 }
 
 
-def _pick_vcg_allocation(proposed) -> str:
+def _pick_vcg_allocation(proposed, n: int = 2) -> str:
     """Keep a model-proposed allocation only if parse_allocation reads it as a
     form the DSIC grid check can certify: highest-bidder / top-k, or an
     argmax-welfare-max whose weights are numeric (verify_vcg_dsic encodes the
@@ -126,7 +126,7 @@ def _pick_vcg_allocation(proposed) -> str:
         if spec is None:
             return _VCG_ALLOC_MENU["highest-bidder"]
         if isinstance(spec, ArgmaxWelfare):
-            if _argmax_welfare_weights(proposed, 8) is not None:
+            if _argmax_welfare_weights(proposed, n) is not None:
                 return proposed
             return _VCG_ALLOC_MENU["highest-bidder"]
         return proposed
@@ -142,7 +142,9 @@ def _clarke_payment_latex(alloc_tex: str) -> str:
 
 
 def _synthesize_vcg(m: Mechanism, c: Constraints):
-    alloc_tex = _pick_vcg_allocation(m.meta.get("allocation_rule_latex"))
+    _n = m.meta.get("num_clients") or (len(m.type_space) or 2)
+    n = int(_n) if str(_n).strip().lstrip("-").isdigit() else 2
+    alloc_tex = _pick_vcg_allocation(m.meta.get("allocation_rule_latex"), n)
     pay_tex = _clarke_payment_latex(alloc_tex)  # overwrite any model-authored payment
     unknowns = _all_unknowns(m)
     if len(unknowns) > 5:
