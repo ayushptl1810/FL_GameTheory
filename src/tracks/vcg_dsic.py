@@ -9,7 +9,7 @@ that into UNKNOWN/UNSUPPORTED.  Never guess.
 
 from __future__ import annotations
 
-import random
+import itertools
 import re
 from collections import namedtuple
 from dataclasses import dataclass
@@ -90,6 +90,16 @@ _TOPK_RE = re.compile(
     r"i\s*\\leq\s*k|lowest[-\s]*bid|lowest\s+bids|K_j\s+clients", re.I
 )
 _PROP_RE = re.compile(r"\\frac\{[^}]*\^\{?[^}]*-\s*1\}?[^}]*\}\{\s*\\sum", re.I)
+# An explicit winner-count cue: "top-2", "top $k$", "K clients", "k winners",
+# "k highest/lowest".  Checked BEFORE _HIGHEST_RE so a multi-winner rule that
+# also says "highest bids" is not misclassified as single-item HighestBidder.
+_WINNER_COUNT_RE = re.compile(
+    r"top[-\s]?\$?\{?\s*(\d+|[kK])\b|"
+    r"\b(\d+|[kK])\s+(?:winners|clients|bidders|agents)\b|"
+    r"K_j\s+clients|"
+    r"\b([kK])\s+(?:highest|lowest)\b",
+    re.I,
+)
 
 
 def _extract_objective(latex: str):
@@ -133,6 +143,18 @@ def parse_allocation(latex: str):
             except Exception:
                 exp = exp_raw
         return ProportionalShare(exponent=exp)
+
+    mcount = _WINNER_COUNT_RE.search(s)
+    if mcount:
+        grp = next((g for g in mcount.groups() if g), None)
+        lowest = bool(re.search(r"lowest", s, re.I))
+        if grp and grp.isdigit():
+            cnt = int(grp)
+            if cnt != 1:
+                return TopK(k=cnt, lowest=lowest)
+        elif grp is not None or "k_j" in s.lower():
+            # symbolic count (k / K / K_j) -> cardinality unknown -> downstream UNKNOWN
+            return TopK(k=None, lowest=lowest)
 
     if _HIGHEST_RE.search(s):
         return HighestBidder()
@@ -240,6 +262,14 @@ def encode_utility(grid: GridCtx, alloc, pay):
             max_other = others[0]
             for o in others[1:]:
                 max_other = z3.If(o > max_other, o, max_other)
+            # NOTE (I2): ties -> every tied bidder "wins" and pays the rule.
+            # For ClarkePivot this is harmless (price == my_bid on a tie -> u==0).
+            # For ExplicitFormula f(b) a real single-winner mechanism would give
+            # 0 w.p. <1 on a tie; the all-win encoding could in principle
+            # manufacture a false COUNTEREXAMPLE for some f. No such f found
+            # among currently-accepted payment forms.  ponytail: tie-break to
+            # lowest index + downgrade to UNKNOWN if a witness sits on a tie,
+            # if a payment form ever exploits this.
             win = z3.And(*[my_bid >= o for o in others])
             if isinstance(pay, ClarkePivot):
                 price = max_other
@@ -331,23 +361,6 @@ def _n_attrs_from_value_latex(entry: dict) -> int:
     return 1
 
 
-def _winner_set_direct(latex: str, bids: list[float]):
-    """Numeric winners implied by the allocation LaTeX, or None if the form is
-    not one we can evaluate directly."""
-    s = (latex or "").lower()
-    if "max" in s and "arg" not in s and "sum" not in s:
-        hi = max(bids)
-        return {i for i, b in enumerate(bids) if abs(b - hi) < 1e-9}
-    return None
-
-
-def _winner_set_encoded(alloc, bids: list[float]):
-    if isinstance(alloc, HighestBidder):
-        hi = max(bids)
-        return {i for i, b in enumerate(bids) if abs(b - hi) < 1e-9}
-    return None
-
-
 def _result(entry: dict, verdict: str, *, notes: str = "",
             entry_specific: bool = False, counterexample=None) -> VerificationResult:
     return VerificationResult(
@@ -379,6 +392,9 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
 
     n = int(mech.get("num_clients") or entry.get("num_clients") or 2)
     n_attrs = _n_attrs_from_value_latex(entry)
+    if n < 2:
+        return _result(entry, "UNKNOWN",
+                       notes="DSIC vacuous / unencodable for n<2 (payment never binds)")
 
     alloc = parse_allocation(alloc_tex)
     pay = parse_payment(pay_tex, alloc)
@@ -410,90 +426,93 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
                    f"{grid.profile_count} > {_PROFILE_CAP}"),
         )
 
-    try:
-        utility = encode_utility(grid, alloc, pay)
-    except NotImplementedError as exc:
-        return _result(entry, "UNKNOWN", notes=f"encode_utility: {exc}")
-
-    # ------- allocation cross-check on ~8 random grid profiles ------- #
-    rng = random.Random(0)
+    # encode_utility is a factory; the NotImplementedError for an unsupported
+    # combo is raised by the returned closure at call time, inside the loop below.
+    utility = encode_utility(grid, alloc, pay)
     pts = grid.points
-    for _ in range(8):
-        bids = [sum(rng.choice(pts) for _ in range(n_attrs)) for _ in range(n)]
-        direct = _winner_set_direct(alloc_tex, bids)
-        enc = _winner_set_encoded(alloc, bids)
-        if direct is not None and enc is not None and direct != enc:
-            return _result(entry, "UNKNOWN",
-                           notes="allocation cross-check disagreed with LaTeX")
 
-    # ------- DSIC + IR obligation ------- #
     def dom(var):
         return z3.Or(*[var == p for p in pts])
 
     # every vector of concrete grid deviations for one bidder's bid
-    def deviations():
-        import itertools
-        return [list(c) for c in itertools.product(pts, repeat=n_attrs)]
+    deviations = [list(c) for c in itertools.product(pts, repeat=n_attrs)]
 
     has_cex = False
     cex = None
-    for i in range(n):
-        s = z3.Solver()
-        for a in range(n_attrs):
-            s.add(dom(grid.v[i][a]))
-        for j in range(n):
-            if j == i:
-                continue
+    try:
+        for i in range(n):
+            s = z3.Solver()
             for a in range(n_attrs):
-                s.add(dom(grid.b[j][a]))
-        truthful = [
-            [grid.v[i][a] for a in range(n_attrs)] if j == i
-            else [grid.b[j][a] for a in range(n_attrs)]
-            for j in range(n)
-        ]
-        u_true = utility(i, truthful)
-
-        # IR
-        s.push()
-        s.add(u_true < 0)
-        if s.check() == z3.sat:
-            m = s.model()
-            cex = {
-                "deviator": str(i),
-                "violation": "IR",
-                "profile": {str(d): str(m[d]) for d in m.decls()},
-            }
-            has_cex = True
-            s.pop()
-            break
-        s.pop()
-
-        # DSIC: no grid deviation beats truthful
-        for dev in deviations():
-            dev_profile = [
-                [z3.RealVal(f"{v}") for v in dev] if j == i
+                s.add(dom(grid.v[i][a]))
+            for j in range(n):
+                if j == i:
+                    continue
+                for a in range(n_attrs):
+                    s.add(dom(grid.b[j][a]))
+            truthful = [
+                [grid.v[i][a] for a in range(n_attrs)] if j == i
                 else [grid.b[j][a] for a in range(n_attrs)]
                 for j in range(n)
             ]
-            u_dev = utility(i, dev_profile)
+            # utility() is the encode_utility closure; NotImplementedError for an
+            # unencodable alloc/pay combo fires HERE, at call time -> fail closed.
+            u_true = utility(i, truthful)
+
+            # IR: u_i(truthful) >= 0 on the whole grid
             s.push()
-            s.add(u_true < u_dev)
-            if s.check() == z3.sat:
+            s.add(u_true < 0)
+            r = s.check()
+            if r == z3.sat:
                 m = s.model()
-                gain = m.eval(u_dev - u_true, model_completion=True)
                 cex = {
                     "deviator": str(i),
-                    "violation": "DSIC",
-                    "deviation_bid": str(dev),
-                    "gain": str(gain),
+                    "violation": "IR",
                     "profile": {str(d): str(m[d]) for d in m.decls()},
                 }
                 has_cex = True
                 s.pop()
                 break
+            if r != z3.unsat:
+                s.pop()
+                return _result(entry, "UNKNOWN",
+                               notes=f"z3 returned {r} for bidder {i} IR check")
             s.pop()
-        if has_cex:
-            break
+
+            # DSIC: no concrete grid deviation beats truthful
+            for dev in deviations:
+                dev_profile = [
+                    [z3.RealVal(f"{v}") for v in dev] if j == i
+                    else [grid.b[j][a] for a in range(n_attrs)]
+                    for j in range(n)
+                ]
+                u_dev = utility(i, dev_profile)
+                s.push()
+                s.add(u_true < u_dev)
+                r = s.check()
+                if r == z3.sat:
+                    m = s.model()
+                    gain = m.eval(u_dev - u_true, model_completion=True)
+                    cex = {
+                        "deviator": str(i),
+                        "violation": "DSIC",
+                        "deviation_bid": str(dev),
+                        "gain": str(gain),
+                        "profile": {str(d): str(m[d]) for d in m.decls()},
+                    }
+                    has_cex = True
+                    s.pop()
+                    break
+                if r != z3.unsat:
+                    s.pop()
+                    return _result(
+                        entry, "UNKNOWN",
+                        notes=f"z3 returned {r} for bidder {i} DSIC check")
+                s.pop()
+            if has_cex:
+                break
+    except NotImplementedError as exc:
+        return _result(entry, "UNKNOWN",
+                       notes=f"allocation/payment combo not encodable: {exc}")
 
     all_ok = not has_cex
     verdict = finalize_verdict(all_ok, has_cex, entry_specific=True)

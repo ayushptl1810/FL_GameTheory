@@ -37,6 +37,29 @@ def test_oversize_grid_is_unknown():
     assert verify_vcg_dsic(big, k=6).verdict == "UNKNOWN"
 
 
+def test_argmax_welfare_clarke_is_unknown_not_crash():  # C1: closure raises at call time
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "allocation_rule_latex": r"x^* \in \arg\max_x \sum_i v_i x_i"}}
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_topk_highest_not_verified():  # C3: multi-winner must not be HighestBidder
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_top2",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "allocation_rule_latex":
+                           r"the top-2 clients with the highest bids win"}}
+    a = parse_allocation(e["mechanism"]["allocation_rule_latex"])
+    assert a.__class__.__name__ == "TopK"
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_single_bidder_is_unknown():  # I3: n<2 is vacuous
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_n1",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"], "num_clients": 1}}
+    assert verify_vcg_dsic(e, k=4).verdict == "UNKNOWN"
+
+
 def test_parse_highest_bidder():
     a = parse_allocation(r"x_i(b) = 1 \text{ if } b_i = \max_j b_j")
     assert isinstance(a, HighestBidder)
