@@ -161,3 +161,24 @@ def test_track3_verdicts_unchanged_after_sympy_native_refactor():
         if getattr(r, "track", None) == 3:
             seen[e["paper_id"]] = (r.verdict, r.entry_specific)
     assert seen == _EXPECTED_TRACK3
+
+
+# Behavior lock for Task 7: the corpus entries that route to Track 4 (Bayesian
+# symbolic integration), captured BEFORE track4_check_from_sympy was made
+# SymPy-native (signature changed from (paper_id, category, theta_min,
+# theta_max, distribution, ir_raw, ic_raw, ir_expr, theta_sym) to
+# (ir_expr, ic_gap, theta_sym, theta_min, theta_max, distribution, *,
+# ic_gap_err, entry_specific, paper_id, category) with the IC-gap LaTeX parse
+# lifted into verify_track4's front-end via _parse_ic_gap).
+_EXPECTED_TRACK4 = {
+    "Li2025bayesian_incentive": ("VERIFIED", True),
+}
+
+
+def test_track4_verdicts_unchanged_after_sympy_native_refactor():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) == 4:
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific)
+    assert seen == _EXPECTED_TRACK4
