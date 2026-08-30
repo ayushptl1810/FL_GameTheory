@@ -202,9 +202,10 @@ BROKEN = [
         "payment_rule_latex": r"p_i = \sum_{j \neq i} b_j"}},
     # why unsound: allocation goes to the LOWEST bidder so Groves does not apply,
     #              yet the payment LaTeX regex-matches the Clarke-pivot form.
-    #              Phase 2: real DSIC check fails closed (allocation did not
-    #              parse -> UNKNOWN); regex path now yields VERIFIED_SHAPE, a
-    #              documented non-proof, not an entry-specific VERIFIED.
+    #              Phase 2 Task 6: verify_vcg_dsic now parses "b_i = min_j b_j"
+    #              (HighestBidder(lowest=True)); the finite-grid check returns a
+    #              real COUNTEREXAMPLE -- a winning low bidder pays the higher
+    #              competing bid, so truthful participation nets < 0 (IR breaks).
 ]
 
 

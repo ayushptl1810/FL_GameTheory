@@ -31,7 +31,14 @@ _PROFILE_CAP = 4096
 # --------------------------------------------------------------------------- #
 @dataclass(frozen=True)
 class HighestBidder:
-    """Single item to the highest bidder (b_i = max_j b_j)."""
+    """Single item to the highest bidder (b_i = max_j b_j).
+
+    ``lowest=True`` flips it to "item goes to the LOWEST bidder"
+    (b_i = min_j b_j) -- a non-welfare-maximising allocation, so a
+    Clarke-shaped payment computed from it is not Groves and DSIC/IR can fail.
+    """
+
+    lowest: bool = False
 
 
 @dataclass(frozen=True)
@@ -84,6 +91,14 @@ _ALGO_RE = re.compile(r"\\text\{[^}]*\b(algorithm|procedure|output of)\b", re.I)
 _ARGMAX_RE = re.compile(r"\\arg\s*\\?max|\bargmax\b", re.I)
 _HIGHEST_RE = re.compile(
     r"b_\{?i\}?\s*=\s*\\max|\\max_?\{?j\}?\s*b_?\{?j\}?|highest\s+bid", re.I
+)
+# single item to the LOWEST bidder (b_i = min_j b_j). Checked before the
+# multi-winner / TopK cues so "lowest bidder wins" is not read as a reverse
+# TopK; "K clients with the lowest bids" still has a winner-count cue and
+# stays TopK.
+_LOWEST_ONE_RE = re.compile(
+    r"b_\{?i\}?\s*=\s*\\min|\\min_?\{?j\}?\s*b_?\{?j\}?|"
+    r"lowest\s+bidder|goes\s+to\s+the\s+lowest", re.I
 )
 _TOPK_RE = re.compile(
     r"top[-\s]?k|k[-\s]?(?:winners|clients|lowest)|"
@@ -143,6 +158,9 @@ def parse_allocation(latex: str):
             except Exception:
                 exp = exp_raw
         return ProportionalShare(exponent=exp)
+
+    if _LOWEST_ONE_RE.search(s) and not _WINNER_COUNT_RE.search(s):
+        return HighestBidder(lowest=True)
 
     mcount = _WINNER_COUNT_RE.search(s)
     if mcount:
@@ -259,9 +277,13 @@ def encode_utility(grid: GridCtx, alloc, pay):
         if isinstance(alloc, HighestBidder):
             if not others:
                 return my_val
+            lowest = getattr(alloc, "lowest", False)
+            # agg_other = min (lowest-bidder rule) or max (highest-bidder rule)
+            # of the competing bids -- the Clarke pivot price seen by the winner.
             max_other = others[0]
             for o in others[1:]:
-                max_other = z3.If(o > max_other, o, max_other)
+                cmp_ = o < max_other if lowest else o > max_other
+                max_other = z3.If(cmp_, o, max_other)
             # NOTE (I2): ties -> every tied bidder "wins" and pays the rule.
             # For ClarkePivot this is harmless (price == my_bid on a tie -> u==0).
             # For ExplicitFormula f(b) a real single-winner mechanism would give
@@ -270,7 +292,8 @@ def encode_utility(grid: GridCtx, alloc, pay):
             # among currently-accepted payment forms.  ponytail: tie-break to
             # lowest index + downgrade to UNKNOWN if a witness sits on a tie,
             # if a payment form ever exploits this.
-            win = z3.And(*[my_bid >= o for o in others])
+            win = (z3.And(*[my_bid <= o for o in others]) if lowest
+                   else z3.And(*[my_bid >= o for o in others]))
             if isinstance(pay, ClarkePivot):
                 price = max_other
             elif isinstance(pay, ExplicitFormula):
@@ -539,6 +562,8 @@ if __name__ == "__main__":  # tiny self-check
     assert isinstance(
         parse_allocation(r"K_j \text{ clients with the lowest bids}"), TopK
     )
+    _lo = parse_allocation(r"x_i = 1 \text{ if } b_i = \min_j b_j")
+    assert isinstance(_lo, HighestBidder) and _lo.lowest is True
     assert parse_allocation(r"x = \text{the output of Algorithm 3}") is None
     assert isinstance(parse_payment(r"p_i = \max_{j \neq i} b_j", None), ClarkePivot)
     assert isinstance(
