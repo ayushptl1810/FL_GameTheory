@@ -209,3 +209,21 @@ def test_parse_clarke_payment():
 
 def test_unparseable_allocation_returns_none():
     assert parse_allocation(r"x = \text{the output of Algorithm 3}") is None
+
+
+def test_proportional_share_allocation_is_unknown():
+    # Fractional / divisible allocation (every bidder gets a share) -- not a
+    # single-winner VCG mechanism, so there is no dominant-strategy property to
+    # prove. Must be UNKNOWN (never VERIFIED), and never a COUNTEREXAMPLE.
+    # Mirrors corpus entry 2404_13841, which states no DSIC claim for a Groves
+    # payment over the fractional allocation.
+    e = {
+        "paper_id": "synthetic_prop_share", "category": "VCG",
+        "mechanism": {
+            "allocation_rule_latex":
+                r"p = \frac{f_s^{\alpha-1}}{\sum_{s' \in S} f_{s'}^{\alpha-1}}",
+            "payment_rule_latex": r"p_{i,s} = \frac{B}{S(k-1)}",
+            "client_utility_latex": r"u_i = v_i p_i - c_i", "num_clients": 2}}
+    r = verify_vcg_dsic(e, k=3)
+    assert r.verdict == "UNKNOWN"
+    assert "fractional-share" in r.notes

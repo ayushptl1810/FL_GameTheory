@@ -568,6 +568,24 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
                        notes="DSIC vacuous / unencodable for n<2 (payment never binds)")
 
     alloc = parse_allocation(alloc_tex)
+
+    # A ProportionalShare allocation p_s = f_s^{a-1} / sum f^{a-1} is a
+    # *fractional* / divisible allocation -- every bidder receives a share -- not
+    # a single-winner VCG mechanism. It is a data-valuation payout; the corpus
+    # entry that hits this (2404_13841) states no DSIC/IC claim for a Groves
+    # payment over it (bare ic_type tag only, no ic/ir condition, and its own
+    # notes flag the allocation LaTeX as coming from the paper's *non-auction*
+    # mechanism). encode_utility has no single-winner semantics for it, so there
+    # is no dominant-strategy property to prove or refute here -> UNKNOWN
+    # (checked before parse_payment: the payment is irrelevant to a non-
+    # mechanism). verify_vcg's regex fallback then classifies the payment
+    # shape as before -- this task does not move the entry's verify() verdict.
+    if isinstance(alloc, ProportionalShare):
+        return _result(
+            entry, "UNKNOWN",
+            notes="fractional-share allocation -- not a single-winner VCG "
+                  "mechanism; no dominant-strategy claim to check")
+
     pay = parse_payment(pay_tex, alloc)
     if alloc is None or pay is None:
         return _result(entry, "UNKNOWN",
@@ -584,8 +602,6 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
     # reject specs that still carry raw-string / unknown parameters
     if isinstance(alloc, TopK) and alloc.k is None:
         return _result(entry, "UNKNOWN", notes="TopK.k unknown")
-    if isinstance(alloc, ProportionalShare) and isinstance(alloc.exponent, str):
-        return _result(entry, "UNKNOWN", notes="ProportionalShare exponent raw string")
     if isinstance(alloc, ArgmaxWelfare) and isinstance(alloc.objective_expr, str):
         # a raw-string objective is fine ONLY if it is a machine-resolvable
         # numeric weighted-welfare-max shape (\sum v_i x_i, or [c_1 v_1 + ...]);
