@@ -103,15 +103,43 @@ def test_verify_from_ast_stackelberg_without_equilibrium_existence_is_unsupporte
     assert r.verdict == "UNSUPPORTED"
 
 
-def test_verify_from_ast_vcg_is_template_not_verified():
-    # VCG has no entry-specific check yet (Phase 2); the AST path must not
-    # fabricate VERIFIED off the fixed threshold template.
-    m = Mechanism(
+_VCG_HIGHEST = r"x_i = 1 \text{ if } b_i = \max_j b_j"
+_VCG_LOWEST = r"x_i = 1 \text{ if } b_i = \min_j b_j"
+_VCG_ALGO = r"x = \text{the output of Algorithm 3}"
+_VCG_CLARKE = r"p_i = \max_{j \neq i} b_j"
+
+
+def _vcg_mech(alloc_tex, *, payment_tex=None):
+    meta = {"num_clients": 2, "allocation_rule_latex": alloc_tex}
+    if payment_tex is not None:
+        meta["payment_rule_latex"] = payment_tex
+    return Mechanism(
         category="VCG",
-        utility=Sym("u_i"), payment=Sym("p_i"), ic=Sym("v_i"), ir=Sym("v_i"),
-        type_space=[], meta={})
-    r = verify_from_ast(m)
-    assert r.verdict == "VERIFIED_TEMPLATE" and r.entry_specific is False
+        utility=Sym("u_i"), payment=Sym("v"), ic=Sym("v"), ir=Sym("v"),
+        type_space=[], meta=meta)
+
+
+def test_verify_from_ast_vcg_clarke_is_real_verified():
+    # Well-formed single-item Clarke VCG: highest-bidder allocation + Clarke
+    # payment -> verify_vcg_dsic proves DSIC + IR on the grid. Real, not a
+    # template: entry_specific must be True.
+    r = verify_from_ast(_vcg_mech(_VCG_HIGHEST, payment_tex=_VCG_CLARKE))
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_verify_from_ast_vcg_wrong_allocation_is_counterexample():
+    # Clarke-shaped payment computed off a lowest-bidder (non-welfare) rule is
+    # not Groves: verify_vcg_dsic finds a profitable deviation.
+    r = verify_from_ast(_vcg_mech(_VCG_LOWEST, payment_tex=_VCG_CLARKE))
+    assert r.verdict == "COUNTEREXAMPLE"
+
+
+def test_verify_from_ast_vcg_unparseable_allocation_is_unknown():
+    # Allocation rule points at an opaque algorithm -> parse_allocation returns
+    # None. The AST path must NOT fabricate a verdict off the fixed payment
+    # template: honest UNKNOWN, never VERIFIED_TEMPLATE.
+    r = verify_from_ast(_vcg_mech(_VCG_ALGO, payment_tex=_VCG_CLARKE))
+    assert r.verdict == "UNKNOWN"
 
 
 def test_verify_from_ast_reaches_verified_contract():
@@ -176,6 +204,26 @@ def test_ast_path_matches_latex_path_on_loop_fixtures():
         assert ast_result.verdict == latex_verdict, (
             m.category, ast_result.verdict, latex_verdict)
         assert ast_result.verdict == "VERIFIED" and ast_result.entry_specific is True
+
+
+def test_ast_path_matches_latex_path_on_vcg_clarke():
+    # Well-formed single-item VCG: pay-your-value payment (AST-expressible as
+    # Sym("v")) + highest-bidder allocation carried on meta. Both the AST-native
+    # path and AST -> LaTeX -> verify() must reach the same entry-specific
+    # VERIFIED via verify_vcg_dsic.
+    m = Mechanism(
+        category="VCG",
+        utility=Sym("u_i"), payment=Sym("v"), ic=Sym("v"), ir=Sym("v"),
+        type_space=[], meta={})
+    meta = {
+        "paper_id": "architect-proposal",
+        "num_clients": 2,
+        "allocation_rule_latex": _VCG_HIGHEST,
+    }
+    latex_verdict = inspect_mechanism(m, meta).verdict
+    ast_result = verify_from_ast(m, meta)
+    assert ast_result.verdict == latex_verdict, (ast_result.verdict, latex_verdict)
+    assert ast_result.verdict == "VERIFIED" and ast_result.entry_specific is True
 
 
 def test_ast_path_matches_latex_path_on_non_verified():
