@@ -1002,7 +1002,208 @@ def _split_equation_clauses(s: str) -> list[str]:
     return [c.strip().strip(",").strip() for c in s.split(r"\quad") if c.strip().strip(",").strip()]
 
 
-def _resolve_stackelberg_utility(util_raw: str) -> "Any | None":
+# Fresh opaque symbol for the "rest of sum" (j != self) after own-term
+# isolation. "\Xi" is a single LaTeX symbol parse_latex reads atomically
+# and is NOT in _OPAQUE_FUNCTION_RE's bail list (Phi/Omega/Psi/Theta/...).
+_SIGMA_OTHERS_PREFIX = "\\Xi"
+
+
+def _follower_decision_latex(entry: dict) -> "str | None":
+    """Raw LaTeX of the follower's own decision symbol, e.g. ``s_i^d``.
+
+    Reads the last ``\\(...\\)`` inline-math group of ``follower_decision``
+    that parses to a single-symbol SymPy expression. Returns None if none
+    does (so the \\sum pre-processor is skipped and the entry falls through
+    exactly as before this widening).
+    """
+    mech = entry.get("mechanism") or {}
+    fd = mech.get("follower_decision") or ""
+    best: "str | None" = None
+    for cand in _STACK_INLINE_MATH_RE.findall(fd):
+        cand = cand.strip()
+        # A trailing superscript "label" (e.g. the "d" in "s_i^d" -- device,
+        # not a power) makes parse_latex read a 2-symbol power. Strip one
+        # such suffix so the follower's own token is recognised as a single
+        # symbol; the un-stripped form is still tried first.
+        for probe in (cand, re.sub(r"\^\{?[A-Za-z]\}?$", "", cand)):
+            try:
+                p = _lx_parse(probe)
+            except Exception:
+                continue
+            free = getattr(p, "free_symbols", set())
+            if len(free) == 1 and not p.has(_sp.Sum):
+                best = cand  # keep the ORIGINAL latex for index/base parsing
+                break
+    return best
+
+
+_SUM_SET_BOUND_RE = re.compile(
+    r"\\sum_\{\s*([a-zA-Z])\s*\\in\s*[^}]+\}"
+)
+_SUM_INEQ_BOUND_RE = re.compile(
+    r"\\sum_\{\s*[^}]*?\\le\s*([a-zA-Z])\s*\\le[^}]*\}"
+)
+
+
+def _latex_index_of(sym_latex: str) -> "str | None":
+    """Subscript index letter of a symbol LaTeX token: ``s_i^d`` -> ``i``,
+    ``\\rho_i`` -> ``i``. None if the subscript isn't a single letter."""
+    m = re.search(r"_\{?([a-zA-Z])\}?", sym_latex)
+    return m.group(1) if m else None
+
+
+def _balanced_summand(s: str, start: int) -> "tuple[str, int] | None":
+    """From just past a ``\\sum_{...}`` header at index ``start``, take the
+    summand: everything up to the first brace-depth-0 ``+``, ``-`` (not a
+    leading sign), top-level ``,``, ``\\quad``, or end of string. Returns
+    (summand, end_index) or None if it is empty, contains a nested ``\\sum``,
+    or contains any parenthesis.
+
+    Parentheses are a hard bail: a top-level ``+``/``-`` *inside* ``(...)``
+    would end the scan early, so the separability/coupling check downstream
+    would run on a truncated summand and could miss a term that depends on
+    the follower's own decision (reviewer-reproduced false VERIFIED).
+    Tracking ``(``/``)`` alongside ``\\left(``/``\\right)`` is fiddly and
+    rare in these summands, so bail instead.
+    """
+    depth = 0
+    i = start
+    while i < len(s) and s[i] == " ":
+        i += 1
+    begin = i
+    while i < len(s):
+        ch = s[i]
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth < 0:
+                break  # summand ended at the enclosing brace (e.g. \frac{}{ \sum ... })
+        elif depth == 0:
+            if ch == ",":
+                break
+            if ch in "+-" and i > begin:
+                break
+            if s.startswith(r"\quad", i):
+                break
+        i += 1
+    summand = s[begin:i].strip()
+    if not summand or r"\sum" in summand:
+        return None
+    if "(" in summand or ")" in summand:
+        return None  # conservative bail -- see docstring
+    return summand, i
+
+
+def _preprocess_stackelberg_sum_bounds(
+    raw: str, self_latex: "str | None"
+) -> "tuple[str, int] | None":
+    """Rewrite ``\\sum_{i \\in S} f(i)`` / ``\\sum_{a \\le i \\le b} f(i)`` that
+    SymPy's ``parse_latex`` cannot handle into ``f(self) + SigmaOthers_k``,
+    where ``self`` is the follower's own decision symbol and ``SigmaOthers_k``
+    is a fresh OPAQUE symbol, constant w.r.t. the follower's own decision.
+
+    The opaque split is sound ONLY when the rest-of-sum is genuinely
+    independent of the follower's own decision. This is enforced by
+    requiring the summand to be *separable*: after stripping the terms that
+    carry the follower's own symbol under this sum's index, the follower's
+    own symbol token must be gone (a residual occurrence signals a coupling
+    such as ``self / \\sum_j x_j``).
+
+    Returns (rewritten_latex, n_rewrites), or None if any set/inequality
+    bound is present but cannot be safely rewritten (ambiguous ``self``
+    membership, coupled summand, nested sum, no follower symbol) -- caller
+    then fails closed.
+    """
+    if r"\sum" not in raw:
+        return raw, 0
+    has_set = bool(_SUM_SET_BOUND_RE.search(raw))
+    has_ineq = bool(_SUM_INEQ_BOUND_RE.search(raw))
+    if not (has_set or has_ineq):
+        return raw, 0  # only ordinary \sum_{j=1}^{M} bounds -- not our job
+    if _SIGMA_OTHERS_PREFIX in raw:
+        # A literal \Xi_{k} already in the utility would MERGE with the
+        # rest-of-sum symbol we inject (both parse to the same SymPy
+        # Symbol), silently shifting the FOC. Bail rather than collide.
+        return None
+    if self_latex is None:
+        return None
+    self_idx = _latex_index_of(self_latex)
+    self_base_m = re.match(r"\\?[A-Za-z]+", self_latex)
+    self_base_tok = self_base_m.group(0) if self_base_m else None
+
+    out = raw
+    n = 0
+    guard = 0
+    while guard < 20:
+        guard += 1
+        m = _SUM_SET_BOUND_RE.search(out) or _SUM_INEQ_BOUND_RE.search(out)
+        if not m:
+            break
+        sum_idx = m.group(1)
+        body = _balanced_summand(out, m.end())
+        if body is None:
+            return None
+        summand, end = body
+
+        # Does the follower's own decision participate in this sum? Two
+        # ways: the sum index literally equals `self`'s subscript, OR the
+        # summand contains `self`'s base symbol indexed by the sum index
+        # (e.g. `\sum_{j \in U} \rho_j` -- the follower i is one of U, so
+        # `\rho_i` IS a term even though the summand is written `\rho_j`).
+        indexed_self = (
+            self_base_tok is not None
+            and re.search(
+                re.escape(self_base_tok) + r"_\{?" + re.escape(sum_idx) + r"[}\s^]",
+                summand + " ",
+            )
+            is not None
+        )
+        self_participates = (self_idx is not None and self_idx == sum_idx) or indexed_self
+
+        if self_base_tok:
+            # Remove ONLY the terms legitimately carried by THIS sum's index
+            # (`self_base`_<sum_idx>). If the follower's own base token still
+            # appears afterwards -- e.g. `self_i` inside `\sum_j self_i x_j`,
+            # or `self` un-subscripted -- then the rest-of-sum is not
+            # independent of the follower's decision and the opaque split
+            # would silently drop that dependence: bail.
+            stripped = re.sub(
+                re.escape(self_base_tok) + r"_\{?" + re.escape(sum_idx)
+                + r"\}?(\^\{?[A-Za-z0-9]+\}?)?",
+                "",
+                summand,
+            )
+            if self_base_tok in stripped:
+                return None
+
+        if not self_participates:
+            # Summand shares no symbol family with `self` -> whole sum is
+            # opaque and constant w.r.t. the follower's decision.
+            replacement = f"( {_SIGMA_OTHERS_PREFIX}_{{{n}}} )"
+        else:
+            # `self`'s own term = summand with the sum index -> `self`'s
+            # concrete subscript; the remaining j != self terms are opaque.
+            # This is exact for a SEPARABLE summand -- guaranteed by the
+            # residual check above -- so d/d(self) of the objective is
+            # unaffected by the opaque part.
+            si = self_idx if self_idx is not None else sum_idx
+            own_term = re.sub(
+                rf"(?<![A-Za-z]){re.escape(sum_idx)}(?![A-Za-z])",
+                si,
+                summand,
+            )
+            replacement = f"( ( {own_term} ) + {_SIGMA_OTHERS_PREFIX}_{{{n}}} )"
+        out = out[: m.start()] + replacement + out[end:]
+        n += 1
+    if guard >= 20:
+        return None
+    if _SUM_SET_BOUND_RE.search(out) or _SUM_INEQ_BOUND_RE.search(out):
+        return None
+    return out, n
+
+
+def _resolve_stackelberg_utility(util_raw: str, self_latex: "str | None" = None) -> "Any | None":
     """
     Parse a (possibly multi-clause) follower_utility_latex field into one
     SymPy expression.
@@ -1020,6 +1221,15 @@ def _resolve_stackelberg_utility(util_raw: str) -> "Any | None":
     (see _OPAQUE_FUNCTION_RE), or a definition clause that doesn't fit the
     "Name = rhs" shape.
     """
+    # Widening (Task 12): rewrite set/inequality \sum bounds parse_latex
+    # can't read into own-term + opaque-rest BEFORE anything else touches
+    # the string. A set/ineq bound that can't be safely split -> None
+    # (fail closed), never a silently truncated sum.
+    pre = _preprocess_stackelberg_sum_bounds(util_raw, self_latex)
+    if pre is None:
+        return None
+    util_raw = pre[0]
+
     clauses = _split_equation_clauses(util_raw)
     if not clauses:
         return None
@@ -1216,7 +1426,15 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     if not util_raw:
         return None
 
-    util_expr = _resolve_stackelberg_utility(util_raw)
+    self_latex = _follower_decision_latex(entry)
+    # Did this entry carry a set/inequality \sum bound that the widening
+    # rewrote via own-term isolation + opaque rest? If so, the opaque split
+    # is only sound when the paper's own best_response_latex confirms the
+    # derived FOC -- so require a definite cross-check MATCH downstream.
+    _pp = _preprocess_stackelberg_sum_bounds(util_raw, self_latex)
+    widened_via_opaque_sum = _pp is not None and _pp[1] > 0
+
+    util_expr = _resolve_stackelberg_utility(util_raw, self_latex=self_latex)
     if util_expr is None:
         return None
 
@@ -1248,6 +1466,7 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
         meta=mech,
         entry_specific=True,
         paper_id=entry.get("paper_id", "<unknown>"),
+        require_br_match=widened_via_opaque_sum,
     )
 
 
@@ -1259,6 +1478,7 @@ def _stackelberg_check_core(
     meta: "dict | None" = None,
     entry_specific: bool,
     paper_id: str,
+    require_br_match: bool = False,
 ) -> "VerificationResult | None":
     """Back-half of _try_stackelberg_latex: parsed follower-utility expr +
     decision variable in -> symbolic FOC -> best-response solve and
@@ -1348,6 +1568,16 @@ def _stackelberg_check_core(
                     numeric_diffs = None
                 if numeric_diffs is None or any(abs(v) > 1e-6 for v in numeric_diffs):
                     return None  # definite disagreement with the paper's own formula
+                best_response_note = " | best_response_latex cross-check: MATCH (numeric)"
+
+    if require_br_match and "MATCH" not in best_response_note:
+        # The follower utility was widened via an opaque \sum split. That
+        # split is only sound when the paper's own best_response_latex
+        # confirms the derived FOC. No definite MATCH (missing / opaque /
+        # unparseable best_response, or a piecewise \begin{cases} form) ->
+        # fail closed rather than certify a possibly-wrong own-term
+        # isolation.
+        return None
 
     try:
         U_star = _sp.simplify(util_expr.subs(e_sym, e_star))
