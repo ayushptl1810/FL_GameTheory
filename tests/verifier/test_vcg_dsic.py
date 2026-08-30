@@ -20,7 +20,15 @@ _NON_PIVOTAL = {  # winner pays half its own bid -> not DSIC
                   "payment_rule_latex": r"p_i = b_i / 2 \text{ if } x_i = 1"}}
 
 
-_SECOND_PRICE_RESERVE = {  # 2nd-price single item + reserve r, done right
+_SECOND_PRICE_RESERVE = {  # 2nd-price single item + reserve r
+    # NOTE: the reserve is NOT encoded. `_CLARKE_RE` matches the inner
+    # `\max_{j \neq i} b_j`, so `parse_payment` tags this as a plain
+    # ClarkePivot and the grid model prices p_i = max_{j != i} b_j with the
+    # `r` term dropped. This fixture therefore currently proves *plain*
+    # second-price is DSIC + IR, not second-price-with-reserve. Encoding a
+    # numeric reserve for real needs parser + encoder changes (payment spec
+    # must carry r; allocation must gate on b_i >= r or IR breaks) -- out of
+    # scope here.
     "paper_id": "synthetic_clarke_reserve", "category": "VCG",
     "mechanism": {
         "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
@@ -45,10 +53,36 @@ _MULTI_ATTR = {  # value is a 2-vector; deterministic multi-parameter allocation
 
 
 def test_second_price_reserve_done_right_verified():
-    # reserve is regex-collapsed to the plain Clarke pivot in the grid model;
-    # the mechanism is DSIC + IR either way -> entry-specific VERIFIED.
+    # reserve is regex-collapsed to the plain Clarke pivot in the grid model
+    # (see _SECOND_PRICE_RESERVE NOTE); plain second-price is DSIC + IR ->
+    # entry-specific VERIFIED.
     r = verify_vcg_dsic(_SECOND_PRICE_RESERVE, k=4)
     assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_vcg_dsic_verified_is_grid_bounded():
+    # a verify_vcg_dsic VERIFIED is exact on the finite grid only -> flagged.
+    r = verify_vcg_dsic(_SINGLE_ITEM_CLARKE, k=4)
+    assert r.verdict == "VERIFIED" and r.grid_bounded is True
+
+
+def test_contract_entry_specific_verified_is_not_grid_bounded():
+    # a Contract entry-specific VERIFIED from verify() carries the default
+    # grid_bounded=False -- the flag is VCG-grid-proof-specific.
+    from verifier import verify
+    import json
+    import pathlib
+    corpus = json.loads(
+        (pathlib.Path(__file__).resolve().parents[2] / "corpus.json").read_text())
+    got = None
+    for e in corpus:
+        if e.get("category") == "Contract":
+            res = verify(e)
+            if res.verdict == "VERIFIED" and res.entry_specific:
+                got = res
+                break
+    assert got is not None, "no Contract entry-specific VERIFIED in corpus"
+    assert got.grid_bounded is False
 
 
 def test_first_price_pay_own_bid_is_counterexample():
@@ -60,9 +94,10 @@ def test_first_price_pay_own_bid_is_counterexample():
 
 
 def test_multi_attribute_deterministic_is_unknown():
-    # n_attrs=2 argmax-welfare allocation: the grid encoder has no sound
-    # multi-parameter model (a deterministic truthful multi-attribute VCG
-    # generally cannot exist), so it fails closed to UNKNOWN -- never VERIFIED.
+    # `value_latex: v_i \in \mathbb{R}^2` -> _n_attrs_from_value_latex returns
+    # 2 -> the `n_attrs != 1` fail-closed guard in verify_vcg_dsic returns
+    # UNKNOWN before any encoding is attempted. (The raw-string argmax
+    # objective would also be rejected, but the n_attrs guard fires first.)
     assert verify_vcg_dsic(_MULTI_ATTR, k=3).verdict == "UNKNOWN"
 
 

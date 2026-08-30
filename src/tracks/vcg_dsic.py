@@ -714,8 +714,12 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
              if all_ok else
              f"profitable deviation found on grid k={k}, "
              f"{grid.profile_count} profiles")
-    return _result(entry, verdict, notes=notes, entry_specific=True,
-                   counterexample=cex)
+    res = _result(entry, verdict, notes=notes, entry_specific=True,
+                  counterexample=cex)
+    # VERIFIED here is exact *on the finite grid*, not a general DSIC proof.
+    if verdict == "VERIFIED":
+        res.grid_bounded = True
+    return res
 
 
 if __name__ == "__main__":  # tiny self-check

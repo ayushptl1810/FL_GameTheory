@@ -221,6 +221,10 @@ def print_summary(results: list[VerificationResult]) -> None:
             vcg_form_counts["none"] += 1
 
     vcg_confirmed      = sum(1 for r in vcg_results if r.entry_specific)
+    vcg_grid_bounded   = sum(
+        1 for r in results
+        if r.verdict == "VERIFIED" and getattr(r, "grid_bounded", False)
+    )
     stackelberg_passed = [r for r in passed if r.category == "Stackelberg"]
     stackelberg_specific = sum(1 for r in stackelberg_passed if r.entry_specific)
     dsic_entry_specific = sum(
@@ -258,6 +262,8 @@ def print_summary(results: list[VerificationResult]) -> None:
                   f" marginal={vcg_form_counts['marginal_welfare']}"
                   f" threshold={vcg_form_counts['critical_bid']}]"
                   f", {vcg_total - vcg_confirmed} template-only")
+            if vcg_grid_bounded:
+                print(f"  │   VCG DSIC (grid-exact): {vcg_grid_bounded}")
         if contract_specific or contract_template:
             print(f"  │   Contract entry-specific (LaTeX utility):   {contract_specific}")
             print(f"  │   Contract template (linear-cost model):     {contract_template}")
