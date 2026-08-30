@@ -161,6 +161,54 @@ def test_verify_from_ast_reaches_verified_contract():
     assert r.verdict == "VERIFIED" and r.entry_specific is True
 
 
+# ── Task 8: verify_from_ast routes to Track 2/3/4 seams by _classify_ast ─────
+
+
+def _continuous_contract(ic_node, ir_node):
+    # continuous type space (numeric pair) so _classify_ast sees track 2/3
+    return Mechanism(
+        category="Contract",
+        utility=ir_node, payment=Sym("R_i"),
+        ic=ic_node, ir=ir_node,
+        type_space=[0.1, 1.0],
+        meta={"num_types": 2, "type_variable": "theta"})
+
+
+def test_verify_from_ast_transcendental_reaches_track3():
+    # IC gap = ln(1 + theta) >= 0 on [0.1, 1.0]; IR = theta.  The Track-1
+    # Contract core cannot encode ln here (UNKNOWN); Track 3's interval seam
+    # proves it delta-UNSAT -> entry-specific VERIFIED on track 3.
+    ic = Func("ln", Sum([Const(1), Sym("theta")]))
+    ir = Sym("theta")
+    m = _continuous_contract(ic, ir)
+    assert _classify_ast(m) == 3
+    r = verify_from_ast(m)
+    assert r.track == 3
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_verify_from_ast_poly_deg2_reaches_track2():
+    # IC gap = theta^2 >= 0, IR = theta^2, continuous [0.1, 1.0] -> track 2.
+    ic = Pow(Sym("theta"), 2)
+    m = _continuous_contract(ic, Pow(Sym("theta"), 2))
+    assert _classify_ast(m) == 2
+    r = verify_from_ast(m)
+    assert r.track == 2
+
+
+def test_verify_from_ast_matches_inspect_on_transcendental(monkeypatch):
+    # Parity: the AST-native path and the AST -> LaTeX -> verify() path agree
+    # on a transcendental fixture.
+    ic = Func("ln", Sum([Const(1), Sym("theta")]))
+    m = _continuous_contract(ic, Sym("theta"))
+    meta = {"paper_id": "architect-proposal", "num_clients": 2}
+
+    latex_verdict = inspect_mechanism(m, meta).verdict
+    monkeypatch.setenv("ARCHITECT_AST_VERIFY", "1")
+    ast_verdict = inspect_mechanism(m, meta).verdict
+    assert ast_verdict == latex_verdict, (ast_verdict, latex_verdict)
+
+
 # ── parity: AST-native path vs AST -> LaTeX -> verify() on the loop fixtures ──
 # Builders copied verbatim from tests/architect/test_e2e_retrieval.py
 # (test_loop_run_reaches_verified_via_stackelberg / ..._via_contract): the exact

@@ -16,6 +16,9 @@ from architect.serialize import (
     render,
 )
 from tracks import VerificationResult
+from tracks.track2_sos import track2_check_from_sympy
+from tracks.track3_dreal import _DELTA, _bounds_for, track3_check_from_sympy
+from tracks.track4_sympy import track4_check_from_sympy
 from tracks.track1_z3 import (
     _contract_check_core,
     _extract_follower_symbol,
@@ -202,10 +205,85 @@ def _vcg_from_ast(m: Mechanism, meta: dict, pid: str) -> VerificationResult:
     return res
 
 
+def _theta_like(expr):
+    """First θ-like free symbol of a SymPy expr, else None."""
+    import re as _re
+    for s in sorted(expr.free_symbols, key=str):
+        if _re.match(r"(theta|θ)", str(s).lower()):
+            return s
+    return None
+
+
+def _type_bounds(m: Mechanism, meta: dict) -> "tuple[float, float]":
+    """(min, max) type-space bounds: numeric type_space pair, else meta, else 0..1."""
+    ts = m.type_space
+    if len(ts) == 2 and all(isinstance(x, (int, float)) for x in ts):
+        lo, hi = float(ts[0]), float(ts[1])
+    else:
+        lo = float(meta.get("type_space_min") or 0.0)
+        hi = float(meta.get("type_space_max") or 1.0)
+    if lo >= hi:
+        lo, hi = 0.0, 1.0
+    return lo, hi
+
+
+def _route_continuous_seam(
+    m: Mechanism, meta: dict, pid: str, track: int
+) -> "VerificationResult | None":
+    """Dispatch a track-2/3/4-classified Mechanism straight to its SymPy-native
+    seam (Tasks 5-7). Returns the seam's result unless it is inconclusive
+    (``None`` build failure or an ``UNKNOWN`` verdict), in which case this
+    returns ``None`` and ``verify_from_ast`` falls through to the Track-1 core
+    — mirroring ``verifier.verify``'s fall-through order. Never guesses a
+    VERIFIED: any parse ambiguity ends in the fall-through.
+    """
+    try:
+        ic_gap = ast_to_sympy(m.ic, opaque_families=True)
+        ir_expr = ast_to_sympy(m.ir, opaque_families=True)
+    except OutsideParseableFragment:
+        return None
+
+    tmin, tmax = _type_bounds(m, meta)
+    theta_sym = _theta_like(ic_gap) or _theta_like(ir_expr)
+    if theta_sym is None:
+        return None
+
+    if track == 2:
+        res = track2_check_from_sympy(
+            ic_gap, theta_sym, tmin, tmax,
+            ir_expr=ir_expr, entry_specific=True, paper_id=pid,
+            category=m.category,
+        )
+    elif track == 3:
+        tlo = tmin if tmin > 0 else 0.001   # guard log(0)
+        thi = tmax if tmax > tlo else 1.0
+        res = track3_check_from_sympy(
+            ic_gap, ir_expr,
+            _bounds_for(ic_gap, tlo, thi), _bounds_for(ir_expr, tlo, thi),
+            _DELTA, entry_specific=True, paper_id=pid, category=m.category,
+            theta_min=tlo, theta_max=thi,
+        )
+    elif track == 4:
+        distribution = (meta.get("type_distribution") or "uniform").lower()
+        res = track4_check_from_sympy(
+            ir_expr, ic_gap, theta_sym, tmin, tmax, distribution,
+            entry_specific=True, paper_id=pid, category=m.category,
+        )
+    else:
+        return None
+
+    return None if res is None or res.verdict == "UNKNOWN" else res
+
+
 def verify_from_ast(m: Mechanism, meta: dict | None = None) -> VerificationResult:
     meta = {**m.meta, **(meta or {})}
     pid = meta.get("paper_id", "architect-proposal")
     track = _classify_ast(m)
+
+    if track in (2, 3, 4):
+        routed = _route_continuous_seam(m, meta, pid, track)
+        if routed is not None:
+            return routed
 
     if m.category == "VCG":
         return _vcg_from_ast(m, meta, pid)
