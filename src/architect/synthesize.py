@@ -1,9 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
 import z3, sympy
-from architect.ast import Const, Sym, Unknown, Sum, Prod, Pow, Func, Mechanism
+from architect.ast import (
+    Const, Sym, Unknown, Sum, Prod, Pow, Func, Mechanism,
+    AllocHighest, AllocTopK, AllocWeightedWelfare,
+)
 from architect.serialize import ast_to_sympy
-from tracks.vcg_dsic import parse_allocation, ArgmaxWelfare, _argmax_welfare_weights
+from tracks.vcg_dsic import (
+    parse_allocation, ArgmaxWelfare, HighestBidder, TopK, _argmax_welfare_weights,
+)
 
 
 @dataclass
@@ -104,68 +109,64 @@ def _all_unknowns(m: Mechanism) -> list:
 # --------------------------------------------------------------------------- #
 # VCG: payment is FIXED to the Clarke pivot; search is only over the          #
 # allocation rule (a small menu) + non-negative affine-maximizer weights.     #
-# The Mechanism AST has no allocation node and cannot express a Clarke pivot, #
-# so both rules ride out on m.meta as LaTeX -- exactly what verify_from_ast's #
-# VCG branch and verify_vcg_dsic read.                                        #
+# Task 10: the chosen rule rides out as a typed Alloc node on m.allocation.   #
+# serialize.render(m) turns it into allocation_rule_latex + its Clarke-pivot  #
+# payment_rule_latex and DISCARDS m.payment's LaTeX, so m.payment is set to a #
+# bare placeholder here. m.meta no longer carries any VCG allocation LaTeX.   #
 # --------------------------------------------------------------------------- #
-_VCG_ALLOC_MENU = {
-    "highest-bidder": r"x_i = 1 \text{ if } b_i = \max_j b_j",
-    # affine maximizer with NUMERIC per-agent weights; verify_vcg_dsic now
-    # encodes the winner (argmax_i w_i b_i) + affine-maximizer Clarke pivot.
-    "weighted-welfare-max": r"x^* \in \arg\max_x [ 2 v_1 x_1 + 1 v_2 x_2 ]",
-}
 
 
-def _pick_vcg_allocation(proposed, n: int = 2) -> str:
-    """Keep a model-proposed allocation only if parse_allocation reads it as a
-    form the DSIC grid check can certify: highest-bidder / top-k, or an
-    argmax-welfare-max whose weights are numeric (verify_vcg_dsic encodes the
-    affine-maximizer Clarke pivot for those). Anything else -> highest-bidder."""
+def _pick_vcg_allocation(proposed, n: int = 2):
+    """Model-proposed allocation LaTeX -> a typed Alloc node the DSIC grid
+    check can certify: highest-bidder, top-k (k>=2), or an argmax-welfare-max
+    whose weights are numeric. Anything else (incl. lowest-bidder, symbolic k,
+    non-numeric weights, unparseable) -> AllocHighest()."""
     if isinstance(proposed, str) and proposed.strip():
         spec = parse_allocation(proposed)
-        if spec is None:
-            return _VCG_ALLOC_MENU["highest-bidder"]
+        if isinstance(spec, HighestBidder) and not spec.lowest:
+            return AllocHighest()
+        if isinstance(spec, TopK) and isinstance(spec.k, int) and spec.k >= 2 \
+                and not spec.lowest:
+            return AllocTopK(spec.k)
         if isinstance(spec, ArgmaxWelfare):
-            if _argmax_welfare_weights(proposed, n) is not None:
-                return proposed
-            return _VCG_ALLOC_MENU["highest-bidder"]
-        return proposed
-    return _VCG_ALLOC_MENU["highest-bidder"]
+            w = _argmax_welfare_weights(proposed, n)
+            if w is not None:
+                # w is {1: float, ...}; carry as strings in agent order.
+                return AllocWeightedWelfare([_fmt_weight(w[k])
+                                             for k in sorted(w)])
+    return AllocHighest()
 
 
-def _clarke_payment_latex(alloc_tex: str) -> str:
-    """Clarke-pivot payment derived from the chosen allocation. The single-item
-    second-price form parses as ClarkePivot for every menu allocation; for
-    weighted-welfare-max verify_vcg_dsic applies the affine-maximizer 1/w_i
-    scaling from the parsed weights itself."""
-    return r"p_i = \max_{j \neq i} b_j"
+def _fmt_weight(v: float) -> str:
+    """Numeric welfare weight -> the compact string form serialize._alloc_latex
+    interpolates (an integer weight stays integer-looking)."""
+    return str(int(v)) if float(v).is_integer() else repr(float(v))
 
 
 def _synthesize_vcg(m: Mechanism, c: Constraints):
     _n = m.meta.get("num_clients") or (len(m.type_space) or 2)
     n = int(_n) if str(_n).strip().lstrip("-").isdigit() else 2
-    alloc_tex = _pick_vcg_allocation(m.meta.get("allocation_rule_latex"), n)
-    pay_tex = _clarke_payment_latex(alloc_tex)  # overwrite any model-authored payment
+    alloc = _pick_vcg_allocation(m.meta.get("allocation_rule_latex"), n)
     unknowns = _all_unknowns(m)
     if len(unknowns) > 5:
         return "UNSAT"
     if unknowns:
-        # remaining free leaves are per-agent weights w_i >= 0 (+ optional boosts)
+        # solve the free payment leaves purely as a feasibility gate -- the
+        # solved payment is discarded (render overrides it from the Alloc node).
         c = Constraints(c.ic, c.ir, c.budget_lhs, c.budget_rhs, c.type_space,
                         {**c.param_bounds, **{u: (0.0, 10.0) for u in unknowns}})
         out = _solve_over_unknowns(m, c, unknowns)
         if out == "UNSAT":
             return "UNSAT"
         m = out
-    else:
-        # unit weights -- Clarke + highest-bidder is DSIC by construction
-        m = Mechanism(m.category, utility=m.utility, payment=m.payment,
-                      ic=m.ic, ir=m.ir, params=dict(m.params),
-                      type_space=m.type_space, provenance=m.provenance,
-                      meta=dict(m.meta))
-    m.meta["allocation_rule_latex"] = alloc_tex
-    m.meta["payment_rule_latex"] = pay_tex
-    return m
+
+    meta = {k: v for k, v in m.meta.items()
+            if k not in ("allocation_rule_latex", "payment_rule_latex")}
+    return Mechanism(
+        m.category, utility=m.utility, payment=Sym("v"),
+        ic=m.ic, ir=m.ir, params=dict(m.params), type_space=m.type_space,
+        provenance=m.provenance, allocation=alloc, meta=meta,
+    )
 
 
 def _solve_over_unknowns(m: Mechanism, c: Constraints, unknowns: list):

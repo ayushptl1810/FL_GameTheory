@@ -207,7 +207,7 @@ def _alloc_latex(alloc) -> "tuple[str, str]":
         )
     if isinstance(alloc, AllocWeightedWelfare):
         w = alloc.weights
-        num = " + ".join(rf"{wi} b_{i + 1} x_{i + 1}" for i, wi in enumerate(w))
+        num = " + ".join(rf"{wi} v_{i + 1} x_{i + 1}" for i, wi in enumerate(w))
         return (
             rf"x^* \in \arg\max \left[ {num} \right]",
             r"p_i = \frac{\max_{k \neq i} w_k b_k}{w_i}",
