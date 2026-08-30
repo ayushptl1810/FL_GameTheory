@@ -108,3 +108,31 @@ hard `BROKEN` list — they now honestly pass, returning `VERIFIED_SHAPE`, a
 documented non-proof, instead of `VERIFIED`/`VERIFIED_TEMPLATE`).
 
 `PYTHONPATH=src python tools/validate.py corpus.json` -> **185/185 valid**.
+
+## VCG eval (Phase 2) — infra-blocked, deferred
+
+The roadmap "done when" for Phase 2 is: ≥2 of the 4 VCG eval benchmarks
+(`myerson_single_item`, `vcg_redistribution`, `vcg_clarke_pivot`,
+`vcg_cavallo_redistribution`) reach entry-specific `VERIFIED` via
+`verify_vcg_dsic` through the live loop.
+
+**Not measured 2026-08-30.** Two consecutive fresh `python -m architect.eval.run_eval`
+runs against `openai/gpt-oss-120b` (NVIDIA endpoint) hung — 0% CPU, empty log,
+killed after 25 min each. `ARCHITECT_LLM_TIMEOUT_S=120` did not bound the stall.
+Infra (unresponsive endpoint), not a Phase 2 code problem. `docs/eval-results.md`
+still holds the pre-Phase-2 (2026-08-29) run — regenerate it when the API is
+healthy: `run_eval` with a working model, then fill the 4 VCG rows here.
+
+**What IS verified offline (no API):**
+- `tests/verifier/test_vcg_dsic.py` — `verify_vcg_dsic` produces real DSIC
+  proofs (single-item Clarke, second-price+reserve → `VERIFIED`), real
+  counterexamples (non-pivotal payment, first-price, wrong-allocation Clarke →
+  `COUNTEREXAMPLE`), and fails closed (multi-attribute / argmax-welfare /
+  oversize grid / `n<2` → `UNKNOWN`).
+- `tests/architect/test_synthesize_vcg.py` — Synthesis mode produces a
+  highest-bidder + Clarke-pivot mechanism (= Vickrey) that `verify_vcg_dsic`
+  then certifies `VERIFIED`. The constrained-generation → real-certificate path
+  is proven end to end without the LLM.
+
+So the Phase 2 mechanism works; only the through-the-live-loop benchmark count
+is pending an API window.
