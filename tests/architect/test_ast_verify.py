@@ -142,6 +142,62 @@ def test_verify_from_ast_vcg_unparseable_allocation_is_unknown():
     assert r.verdict == "UNKNOWN"
 
 
+# ── Task 9: typed VCG allocation node (Alloc union) ─────────────────────────
+
+from architect.ast import AllocHighest, AllocTopK, AllocWeightedWelfare  # noqa: E402
+from architect.serialize import render as _render, _alloc_latex  # noqa: E402
+
+
+def test_verify_from_ast_vcg_allocation_node_is_real_verified():
+    # allocation carried as a typed node, NOT meta. verify_from_ast builds the
+    # entry from m.allocation via render() -> VERIFIED, entry_specific.
+    m = Mechanism(
+        category="VCG", utility=Sym("u_i"), payment=Sym("v"),
+        ic=Sym("v"), ir=Sym("v"), type_space=[],
+        allocation=AllocHighest(), meta={"num_clients": 2})
+    assert "allocation_rule_latex" not in m.meta
+    r = verify_from_ast(m)
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_vcg_allocation_node_latex_parity():
+    # AST <-> LaTeX parity: the node renders to the same allocation/payment LaTeX
+    # the meta path used, and parse_allocation reads it back to HighestBidder.
+    from tracks.vcg_dsic import parse_allocation, HighestBidder, ClarkePivot, parse_payment
+    m = Mechanism(
+        category="VCG", utility=Sym("u_i"), payment=Sym("v"),
+        ic=Sym("v"), ir=Sym("v"), type_space=[],
+        allocation=AllocHighest(), meta={"num_clients": 2})
+    md, _ = _render(m, check_roundtrip=False)
+    alloc_tex, pay_tex = _alloc_latex(AllocHighest())
+    assert md["allocation_rule_latex"] == alloc_tex
+    assert md["payment_rule_latex"] == pay_tex
+    assert isinstance(parse_allocation(md["allocation_rule_latex"]), HighestBidder)
+    assert isinstance(parse_payment(md["payment_rule_latex"], None), ClarkePivot)
+
+
+def test_vcg_allocation_node_none_no_meta_is_unknown():
+    # Fail closed: no allocation node AND no meta allocation -> UNKNOWN.
+    m = Mechanism(
+        category="VCG", utility=Sym("u_i"), payment=Sym("v"),
+        ic=Sym("v"), ir=Sym("v"), type_space=[], meta={"num_clients": 2})
+    r = verify_from_ast(m)
+    assert r.verdict == "UNKNOWN"
+
+
+def test_validate_alloc_rejects_bad_nodes():
+    from architect.ast import validate_alloc, ASTSchemaError
+    validate_alloc(AllocHighest())
+    validate_alloc(AllocTopK(k=2))
+    validate_alloc(AllocWeightedWelfare(weights=["1", "2"]))
+    with pytest.raises(ASTSchemaError):
+        validate_alloc(AllocTopK(k=0))
+    with pytest.raises(ASTSchemaError):
+        validate_alloc(AllocWeightedWelfare(weights=[]))
+    with pytest.raises(ASTSchemaError):
+        validate_alloc(AllocWeightedWelfare(weights=[1, 2]))
+
+
 def test_verify_from_ast_reaches_verified_contract():
     # Two-type screening menu, two-sided IC U_i(own) >= U_i(other).
     def U(r, th, e):
