@@ -66,6 +66,32 @@ def test_multi_attribute_deterministic_is_unknown():
     assert verify_vcg_dsic(_MULTI_ATTR, k=3).verdict == "UNKNOWN"
 
 
+def test_multi_attribute_highest_bidder_fails_closed():  # I1: n_attrs!=1 guard
+    # Even with a fully-encodable highest-bidder + Clarke-pivot rule, a value
+    # in R^2 means the encoder would silently assume additivity across
+    # attributes. verify_vcg_dsic must fail closed to UNKNOWN.
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_multi_attr_hb",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "value_latex": r"v_i \in \mathbb{R}^2", "num_clients": 3}}
+    r = verify_vcg_dsic(e, k=3)
+    assert r.verdict == "UNKNOWN"
+    assert "multi-attribute" in r.notes
+
+
+def test_sum_externality_payment_is_unknown():  # C1: not the 2nd-price form
+    # A sum-of-others payment is Groves but NOT the single-competing-bid form
+    # encode_utility can price; for n>=3 pricing it as max-of-others would give
+    # a FALSE VERIFIED. parse_payment must return None -> caller UNKNOWN.
+    assert parse_payment(r"p_i = \sum_{j \neq i} b_j", None) is None
+    e = {"paper_id": "synthetic_sum_externality", "category": "VCG",
+         "mechanism": {
+             "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
+             "payment_rule_latex": r"p_i = \sum_{j \neq i} b_j",
+             "client_utility_latex": r"u_i = v_i x_i - p_i",
+             "num_clients": 3}}
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
 def test_single_item_clarke_verified():
     r = verify_vcg_dsic(_SINGLE_ITEM_CLARKE, k=4)
     assert r.verdict == "VERIFIED" and r.entry_specific is True

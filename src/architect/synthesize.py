@@ -110,16 +110,18 @@ def _all_unknowns(m: Mechanism) -> list:
 # --------------------------------------------------------------------------- #
 _VCG_ALLOC_MENU = {
     "highest-bidder": r"x_i = 1 \text{ if } b_i = \max_j b_j",
-    "weighted-welfare-max": r"x^* \in \arg\max \sum_i w_i v_i(x)",
 }
 
 
 def _pick_vcg_allocation(proposed) -> str:
-    """Keep a model-proposed allocation only if parse_allocation reads it
-    (highest-bidder / top-k / argmax-welfare); otherwise default to
-    highest-bidder."""
-    if isinstance(proposed, str) and proposed.strip() and parse_allocation(proposed) is not None:
-        return proposed
+    """Keep a model-proposed allocation only if parse_allocation reads it as a
+    form the DSIC grid check can certify (highest-bidder / top-k). An
+    argmax-welfare proposal -> Clarke pivot is a sum-externality payment that
+    verify_vcg_dsic now returns UNKNOWN for, so fall back to highest-bidder."""
+    if isinstance(proposed, str) and proposed.strip():
+        spec = parse_allocation(proposed)
+        if spec is not None and not isinstance(spec, ArgmaxWelfare):
+            return proposed
     return _VCG_ALLOC_MENU["highest-bidder"]
 
 

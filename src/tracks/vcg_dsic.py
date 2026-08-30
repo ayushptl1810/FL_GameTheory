@@ -192,10 +192,24 @@ def parse_allocation(latex: str):
 # --------------------------------------------------------------------------- #
 # payment parser                                                              #
 # --------------------------------------------------------------------------- #
+# Second-price / pay-the-single-competing-bid form ONLY. The winner pays exactly
+# ONE competing value: max (or min) of the other bids, the "second-highest" /
+# "second-price" bid, or the (K+1)-th ranked bid. Sum-of-externality forms
+# (\sum_{k != i} ..., W_{-i} - \sum, r(x*) - \sum) are NOT this form -- they are
+# Groves but can violate IR for a non-welfare-maximising allocation, and
+# encode_utility only knows how to price max/min-of-others. Those return None
+# from parse_payment -> caller makes it UNKNOWN (see _SUM_EXTERNALITY_RE).
 _CLARKE_RE = re.compile(
-    r"\\max_?\{?\s*j\s*\\neq\s*i\}?|"                       # max_{j != i} b_j (2nd price)
-    r"\\sum_?\{?\s*[kj]\s*\\neq\s*i\}?|"                    # sum_{k != i} ... (externality)
-    r"\(?K\s*\+\s*1\)?[- ]?th|_\{?k\s*\+\s*1\}?|v_\{?k\+1\}?|"  # (K+1)-th lowest / v_{k+1}
+    r"\\max_?\{?\s*j\s*\\neq\s*i\}?\s*b|"                   # max_{j != i} b_j (2nd price)
+    r"\\min_?\{?\s*j\s*\\neq\s*i\}?\s*b|"                   # min_{j != i} b_j
+    r"second[-\s]?(?:highest|lowest|price|largest)|"        # "second-highest [bid]"
+    r"\(?K\s*\+\s*1\)?[- ]?th|_\{?k\s*\+\s*1\}?|v_\{?k\+1\}?",  # (K+1)-th ranked bid
+    re.I,
+)
+# Groves/externality alternations that are NOT the single-competing-bid form.
+# Checked first in parse_payment -> None -> UNKNOWN.
+_SUM_EXTERNALITY_RE = re.compile(
+    r"\\sum_?\{?\s*[kj]\s*\\neq\s*i\}?|"                    # sum_{k != i} ...
     r"W_?\{?-i\}?|\\phi\(W\)\s*-\s*\\phi\(W\s*\\setminus|"  # W_{-i} / phi(W)-phi(W\{i})
     r"r\(x\^?\*?\)\s*-\s*\\sum|S\(x\^?\*?\)\s*-\s*S\(",     # r(x*) - sum / S(x*)-S(z*)
     re.I,
@@ -212,6 +226,11 @@ def parse_payment(latex: str, alloc):
     s = latex.strip()
 
     if _ALGO_RE.search(s):
+        return None
+
+    # sum-externality / W_{-i} - sum / r(x*) - sum: Groves but not the single
+    # competing-bid form encode_utility can price -> fail closed to UNKNOWN.
+    if _SUM_EXTERNALITY_RE.search(s):
         return None
 
     if _CLARKE_RE.search(s):
@@ -376,7 +395,7 @@ def _n_attrs_from_value_latex(entry: dict) -> int:
                 "client_utility_latex"):
         s = mech.get(key) or entry.get(key)
         if isinstance(s, str) and (
-            re.search(r"\\mathbb\{R\}\^\{?\s*[dnDN]", s)
+            re.search(r"\\mathbb\{R\}\^\{?\s*(?:[dnDNkKmMpP]|[2-9]|\d\d)", s)
             or re.search(r"v_\{?i\s*,", s)
             or re.search(r"\\sum_\{?\s*a\b", s)
         ):
@@ -418,6 +437,11 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
     # non-numeric value means the count is unknown -> same as absent (n=2).
     n = int(_raw_n) if str(_raw_n).strip().lstrip("-").isdigit() else 2
     n_attrs = _n_attrs_from_value_latex(entry)
+    if n_attrs != 1:
+        return _result(
+            entry, "UNKNOWN",
+            notes=("multi-attribute VCG not encodable (multi-parameter "
+                   "impossibility); use n_attrs=1"))
     if n < 2:
         return _result(entry, "UNKNOWN",
                        notes="DSIC vacuous / unencodable for n<2 (payment never binds)")
@@ -566,9 +590,9 @@ if __name__ == "__main__":  # tiny self-check
     assert isinstance(_lo, HighestBidder) and _lo.lowest is True
     assert parse_allocation(r"x = \text{the output of Algorithm 3}") is None
     assert isinstance(parse_payment(r"p_i = \max_{j \neq i} b_j", None), ClarkePivot)
-    assert isinstance(
-        parse_payment(r"p_i = v_i(W) - \sum_{k \neq i} c_k f_k", None), ClarkePivot
-    )
+    # sum-externality form is no longer collapsed to ClarkePivot -> UNKNOWN
+    assert parse_payment(r"p_i = v_i(W) - \sum_{k \neq i} c_k f_k", None) is None
+    assert parse_payment(r"p_i = \sum_{j \neq i} b_j", None) is None
     assert isinstance(parse_payment(r"p_i = \min(\rho^*, b_i)", None), ExplicitFormula)
     g = build_grid(2, 1, 3)
     assert g.profile_count == 9 and g.points == [0.0, 0.5, 1.0]

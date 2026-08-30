@@ -206,14 +206,27 @@ def run(spec: ProblemSpec, *, index=None, budget_s: float = 600.0, deps=None) ->
                                 hint="choose VCG, Contract, or Stackelberg")
             continue
 
-        if r.verdict == "VERIFIED_TEMPLATE":
+        if r.verdict in ("VERIFIED_TEMPLATE", "VERIFIED_SHAPE"):
             # The math parsed but the verifier could only check a generic
             # template, not this specific mechanism -- usually a missing piece
             # of metadata or an FOC/IC the entry-specific parser can't isolate.
-            # That is repairable: hint and retry within the budget.
+            # VERIFIED_SHAPE is weaker still (a payment-shape regex match, no
+            # solver run). Both are repairable: hint and retry within the budget
+            # instead of hard-failing the loop.
             transcript.append({"iter": iterations, "mode": mode,
-                               "verdict": "VERIFIED_TEMPLATE", "family": r.category,
+                               "verdict": r.verdict, "family": r.category,
                                "note": getattr(r, "notes", "")})
+            if r.verdict == "VERIFIED_SHAPE":
+                hint = ("that is only a payment-SHAPE match, not a proof -- the "
+                        "verifier ran no solver on your mechanism. The "
+                        "allocation/payment must be in a form the DSIC grid "
+                        "check can encode: a highest-bidder allocation "
+                        r"(x_i = 1 if b_i = \max_j b_j) with the Clarke pivot "
+                        r"payment p_i = \max_{j \neq i} b_j. Re-propose in that "
+                        "form.")
+                if _repair(Feedback(kind="reformulate", hint=hint)) == "fail":
+                    return _finish("FAILED", None, None, None)
+                continue
             hint = ("the verifier could only check a GENERIC TEMPLATE of your "
                     "mechanism, not the specific one -- that does not count as a "
                     "proof. Make the entry-specific check engage: for Stackelberg "

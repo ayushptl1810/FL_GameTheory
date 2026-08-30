@@ -190,22 +190,28 @@ BROKEN = [
         "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
         "payment_rule_latex": r"p_i = b_i / 2"}},
     # why unsound: a DSIC payment cannot depend on the winner's own report
-    #              except through the allocation. Phase 2: the real DSIC check
-    #              fails closed (payment formula unparsed -> UNKNOWN) and the
-    #              regex path now returns VERIFIED_SHAPE (an explicit non-proof),
-    #              not VERIFIED/VERIFIED_TEMPLATE -- no longer a soundness hole.
+    #              except through the allocation. Phase 2: parse_payment reads
+    #              this as ExplicitFormula(b_i/2), so the finite-grid DSIC check
+    #              runs and returns a real COUNTEREXAMPLE -- a winner shades its
+    #              bid down toward the second price, still wins, and pays
+    #              strictly less than it would when truthful (price = b_i/2
+    #              decreases with the report).
 
     # VCG: Clarke-shaped payment but non-welfare-maximising allocation.
     {"name": "vcg_clarke_shaped_payment_wrong_allocation", "category": "VCG",
      "mechanism": {
         "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \min_j b_j",
-        "payment_rule_latex": r"p_i = \sum_{j \neq i} b_j"}},
-    # why unsound: allocation goes to the LOWEST bidder so Groves does not apply,
-    #              yet the payment LaTeX regex-matches the Clarke-pivot form.
-    #              Phase 2 Task 6: verify_vcg_dsic now parses "b_i = min_j b_j"
-    #              (HighestBidder(lowest=True)); the finite-grid check returns a
-    #              real COUNTEREXAMPLE -- a winning low bidder pays the higher
+        "payment_rule_latex": r"p_i = \max_{j \neq i} b_j"}},
+    # why unsound: the payment IS the second-price / Clarke-pivot form
+    #              (parse_payment -> ClarkePivot), but the allocation gives the
+    #              item to the LOWEST bidder, so Groves does not apply. Phase 2:
+    #              verify_vcg_dsic parses "b_i = min_j b_j"
+    #              (HighestBidder(lowest=True)) and the finite-grid check returns
+    #              a real COUNTEREXAMPLE -- a winning low bidder pays the higher
     #              competing bid, so truthful participation nets < 0 (IR breaks).
+    #              (A sum-externality payment here is now UNKNOWN, not a
+    #              counterexample; the single-competing-bid form keeps the case
+    #              decisive.)
 ]
 
 
