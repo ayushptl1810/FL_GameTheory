@@ -346,27 +346,61 @@ def verify_track4(entry: dict) -> "VerificationResult | None":
     ir_expr = _parse_geq_lhs(ir_raw)
     theta_sym = _find_theta_sym(ir_expr)
 
+    # Front-end: LaTeX → SymPy. The seam helper below takes only parsed exprs
+    # and never touches `entry`/`mech` or re-parses LaTeX.
+    ic_gap, ic_gap_err = _parse_ic_gap(ic_raw, theta_sym)
+    entry_specific = bool(ir_raw or ic_raw)
+
     return track4_check_from_sympy(
-        paper_id, category, theta_min, theta_max, distribution,
-        ir_raw, ic_raw, ir_expr, theta_sym,
+        ir_expr, ic_gap, theta_sym, theta_min, theta_max, distribution,
+        ic_gap_err=ic_gap_err,
+        entry_specific=entry_specific, paper_id=paper_id, category=category,
     )
 
 
+def _parse_ic_gap(ic_raw: str, theta_sym: Any) -> "tuple[Any | None, str]":
+    """LaTeX IC condition → SymPy gap expr (lhs − rhs), theta-normalized.
+
+    Returns (gap_expr, "") on success, (None, reason) on absence/parse failure.
+    """
+    if not ic_raw:
+        return None, "no ic_screening_latex field"
+    for sep in (r"\geq", r"\ge", "≥"):
+        if sep in ic_raw:
+            lhs_s, rhs_s = ic_raw.split(sep, 1)
+            break
+    else:
+        lhs_s, rhs_s = ic_raw, "0"
+    try:
+        sp_lhs = _lx_parse(_clean_latex(lhs_s))
+        sp_rhs = _lx_parse(_clean_latex(rhs_s))
+        ic_gap = (sp_lhs - sp_rhs).expand()
+        for sym in list(ic_gap.free_symbols):
+            if re.match(r"(theta|θ)", str(sym).lower()) and sym != theta_sym:
+                ic_gap = ic_gap.subs(sym, theta_sym)
+        return ic_gap, ""
+    except Exception as exc:
+        return None, f"IC gap parse failed: {exc}"
+
+
 def track4_check_from_sympy(
-    paper_id: str,
-    category: str,
+    ir_expr: "Any | None",
+    ic_gap: "Any | None",
+    theta_sym: Any,
     theta_min: float,
     theta_max: float,
     distribution: str,
-    ir_raw: str,
-    ic_raw: str,
-    ir_expr: Any,
-    theta_sym: Any,
+    *,
+    ic_gap_err: str = "",
+    entry_specific: bool,
+    paper_id: str,
+    category: str = "",
 ) -> "VerificationResult":
     """SymPy-in seam: continuous Bayesian back-half of verify_track4.
 
-    Given the parsed IR utility expression and type symbol, run the Myerson
-    envelope check, the Bayesian IC integral, and the symbolic IR minimum.
+    Given the parsed IR utility expression, the parsed IC gap expr, and the
+    type symbol, run the Myerson envelope check, the Bayesian IC integral, and
+    the symbolic IR minimum. Does no ``entry``/LaTeX parsing.
     """
     conditions: list[str] = []
     verdicts:   list[Verdict] = []
@@ -380,25 +414,10 @@ def track4_check_from_sympy(
     conditions.append(f"Envelope (Myerson necessary): {env_note}")
 
     # 2. Bayesian IC integral
-    if ic_raw:
-        for sep in (r"\geq", r"\ge", "≥"):
-            if sep in ic_raw:
-                lhs_s, rhs_s = ic_raw.split(sep, 1)
-                break
-        else:
-            lhs_s, rhs_s = ic_raw, "0"
-        try:
-            sp_lhs = _lx_parse(_clean_latex(lhs_s))
-            sp_rhs = _lx_parse(_clean_latex(rhs_s))
-            ic_gap = (sp_lhs - sp_rhs).expand()
-            for sym in list(ic_gap.free_symbols):
-                if re.match(r"(theta|θ)", str(sym).lower()) and sym != theta_sym:
-                    ic_gap = ic_gap.subs(sym, theta_sym)
-            bic_v, bic_note = _check_bayesian_ic(
-                ic_gap, theta_sym, theta_min, theta_max, distribution
-            )
-        except Exception as exc:
-            bic_v, bic_note = "UNKNOWN", f"IC gap parse failed: {exc}"
+    if ic_gap is not None:
+        bic_v, bic_note = _check_bayesian_ic(
+            ic_gap, theta_sym, theta_min, theta_max, distribution
+        )
         verdicts.append(bic_v)
         conditions.append(
             f"BIC ({distribution}): {bic_note} "
@@ -406,7 +425,7 @@ def track4_check_from_sympy(
         )
     else:
         verdicts.append("UNKNOWN")
-        conditions.append("BIC: no ic_screening_latex field")
+        conditions.append(f"BIC: {ic_gap_err or 'no ic_screening_latex field'}")
 
     # 3. IR
     if ir_expr is not None:
@@ -418,7 +437,6 @@ def track4_check_from_sympy(
 
     all_ok  = all(v == "VERIFIED"       for v in verdicts)
     has_cex = any(v == "COUNTEREXAMPLE" for v in verdicts)
-    entry_specific = bool(ir_raw or ic_raw)
     final: Verdict = finalize_verdict(all_ok, has_cex, entry_specific)
 
     return VerificationResult(

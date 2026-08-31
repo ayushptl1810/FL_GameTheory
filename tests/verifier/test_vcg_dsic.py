@@ -20,7 +20,15 @@ _NON_PIVOTAL = {  # winner pays half its own bid -> not DSIC
                   "payment_rule_latex": r"p_i = b_i / 2 \text{ if } x_i = 1"}}
 
 
-_SECOND_PRICE_RESERVE = {  # 2nd-price single item + reserve r, done right
+_SECOND_PRICE_RESERVE = {  # 2nd-price single item + reserve r
+    # NOTE: the reserve is NOT encoded. `_CLARKE_RE` matches the inner
+    # `\max_{j \neq i} b_j`, so `parse_payment` tags this as a plain
+    # ClarkePivot and the grid model prices p_i = max_{j != i} b_j with the
+    # `r` term dropped. This fixture therefore currently proves *plain*
+    # second-price is DSIC + IR, not second-price-with-reserve. Encoding a
+    # numeric reserve for real needs parser + encoder changes (payment spec
+    # must carry r; allocation must gate on b_i >= r or IR breaks) -- out of
+    # scope here.
     "paper_id": "synthetic_clarke_reserve", "category": "VCG",
     "mechanism": {
         "allocation_rule_latex": r"x_i = 1 \text{ if } b_i = \max_j b_j",
@@ -45,10 +53,36 @@ _MULTI_ATTR = {  # value is a 2-vector; deterministic multi-parameter allocation
 
 
 def test_second_price_reserve_done_right_verified():
-    # reserve is regex-collapsed to the plain Clarke pivot in the grid model;
-    # the mechanism is DSIC + IR either way -> entry-specific VERIFIED.
+    # reserve is regex-collapsed to the plain Clarke pivot in the grid model
+    # (see _SECOND_PRICE_RESERVE NOTE); plain second-price is DSIC + IR ->
+    # entry-specific VERIFIED.
     r = verify_vcg_dsic(_SECOND_PRICE_RESERVE, k=4)
     assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_vcg_dsic_verified_is_grid_bounded():
+    # a verify_vcg_dsic VERIFIED is exact on the finite grid only -> flagged.
+    r = verify_vcg_dsic(_SINGLE_ITEM_CLARKE, k=4)
+    assert r.verdict == "VERIFIED" and r.grid_bounded is True
+
+
+def test_contract_entry_specific_verified_is_not_grid_bounded():
+    # a Contract entry-specific VERIFIED from verify() carries the default
+    # grid_bounded=False -- the flag is VCG-grid-proof-specific.
+    from verifier import verify
+    import json
+    import pathlib
+    corpus = json.loads(
+        (pathlib.Path(__file__).resolve().parents[2] / "corpus.json").read_text())
+    got = None
+    for e in corpus:
+        if e.get("category") == "Contract":
+            res = verify(e)
+            if res.verdict == "VERIFIED" and res.entry_specific:
+                got = res
+                break
+    assert got is not None, "no Contract entry-specific VERIFIED in corpus"
+    assert got.grid_bounded is False
 
 
 def test_first_price_pay_own_bid_is_counterexample():
@@ -60,9 +94,10 @@ def test_first_price_pay_own_bid_is_counterexample():
 
 
 def test_multi_attribute_deterministic_is_unknown():
-    # n_attrs=2 argmax-welfare allocation: the grid encoder has no sound
-    # multi-parameter model (a deterministic truthful multi-attribute VCG
-    # generally cannot exist), so it fails closed to UNKNOWN -- never VERIFIED.
+    # `value_latex: v_i \in \mathbb{R}^2` -> _n_attrs_from_value_latex returns
+    # 2 -> the `n_attrs != 1` fail-closed guard in verify_vcg_dsic returns
+    # UNKNOWN before any encoding is attempted. (The raw-string argmax
+    # objective would also be rejected, but the n_attrs guard fires first.)
     assert verify_vcg_dsic(_MULTI_ATTR, k=3).verdict == "UNKNOWN"
 
 
@@ -109,10 +144,69 @@ def test_oversize_grid_is_unknown():
     assert verify_vcg_dsic(big, k=6).verdict == "UNKNOWN"
 
 
-def test_argmax_welfare_clarke_is_unknown_not_crash():  # C1: closure raises at call time
-    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax",
+def test_unit_weight_welfare_max_clarke_verified():  # Task 2: plain VCG via argmax
+    # \arg\max_x \sum_i v_i x_i  (all weights 1) + Clarke pivot == second-price
+    # single-item auction -> DSIC + IR exact on the grid.
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax_unit",
          "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
-                       "allocation_rule_latex": r"x^* \in \arg\max_x \sum_i v_i x_i"}}
+                       "allocation_rule_latex": r"x^* \in \arg\max_x \sum_i v_i x_i",
+                       "payment_rule_latex":
+                           r"p_i = \max_{j \neq i} b_j \text{ if } x_i = 1, \text{ else } 0"}}
+    r = verify_vcg_dsic(e, k=4)
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_affine_maximizer_numeric_weights_verified():  # Task 2: Roberts affine max
+    # w_1 = 2, w_2 = 1 affine maximizer + affine-maximizer Clarke pivot.
+    # Winner = argmax_i w_i b_i, price = (max_{k!=i} w_k b_k) / w_i.  DSIC by
+    # construction (Roberts 1979); Z3 grid unsat confirms.
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_affine_max",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "allocation_rule_latex":
+                           r"x^* \in \arg\max_x [ 2 v_1 x_1 + 1 v_2 x_2 ]",
+                       "payment_rule_latex":
+                           r"p_i = \max_{j \neq i} b_j \text{ if } x_i = 1, \text{ else } 0"}}
+    r = verify_vcg_dsic(e, k=3)
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_argmax_welfare_raw_string_objective_is_unknown():  # C1: fail closed
+    e = {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_argmax_raw",
+         "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                       "allocation_rule_latex":
+                           r"W^\star(\hat c) \in \arg\max [SW := v(W) - \hat c f(W)]"}}
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def _argmax_entry(alloc_latex, num_clients=2):
+    return {**_SINGLE_ITEM_CLARKE, "paper_id": "synthetic_aw",
+            "mechanism": {**_SINGLE_ITEM_CLARKE["mechanism"],
+                          "allocation_rule_latex": alloc_latex,
+                          "payment_rule_latex":
+                              r"p_i = \max_{j \neq i} b_j \text{ if } x_i = 1, "
+                              r"\text{ else } 0",
+                          "num_clients": num_clients}}
+
+
+def test_symbolic_letter_weight_welfare_is_unknown():  # fix round 1: fail closed
+    # \sum_i w_i v_i x_i -- literal w_i, the STANDARD affine-maximizer notation.
+    # The extractor must NOT read this as unit-weight.
+    e = _argmax_entry(r"x^* \in \arg\max_x \sum_i w_i v_i x_i")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_subtraction_objective_is_unknown():  # not a welfare fn
+    e = _argmax_entry(r"x^* \in \arg\max_x [2 v_1 x_1 - 3 v_2 x_2]")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_ratio_objective_is_unknown():  # not linear
+    e = _argmax_entry(r"x^* \in \arg\max_x [v_1/q_1 + v_2/q_2]")
+    assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
+
+
+def test_quadratic_objective_is_unknown():  # not linear
+    e = _argmax_entry(r"x^* \in \arg\max_x [2 v_1^2 x_1 + v_2 x_2]")
     assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
 
 
@@ -150,3 +244,21 @@ def test_parse_clarke_payment():
 
 def test_unparseable_allocation_returns_none():
     assert parse_allocation(r"x = \text{the output of Algorithm 3}") is None
+
+
+def test_proportional_share_allocation_is_unknown():
+    # Fractional / divisible allocation (every bidder gets a share) -- not a
+    # single-winner VCG mechanism, so there is no dominant-strategy property to
+    # prove. Must be UNKNOWN (never VERIFIED), and never a COUNTEREXAMPLE.
+    # Mirrors corpus entry 2404_13841, which states no DSIC claim for a Groves
+    # payment over the fractional allocation.
+    e = {
+        "paper_id": "synthetic_prop_share", "category": "VCG",
+        "mechanism": {
+            "allocation_rule_latex":
+                r"p = \frac{f_s^{\alpha-1}}{\sum_{s' \in S} f_{s'}^{\alpha-1}}",
+            "payment_rule_latex": r"p_{i,s} = \frac{B}{S(k-1)}",
+            "client_utility_latex": r"u_i = v_i p_i - c_i", "num_clients": 2}}
+    r = verify_vcg_dsic(e, k=3)
+    assert r.verdict == "UNKNOWN"
+    assert "fractional-share" in r.notes

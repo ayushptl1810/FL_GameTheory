@@ -142,6 +142,62 @@ def test_verify_from_ast_vcg_unparseable_allocation_is_unknown():
     assert r.verdict == "UNKNOWN"
 
 
+# ── Task 9: typed VCG allocation node (Alloc union) ─────────────────────────
+
+from architect.ast import AllocHighest, AllocTopK, AllocWeightedWelfare  # noqa: E402
+from architect.serialize import render as _render, _alloc_latex  # noqa: E402
+
+
+def test_verify_from_ast_vcg_allocation_node_is_real_verified():
+    # allocation carried as a typed node, NOT meta. verify_from_ast builds the
+    # entry from m.allocation via render() -> VERIFIED, entry_specific.
+    m = Mechanism(
+        category="VCG", utility=Sym("u_i"), payment=Sym("v"),
+        ic=Sym("v"), ir=Sym("v"), type_space=[],
+        allocation=AllocHighest(), meta={"num_clients": 2})
+    assert "allocation_rule_latex" not in m.meta
+    r = verify_from_ast(m)
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_vcg_allocation_node_latex_parity():
+    # AST <-> LaTeX parity: the node renders to the same allocation/payment LaTeX
+    # the meta path used, and parse_allocation reads it back to HighestBidder.
+    from tracks.vcg_dsic import parse_allocation, HighestBidder, ClarkePivot, parse_payment
+    m = Mechanism(
+        category="VCG", utility=Sym("u_i"), payment=Sym("v"),
+        ic=Sym("v"), ir=Sym("v"), type_space=[],
+        allocation=AllocHighest(), meta={"num_clients": 2})
+    md, _ = _render(m, check_roundtrip=False)
+    alloc_tex, pay_tex = _alloc_latex(AllocHighest())
+    assert md["allocation_rule_latex"] == alloc_tex
+    assert md["payment_rule_latex"] == pay_tex
+    assert isinstance(parse_allocation(md["allocation_rule_latex"]), HighestBidder)
+    assert isinstance(parse_payment(md["payment_rule_latex"], None), ClarkePivot)
+
+
+def test_vcg_allocation_node_none_no_meta_is_unknown():
+    # Fail closed: no allocation node AND no meta allocation -> UNKNOWN.
+    m = Mechanism(
+        category="VCG", utility=Sym("u_i"), payment=Sym("v"),
+        ic=Sym("v"), ir=Sym("v"), type_space=[], meta={"num_clients": 2})
+    r = verify_from_ast(m)
+    assert r.verdict == "UNKNOWN"
+
+
+def test_validate_alloc_rejects_bad_nodes():
+    from architect.ast import validate_alloc, ASTSchemaError
+    validate_alloc(AllocHighest())
+    validate_alloc(AllocTopK(k=2))
+    validate_alloc(AllocWeightedWelfare(weights=["1", "2"]))
+    with pytest.raises(ASTSchemaError):
+        validate_alloc(AllocTopK(k=0))
+    with pytest.raises(ASTSchemaError):
+        validate_alloc(AllocWeightedWelfare(weights=[]))
+    with pytest.raises(ASTSchemaError):
+        validate_alloc(AllocWeightedWelfare(weights=[1, 2]))
+
+
 def test_verify_from_ast_reaches_verified_contract():
     # Two-type screening menu, two-sided IC U_i(own) >= U_i(other).
     def U(r, th, e):
@@ -159,6 +215,54 @@ def test_verify_from_ast_reaches_verified_contract():
     r = verify_from_ast(m)
     assert r is not None
     assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+# ── Task 8: verify_from_ast routes to Track 2/3/4 seams by _classify_ast ─────
+
+
+def _continuous_contract(ic_node, ir_node):
+    # continuous type space (numeric pair) so _classify_ast sees track 2/3
+    return Mechanism(
+        category="Contract",
+        utility=ir_node, payment=Sym("R_i"),
+        ic=ic_node, ir=ir_node,
+        type_space=[0.1, 1.0],
+        meta={"num_types": 2, "type_variable": "theta"})
+
+
+def test_verify_from_ast_transcendental_reaches_track3():
+    # IC gap = ln(1 + theta) >= 0 on [0.1, 1.0]; IR = theta.  The Track-1
+    # Contract core cannot encode ln here (UNKNOWN); Track 3's interval seam
+    # proves it delta-UNSAT -> entry-specific VERIFIED on track 3.
+    ic = Func("ln", Sum([Const(1), Sym("theta")]))
+    ir = Sym("theta")
+    m = _continuous_contract(ic, ir)
+    assert _classify_ast(m) == 3
+    r = verify_from_ast(m)
+    assert r.track == 3
+    assert r.verdict == "VERIFIED" and r.entry_specific is True
+
+
+def test_verify_from_ast_poly_deg2_reaches_track2():
+    # IC gap = theta^2 >= 0, IR = theta^2, continuous [0.1, 1.0] -> track 2.
+    ic = Pow(Sym("theta"), 2)
+    m = _continuous_contract(ic, Pow(Sym("theta"), 2))
+    assert _classify_ast(m) == 2
+    r = verify_from_ast(m)
+    assert r.track == 2
+
+
+def test_verify_from_ast_matches_inspect_on_transcendental(monkeypatch):
+    # Parity: the AST-native path and the AST -> LaTeX -> verify() path agree
+    # on a transcendental fixture.
+    ic = Func("ln", Sum([Const(1), Sym("theta")]))
+    m = _continuous_contract(ic, Sym("theta"))
+    meta = {"paper_id": "architect-proposal", "num_clients": 2}
+
+    latex_verdict = inspect_mechanism(m, meta).verdict
+    monkeypatch.setenv("ARCHITECT_AST_VERIFY", "1")
+    ast_verdict = inspect_mechanism(m, meta).verdict
+    assert ast_verdict == latex_verdict, (ast_verdict, latex_verdict)
 
 
 # ── parity: AST-native path vs AST -> LaTeX -> verify() on the loop fixtures ──

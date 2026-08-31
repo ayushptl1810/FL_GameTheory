@@ -276,22 +276,143 @@ def build_grid(n_bidders: int, n_attrs: int, k: int) -> GridCtx:
 # --------------------------------------------------------------------------- #
 # utility encoder (minimal; Task 4 will exercise / extend)                    #
 # --------------------------------------------------------------------------- #
-def encode_utility(grid: GridCtx, alloc, pay):
+# --------------------------------------------------------------------------- #
+# affine-maximizer (weighted-welfare-max) weight extraction                    #
+# --------------------------------------------------------------------------- #
+# The alloc parser only tags ArgmaxWelfare; it does not resolve the weights.
+# This extractor FAILS CLOSED: it returns weights only when the objective is
+# UNAMBIGUOUSLY a clean non-negative linear welfare sum, one of exactly two
+# single-item single-attribute shapes:
+#   * unit-weight welfare max:  \arg\max ... \sum_i v_i x_i  -- literally the sum
+#     bound then v_i then an optional x_i, NOTHING in between -> every w_i = 1.
+#   * explicit numeric affine maximizer: \arg\max ... [ c_1 v_1 x_1 + c_2 v_2 x_2
+#     + ... ] -- exactly n terms, each "(nonneg number) v_k x_k", joined by '+',
+#     no '-', no '/', no '^', no non-whitespace between the number and v_k.
+# Anything else -- a symbolic/greek/letter-subscripted weight before a v term,
+# subtraction, ratio, power, wrong term count, extra factors -> None -> the
+# caller (verify_vcg_dsic / _pick_vcg_allocation) turns that into UNKNOWN.
+
+# any weight-like token sitting in front of a v term: w/W with any subscript,
+# \omega \lambda or any \greek, or a bare letter-subscripted coefficient a_i.
+_WEIGHT_BEFORE_V_RE = re.compile(
+    r"(?:[wW]_?\{?[A-Za-z0-9]+\}?"
+    r"|\\(?:omega|lambda|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota"
+    r"|kappa|mu|nu|xi|pi|rho|sigma|tau|phi|chi|psi)\b"
+    r"|\b[a-zA-Z]_\{?[A-Za-z0-9]+\}?)"
+    r"\s*\\?[a-zA-Z]*\s*v_?\{?[A-Za-z0-9]+\}?"
+)
+# clean unit-weight welfare sum: \sum (opt _{bound}) then v_i then opt x_i, end.
+_UNIT_WELFARE_RE = re.compile(
+    r"\\sum(?:_\{?i\}?)?\s*v_\{?i\}?\s*(?:x_\{?i\}?)?\s*$"
+)
+# one explicit term: <nonneg number><no gap>v_k<ws>x_k   (k filled in per index)
+_NUM_TERM = r"([0-9]+(?:\.[0-9]+)?)v_\{?%d\}?\s*x_\{?%d\}?"
+
+
+def _argmax_welfare_weights(alloc_latex, n):
+    """LaTeX of an \\arg\\max welfare objective -> {i: float weight} or None.
+
+    Fails closed: only a clean non-negative linear welfare sum yields weights.
+    """
+    if not isinstance(alloc_latex, str) or not alloc_latex.strip():
+        return None
+    # objective side of the \arg\max, dropping any s.t. clause; normalise ws.
+    body = re.split(
+        r"\\quad|\\text\{s\.t\.|\bs\.t\.|\\;|\\leq|<=|\\geq", alloc_latex)[0]
+    obj = re.sub(r"^.*?arg\s*\\?max_?(?:\{[^}]*\}|[_^]?\w+)?\s*", "", body,
+                 count=1, flags=re.I).strip()
+    obj = obj.strip("[]() ").strip()
+    # drop a leading "SW :=" / "F =" style label
+    obj = re.sub(r"^[A-Za-z]\w*\s*:?=\s*", "", obj).strip()
+
+    # any weight-like symbol in front of a v term -> not machine-resolvable.
+    if _WEIGHT_BEFORE_V_RE.search(obj):
+        return None
+
+    # unit-weight welfare max: exactly \sum_i v_i x_i (x_i optional), nothing else
+    compact = re.sub(r"\s+", " ", obj).strip()
+    if _UNIT_WELFARE_RE.fullmatch(re.sub(r"\s+", "", obj)):
+        return {k: 1.0 for k in range(1, n + 1)}
+
+    # explicit numeric affine maximizer: exactly n "num v_k x_k" terms, +-joined
+    nospace_terms = re.sub(r"\s*\+\s*", "+", re.sub(r"\s+", " ", obj)).split("+")
+    if len(nospace_terms) != n:
+        return None
+    w = {}
+    for k in range(1, n + 1):
+        term = nospace_terms[k - 1].strip()
+        m = re.fullmatch(
+            r"([0-9]+(?:\.[0-9]+)?)v_\{?" + str(k) + r"\}?\s*x_\{?" + str(k)
+            + r"\}?", term.replace(" ", ""))
+        if m is None:
+            return None
+        val = float(m.group(1))
+        if val < 0:
+            return None
+        w[k] = val
+    return w or None
+
+
+def encode_utility(grid: GridCtx, alloc, pay, alloc_latex=None):
     """Return f(i, bid_profile) -> z3 expr for bidder i's utility.
 
     bid_profile: list-of-lists of z3 numerals/exprs, shape [n_bidders][n_attrs].
-    Minimal single-good VCG semantics: HighestBidder allocation with a
-    second-price (ClarkePivot) payment.  Other specs raise NotImplementedError
-    so Task 4 fills them in deliberately rather than silently mis-encoding.
+    Single-good VCG semantics: HighestBidder or (numeric) weighted-welfare-max
+    allocation with a second-price / affine-maximizer Clarke pivot.  Other
+    specs raise NotImplementedError so an unsupported combo fails closed to
+    UNKNOWN rather than being silently mis-encoded.
     """
 
     def _scalar(row):
         return z3.Sum(*row) if len(row) > 1 else row[0]
 
+    # weighted-welfare-max (affine maximizer): resolve numeric weights up front.
+    # None -> unreadable / symbolic weight -> raise at call time -> UNKNOWN.
+    aw_weights = (
+        _argmax_welfare_weights(alloc_latex, grid.n_bidders)
+        if isinstance(alloc, ArgmaxWelfare) else None
+    )
+
     def utility(i, bid_profile):
         my_val = grid.v[i][0] if grid.n_attrs == 1 else z3.Sum(*grid.v[i])
         my_bid = _scalar(bid_profile[i])
         others = [_scalar(bid_profile[j]) for j in range(grid.n_bidders) if j != i]
+
+        if isinstance(alloc, ArgmaxWelfare):
+            if grid.n_attrs != 1:
+                raise NotImplementedError(
+                    "weighted-welfare-max only encodable for n_attrs=1")
+            if aw_weights is None:
+                raise NotImplementedError(
+                    "argmax-welfare objective is not numeric-weighted-welfare "
+                    "shaped (symbolic/unsolved weight)")
+            if not isinstance(pay, ClarkePivot):
+                raise NotImplementedError(
+                    "weighted-welfare-max payment must be the affine-maximizer "
+                    f"Clarke pivot, got {pay!r}")
+            # single item -> outcome x* assigns the item to the bidder with the
+            # largest w_k * bid_k.  ties: every argmax bidder "wins"; the pivot
+            # price then equals my_wb / w_i == my_bid, so u == 0 -> harmless.
+            wb = [z3.RealVal(f"{aw_weights[j + 1]}") * _scalar(bid_profile[j])
+                  for j in range(grid.n_bidders)]
+            my_wb = wb[i]
+            others_wb = [wb[j] for j in range(grid.n_bidders) if j != i]
+            if not others_wb:
+                return my_val
+            win = z3.And(*[my_wb >= o for o in others_wb])
+            # affine-maximizer Clarke pivot for a single item:
+            #   p_i = [ max_{k != i} w_k v_k ] / w_i
+            # W_{-i}(x*_{-i}) = max_{k!=i} w_k b_k ;  W_{-i}(x*) = 0 (item -> i).
+            # w_i is a positive constant, so it divides out cleanly.
+            w_i = aw_weights[i + 1]
+            if w_i <= 0:
+                raise NotImplementedError(
+                    "affine-maximizer weight w_i <= 0: Clarke pivot undefined")
+            max_other_wb = others_wb[0]
+            for o in others_wb[1:]:
+                max_other_wb = z3.If(o > max_other_wb, o, max_other_wb)
+            price = max_other_wb / z3.RealVal(f"{w_i}")
+            return z3.If(win, my_val - price, z3.RealVal(0))
 
         if isinstance(alloc, HighestBidder):
             if not others:
@@ -447,6 +568,24 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
                        notes="DSIC vacuous / unencodable for n<2 (payment never binds)")
 
     alloc = parse_allocation(alloc_tex)
+
+    # A ProportionalShare allocation p_s = f_s^{a-1} / sum f^{a-1} is a
+    # *fractional* / divisible allocation -- every bidder receives a share -- not
+    # a single-winner VCG mechanism. It is a data-valuation payout; the corpus
+    # entry that hits this (2404_13841) states no DSIC/IC claim for a Groves
+    # payment over it (bare ic_type tag only, no ic/ir condition, and its own
+    # notes flag the allocation LaTeX as coming from the paper's *non-auction*
+    # mechanism). encode_utility has no single-winner semantics for it, so there
+    # is no dominant-strategy property to prove or refute here -> UNKNOWN
+    # (checked before parse_payment: the payment is irrelevant to a non-
+    # mechanism). verify_vcg's regex fallback then classifies the payment
+    # shape as before -- this task does not move the entry's verify() verdict.
+    if isinstance(alloc, ProportionalShare):
+        return _result(
+            entry, "UNKNOWN",
+            notes="fractional-share allocation -- not a single-winner VCG "
+                  "mechanism; no dominant-strategy claim to check")
+
     pay = parse_payment(pay_tex, alloc)
     if alloc is None or pay is None:
         return _result(entry, "UNKNOWN",
@@ -463,10 +602,13 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
     # reject specs that still carry raw-string / unknown parameters
     if isinstance(alloc, TopK) and alloc.k is None:
         return _result(entry, "UNKNOWN", notes="TopK.k unknown")
-    if isinstance(alloc, ProportionalShare) and isinstance(alloc.exponent, str):
-        return _result(entry, "UNKNOWN", notes="ProportionalShare exponent raw string")
     if isinstance(alloc, ArgmaxWelfare) and isinstance(alloc.objective_expr, str):
-        return _result(entry, "UNKNOWN", notes="ArgmaxWelfare objective raw string")
+        # a raw-string objective is fine ONLY if it is a machine-resolvable
+        # numeric weighted-welfare-max shape (\sum v_i x_i, or [c_1 v_1 + ...]);
+        # anything else (symbolic weights, opaque SW := ...) fails closed.
+        if _argmax_welfare_weights(alloc_tex, n) is None:
+            return _result(entry, "UNKNOWN",
+                           notes="ArgmaxWelfare objective raw string")
 
     grid = build_grid(n, n_attrs, k)
     if grid.profile_count > _PROFILE_CAP:
@@ -478,7 +620,9 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
 
     # encode_utility is a factory; the NotImplementedError for an unsupported
     # combo is raised by the returned closure at call time, inside the loop below.
-    utility = encode_utility(grid, alloc, pay)
+    # ArgmaxWelfare needs the raw LaTeX to resolve numeric affine-maximizer
+    # weights (the parser only tags the family, not the weights).
+    utility = encode_utility(grid, alloc, pay, alloc_latex=alloc_tex)
     pts = grid.points
 
     def dom(var):
@@ -570,8 +714,12 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
              if all_ok else
              f"profitable deviation found on grid k={k}, "
              f"{grid.profile_count} profiles")
-    return _result(entry, verdict, notes=notes, entry_specific=True,
-                   counterexample=cex)
+    res = _result(entry, verdict, notes=notes, entry_specific=True,
+                  counterexample=cex)
+    # VERIFIED here is exact *on the finite grid*, not a general DSIC proof.
+    if verdict == "VERIFIED":
+        res.grid_bounded = True
+    return res
 
 
 if __name__ == "__main__":  # tiny self-check

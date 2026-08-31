@@ -11,7 +11,8 @@ import sympy
 
 from architect.ast import (
     Const, Sym, Unknown, Sum, Prod, Pow, Func, IndexedFamily,
-    Mechanism, validate_ast,
+    AllocHighest, AllocTopK, AllocWeightedWelfare,
+    Mechanism, validate_ast, validate_alloc,
 )
 from tracks.track1_z3 import (
     parse_only_vcg, parse_only_contract, parse_only_stackelberg, ParseFailure,
@@ -184,6 +185,36 @@ def _contract_ic_latex(ic_node) -> str:
     return _ineq_latex(ic_node)
 
 
+def _alloc_latex(alloc) -> "tuple[str, str]":
+    """Alloc node -> (allocation_rule_latex, payment_rule_latex).
+
+    payment_rule_latex is the Clarke pivot for THAT allocation:
+      * AllocHighest / AllocTopK -> standard second- / (k+1)-price pivot
+      * AllocWeightedWelfare(w)  -> affine-maximizer pivot
+                                    p_i = \\max_{k \\neq i} w_k b_k / w_i
+    """
+    validate_alloc(alloc)
+    if isinstance(alloc, AllocHighest):
+        return (
+            r"x_i = 1 \text{ if } b_i = \max_j b_j",
+            r"p_i = \max_{j \neq i} b_j",
+        )
+    if isinstance(alloc, AllocTopK):
+        k = alloc.k
+        return (
+            rf"x_i = 1 \text{{ if }} b_i \text{{ is among the top-{k} bids}}",
+            rf"p_i = b_{{({k}+1)}} \text{{ (the }}({k}+1)\text{{-th highest bid)}}",
+        )
+    if isinstance(alloc, AllocWeightedWelfare):
+        w = alloc.weights
+        num = " + ".join(rf"{wi} v_{i + 1} x_{i + 1}" for i, wi in enumerate(w))
+        return (
+            rf"x^* \in \arg\max \left[ {num} \right]",
+            r"p_i = \frac{\max_{k \neq i} w_k b_k}{w_i}",
+        )
+    raise OutsideParseableFragment(f"cannot serialize alloc {type(alloc).__name__}")
+
+
 def render(m: Mechanism, *, check_roundtrip: bool = True):
     if m.category not in _FIELD_MAP:
         raise OutsideParseableFragment(
@@ -233,6 +264,15 @@ def render(m: Mechanism, *, check_roundtrip: bool = True):
     # check. This stops model-authored meta from overwriting a validated LaTeX
     # field with unchecked content.
     md.update({k: v for k, v in m.meta.items() if k in _META_KEYS})
+
+    # Typed VCG allocation node: emit allocation_rule_latex + its Clarke-pivot
+    # payment_rule_latex, overriding the payment-node render above. These LaTeX
+    # forms (a \max_{j!=i} pivot, an \arg\max objective) are not AST-expressible,
+    # so they ride here, past the round-trip block, like meta.
+    if m.category == "VCG" and m.allocation is not None:
+        alloc_tex, pay_tex = _alloc_latex(m.allocation)
+        md["allocation_rule_latex"] = alloc_tex
+        md["payment_rule_latex"] = pay_tex
 
     full = "\n".join(f"{k}: {v}" for k, v in md.items())
     return md, full

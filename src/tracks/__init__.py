@@ -98,6 +98,10 @@ class VerificationResult:
     notes: str = ""
     entry_specific: bool = False
     coalition_ic_k: int | None = None
+    # True only for a verify_vcg_dsic VERIFIED: the proof is exact *on the
+    # finite bid grid*, not a general DSIC proof. Still an entry-specific
+    # proof, just scoped -- machine-readable flag for a future consumer.
+    grid_bounded: bool = False
 
     def __str__(self) -> str:
         tick = "✓" if self.verdict in ("VERIFIED", "VERIFIED_TEMPLATE") else "·"
@@ -114,6 +118,8 @@ class VerificationResult:
             lines.append("Counterex:")
             for k, v in self.counterexample.items():
                 lines.append(f"    {k} = {v}")
+        if self.grid_bounded:
+            lines.append("Scope    : grid-bounded (exact on the finite bid grid)")
         if self.notes:
             lines.append(f"Notes    : {self.notes}")
         return "\n".join(lines)

@@ -118,3 +118,67 @@ def test_track234_verdicts_unchanged_after_seam_extraction():
         if getattr(r, "track", None) in (2, 3, 4):
             seen[e["paper_id"]] = (r.verdict, r.entry_specific, r.track)
     assert seen == _EXPECTED_T234
+
+
+# Behavior lock for Task 5: the 4 corpus entries that route to Track 2 (SOS),
+# captured BEFORE track2_check_from_sympy was made SymPy-native (signature
+# changed from (entry, gap_expr, theta_sym) to
+# (gap_expr, theta_sym, theta_min, theta_max, *, ir_expr, ...) with all
+# entry/LaTeX parsing lifted into verify_track2's front-end).
+_EXPECTED_TRACK2 = {
+    "2307_15975": ("VERIFIED", True),
+    "Lim2020contract_healthcare": ("VERIFIED", True),
+    "Sun2022coded": ("VERIFIED", True),
+    "Tan2025renegotiable_contract": ("VERIFIED", True),
+}
+
+
+def test_track2_verdicts_unchanged_after_sympy_native_refactor():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) == 2:
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific)
+    assert seen == _EXPECTED_TRACK2
+
+
+# Behavior lock for Task 6: the corpus entries that route to Track 3 (interval
+# arithmetic), captured BEFORE track3_check_from_sympy was made SymPy-native
+# (signature changed from (entry, paper_id, category, mech, theta_min,
+# theta_max) to (ic_expr, ir_expr, ic_bounds, ir_bounds, delta, *,
+# entry_specific, paper_id, category, ...) with all entry/LaTeX parsing and
+# bound extraction lifted into verify_track3's front-end).
+_EXPECTED_TRACK3 = {
+    "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
+    "Kang2019contract_mobile": ("UNKNOWN", True),
+}
+
+
+def test_track3_verdicts_unchanged_after_sympy_native_refactor():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) == 3:
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific)
+    assert seen == _EXPECTED_TRACK3
+
+
+# Behavior lock for Task 7: the corpus entries that route to Track 4 (Bayesian
+# symbolic integration), captured BEFORE track4_check_from_sympy was made
+# SymPy-native (signature changed from (paper_id, category, theta_min,
+# theta_max, distribution, ir_raw, ic_raw, ir_expr, theta_sym) to
+# (ir_expr, ic_gap, theta_sym, theta_min, theta_max, distribution, *,
+# ic_gap_err, entry_specific, paper_id, category) with the IC-gap LaTeX parse
+# lifted into verify_track4's front-end via _parse_ic_gap).
+_EXPECTED_TRACK4 = {
+    "Li2025bayesian_incentive": ("VERIFIED", True),
+}
+
+
+def test_track4_verdicts_unchanged_after_sympy_native_refactor():
+    seen = {}
+    for e in CORPUS:
+        r = verify(e)
+        if getattr(r, "track", None) == 4:
+            seen[e["paper_id"]] = (r.verdict, r.entry_specific)
+    assert seen == _EXPECTED_TRACK4
