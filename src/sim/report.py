@@ -73,11 +73,19 @@ def _cell(mean: float, std: float) -> str:
     return f"{mean:.3f} ± {std:.3f}"
 
 
-def write_report(agg: list[dict], path: str = "docs/sim-results.md") -> None:
-    try:
-        from sim.run import GENERATED_IS_PLACEHOLDER
-    except Exception:  # pragma: no cover
-        GENERATED_IS_PLACEHOLDER = {}
+def write_report(agg: list[dict], path: str = "docs/sim-results.md",
+                 placeholder: dict | None = None) -> None:
+    # `placeholder` is {setting: bool}. main() passes it explicitly because
+    # `python -m sim.run` makes `sim.run` and `__main__` distinct module objects
+    # -- the GENERATED_IS_PLACEHOLDER the runner mutated is not the one a bare
+    # `from sim.run import ...` here would see. Fall back to the import when the
+    # caller (e.g. a unit test) does not pass it.
+    if placeholder is None:
+        try:
+            from sim.run import GENERATED_IS_PLACEHOLDER as placeholder
+        except Exception:  # pragma: no cover
+            placeholder = {}
+    GENERATED_IS_PLACEHOLDER = placeholder
 
     settings = sorted({row["setting"] for row in agg})
     arms = sorted({row["arm"] for row in agg})

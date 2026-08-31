@@ -231,7 +231,8 @@ def main(argv=None) -> int:
             print(m)
             all_results.append(m)
 
-    report.write_report(report.aggregate(all_results), path=args.out)
+    report.write_report(report.aggregate(all_results), path=args.out,
+                        placeholder=dict(GENERATED_IS_PLACEHOLDER))
     return 0
 
 
