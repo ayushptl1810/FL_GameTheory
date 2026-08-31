@@ -5,7 +5,7 @@ Training realism is deliberately not the point; client incentives are.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable
 
 import numpy as np
@@ -118,6 +118,11 @@ RewardHook = Callable[[list["ClientReport"], RoundContext], dict[int, float]]
 class RunLog:
     rounds: list[dict]
     final_params: np.ndarray
+    # One RoundContext per round, in order. Not part of the per-round record dict
+    # (whose key set is asserted verbatim in tests); kept alongside so downstream
+    # analysis -- notably the empirical-IC-regret deviation probe in run.py --
+    # can recover the exact global_params / selection each round ran against.
+    contexts: list = field(default_factory=list)
 
 
 def run_fedavg(*, X, y, partition, test_X, test_y, rounds: int, clients_per_round: int,
@@ -128,12 +133,14 @@ def run_fedavg(*, X, y, partition, test_X, test_y, rounds: int, clients_per_roun
     model = LogRegModel(n_features, n_classes)
     by_id = {c.client_id: c for c in clients}
     records: list[dict] = []
+    contexts: list[RoundContext] = []
 
     for r in range(rounds):
         pick = rng.choice(len(clients), size=min(clients_per_round, len(clients)), replace=False)
         selected = [clients[i].client_id for i in pick]
         gp = model.get_params()
         ctx = RoundContext(r, selected, gp, budget, setting)
+        contexts.append(ctx)
         # Accuracy is recorded at the START of the round -- the model the clients
         # actually saw this round. rounds[0]["accuracy"] is therefore the
         # zero-init baseline (spec: "acc[-1] := log.rounds[0] = accuracy of the
@@ -167,4 +174,4 @@ def run_fedavg(*, X, y, partition, test_X, test_y, rounds: int, clients_per_roun
             "reports": reports,
         })
 
-    return RunLog(records, model.get_params())
+    return RunLog(records, model.get_params(), contexts)

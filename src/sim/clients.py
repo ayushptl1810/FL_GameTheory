@@ -49,6 +49,13 @@ class Client:
         action = self.decide(ctx)
         if not action.participate:
             return None
+        return self.report_for_action(action, global_params, X, y, ctx)
+
+    def report_for_action(self, action: Action, global_params, X, y,
+                          ctx: RoundContext) -> ClientReport:
+        """Build the report this client would submit under a GIVEN action, skipping
+        ``decide``. Used by the sim's empirical-IC-regret probe to score
+        counterfactual deviations for an otherwise-honest client."""
         n_classes = global_params.shape[1]
         model = LogRegModel(X.shape[1], n_classes)
         model.set_params(global_params)
