@@ -147,6 +147,19 @@ _AST_RULES = (
     "polynomial and ln/exp algebra, so a follower/client utility should look "
     "like `p_i*e_i - 0.5*c*e_i^2` or `R_i - theta_i*e_i`, one line, no nested "
     "cases or sums over sets. "
+    "IMPORTANT -- if the FL setup's utility text mentions log / logarithm / ln "
+    "/ exponential / exp (e.g. a value R_i*ln(1/theta_i) or a log-utility "
+    "client), you MUST keep that transcendental term as a real Func node "
+    '({"t":"Func","name":"ln","arg":<node>} or name:"exp") in utility, ic AND '
+    "ir -- do NOT linearise it away or reframe the setting as a plain linear "
+    "menu. The verifier has a dedicated interval track for ln/exp algebra. "
+    'Example log client utility for R_i*ln(1/theta_i) - k*R_i: '
+    '{"t":"Sum","terms":['
+    '{"t":"Prod","factors":[{"t":"Sym","name":"R_i"},'
+    '{"t":"Func","name":"ln","arg":{"t":"Pow",'
+    '"base":{"t":"Sym","name":"theta_i"},"exp":-1}}]},'
+    '{"t":"Prod","factors":[{"t":"Const","value":-1},{"t":"Sym","name":"k"},'
+    '{"t":"Sym","name":"R_i"}]}]}. '
     "Write ic and ir as the single expression "
     "that must be >= 0 (i.e. u_truthful - u_deviation for ic; u for ir). "
     "Use explicit Prod with Const -1 for subtraction. category must be one of "

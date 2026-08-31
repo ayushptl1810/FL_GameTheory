@@ -226,6 +226,66 @@ def check_nonneg_box(
     return "verified", None
 
 
+def max_ic_regret_over_box(
+    sp_expr: Any,
+    bounds: "list[tuple[Any, float, float]]",
+    max_depth: int = 6,
+) -> "float | None":
+    """Rigorous UPPER bound on the worst-case IC-regret (max of −f) over the box.
+
+    ``check_nonneg_box`` answers yes/no; this returns a number: how negative the
+    gap ``f`` can get anywhere in the box (0.0 if provably ≥ 0). It is used only
+    after the caller has already ruled the multi-symbol box "counterexample" a
+    structural artifact — it lets the verdict still carry an honest
+    "δ-IC on the box for δ ≥ <this>" statement instead of a bare UNKNOWN.
+
+    Depth-bounded (not δ-resolved): k-dim B&B to δ-resolution is intractable, so
+    this splits the widest dimension at most ``max_depth`` levels. ``-f_lo`` from
+    mpmath.iv on any enclosing sub-box is already a rigorous over-estimate of the
+    true regret inside it; deeper splits only tighten it. The returned value is
+    therefore always ≥ the exact regret (safe to quote as a δ bound).
+
+    Returns a float ≥ 0, or None on an unsupported op.
+    """
+    if not _DEPS_OK:
+        return None
+    syms = [b[0] for b in bounds]
+    try:
+        f = _sp.lambdify(syms, sp_expr, modules=[_IV_NS])
+        f(*[_iv.mpf([lo, hi]) for _, lo, hi in bounds])
+    except Exception:
+        return None
+
+    root = tuple((float(lo), float(hi)) for _, lo, hi in bounds)
+    stack: "list[tuple[tuple[tuple[float, float], ...], int]]" = [(root, 0)]
+    worst = 0.0
+    while stack:
+        box, depth = stack.pop()
+        try:
+            val = f(*[_iv.mpf([a, b]) for a, b in box])
+            try:
+                val_lo = float(val.a)
+            except AttributeError:
+                val_lo = float(val)
+        except Exception:
+            return None
+
+        if val_lo >= 0.0:
+            continue
+        if depth >= max_depth:
+            worst = max(worst, -val_lo)
+            continue
+        widths = [b - a for a, b in box]
+        i = widths.index(max(widths))
+        a, b = box[i]
+        mid = (a + b) / 2.0
+        for half in ((a, mid), (mid, b)):
+            nb = list(box)
+            nb[i] = half
+            stack.append((tuple(nb), depth + 1))
+    return worst
+
+
 # ── Violation-function builders ───────────────────────────────────────────────
 
 def _build_ic_expr(entry: dict) -> "tuple[Any | None, str]":
@@ -413,10 +473,20 @@ def track3_check_from_sympy(
         elif status == "counterexample":
             if dims > 1:
                 verdicts.append("UNKNOWN")
-                conditions.append(
-                    f"{kind}: box violation found but suppressed — indexed menu/type "
-                    "symbols are not free parameters (ordering-artifact risk)"
-                )
+                regret = max_ic_regret_over_box(expr, bounds)
+                if regret is not None and regret > 0.0:
+                    conditions.append(
+                        f"{kind}: box violation found but suppressed — indexed menu/type "
+                        "symbols are not free parameters (ordering-artifact risk). "
+                        f"Honest δ-bounded IC-regret over the {dims}-dim independent "
+                        f"type/reward box: max gap deficit ≈ {regret:.4g} "
+                        f"(mechanism is δ-IC on the box for δ ≥ {regret:.4g})"
+                    )
+                else:
+                    conditions.append(
+                        f"{kind}: box violation found but suppressed — indexed menu/type "
+                        "symbols are not free parameters (ordering-artifact risk)"
+                    )
             else:
                 verdicts.append("COUNTEREXAMPLE")
                 if counterexample is None:
