@@ -1,0 +1,8 @@
+{
+  "kind": "dict",
+  "note": "PLACEHOLDER — replace with a real ArchitectResult.mechanism_dict snapshot before reporting. Fixtures must not be hand-tuned (spec honest-framing). The Architect loop needs an LLM backend that is not available in this environment; tracked follow-up: 'replace placeholder sim mechanism fixtures'.",
+  "mechanism_dict": {
+    "payment_rule_latex": "p_i = q_i * B / n",
+    "client_utility_latex": "u_i = q_i - p_i"
+  }
+}
