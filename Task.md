@@ -118,6 +118,14 @@ Adversarial soundness suite (`tests/verifier/`): 22 known-unsound mechanisms, 0 
 > **Phase 2 — real VCG check wired in (2026-08-30, branch `phase2-vcg-real-check` Task 5).** `verify_vcg` now dispatches to `verify_vcg_dsic` (a real finite-bid-grid Z3 DSIC + IR proof, `src/tracks/vcg_dsic.py`) first; only its `VERIFIED` / `COUNTEREXAMPLE` short-circuit. The old regex payment-shape classifier is now a pure fallback and its success is post-mapped to the new `VERIFIED_SHAPE` verdict (never `VERIFIED` / `VERIFIED_TEMPLATE`), `entry_specific=False`. The identically-zero-payment soundness gate still runs first. **VCG verdict counts moved by design** (33 entries): VERIFIED (real DSIC) **0**, VERIFIED_SHAPE **33**, COUNTEREXAMPLE **0**, UNKNOWN **0** — every corpus VCG entry currently fails the real check closed (allocation/payment LaTeX not yet parseable into an encodable spec, or absent) and falls through to `VERIFIED_SHAPE`. Was: 19 entry-specific `VERIFIED` (regex form-confirmed) + 14 `VERIFIED_TEMPLATE`. Per-entry before→after→reason table: `docs/superpowers/notes/phase2-vcg-verdict-delta.md`. Corpus headline: `VERIFIED` 25→6, `VERIFIED_TEMPLATE` 73→59, `VERIFIED_SHAPE` 0→33; all non-VCG counts frozen (Contract 5 entry-specific / 31 template, Stackelberg 1/28, Track 2 SOS 4, Track 3 1, Track 4 1). `_vcg_check_core` itself is unchanged — the Approach C AST caller (`architect/ast_verify.py::verify_from_ast`) still gets the old verdicts until Phase 2 Task 7. The two VCG "template-fallback holes" moved from `xfail` to the hard `BROKEN` adversarial list (they now honestly return `VERIFIED_SHAPE`, a documented non-proof). Suite: 190 passed / 3 xfailed / 0 failed; `tools/validate.py` 185/185.
 >
 > **Phase 2 landed (2026-08-30).** VCG entry-specific proofs: **0** (real `verify_vcg_dsic`); 33 `VERIFIED_SHAPE` (regex shape, not a proof). Corpus real machine-checked proofs: **6** (Contract 5, Stackelberg 1). `verify_vcg_dsic` proves DSIC+IR over a finite bid grid for highest-/lowest-bidder allocation + Clarke-pivot or explicit-formula payment; multi-attribute & argmax-welfare → `UNKNOWN` (fail-closed). `verify_from_ast`'s VCG branch calls the real check (Approach C `entry_specific=False` stopgap removed).
+>
+> **Phase 3 — verifier widening + AST-native completion (2026-08-31, branch `phase3-verifier-widening`, b09cdfe..9a45926).** Widening + fail-closed hardening + AST-native completion — **not** corpus movement.
+> - **Real entry-specific `VERIFIED` count is UNCHANGED at 6** (Contract 5, Stackelberg 1). Phase 3's parser widening flipped **0** entries — `docs/superpowers/notes/phase3-new-verified.md` is empty. Every widened Contract / Stackelberg parser hit a *second, independent* blocker on every corpus entry it could newly reach; each fails closed to the entry's existing verdict. This is the plan-permitted partial landing, not a regression. Corpus is byte-identical to the Task-1 baseline: VERIFIED 6 / VERIFIED_TEMPLATE 59 / VERIFIED_SHAPE 33 / UNKNOWN 2 / UNSUPPORTED 5. Full delta: `docs/superpowers/notes/phase3-delta.md`.
+> - **AST-native routing is now real.** `verify_from_ast` routes to the Track 2/3/4 seams via `_classify_ast` (not everything funnelled through the Track-1 core); the seams (`track{2,3,4}_check_from_sympy`) take parsed SymPy exprs, not `entry` dicts. VCG has a real allocation AST node (`AllocHighest` / `AllocTopK` / `AllocWeightedWelfare` + `Mechanism.allocation`); Synthesis mode sets that node instead of injecting `meta["allocation_rule_latex"]`, and `verify_from_ast(synthesized VCG)` reaches genuine entry-specific `VERIFIED` with a 9-profile grid proof. Approach C is complete. `verify(entry)` — the corpus API — is untouched, which is why the corpus does not move.
+> - **Transcendental coverage.** Track 3 box search extended with `max_ic_regret_over_box` (a rigorous δ-bounded IC-regret upper bound) + multi-symbol counterexample suppression; the Architect prompt now emits `Func("ln"/"exp")` for log/exp intake. **No new corpus entry verified**: `Kang2019contract_mobile` (the only transcendental Contract corpus entry) stays `UNKNOWN` (9/11 free vars → box-intractable); `iiot_log_linear` is an Architect eval benchmark, not a corpus entry, so `verify()` never touches it (its offline δ-regret ≈ 69.06 is a loose over-estimate over the fully-decoupled box — true menu regret 0).
+> - **`ARCHITECT_AST_VERIFY` stays default OFF.** The flip is code-ready — Tasks 5–9 made the AST path strictly ≥ the LaTeX path on every existing test (`verify_from_ast` verdict `==` `inspect_mechanism` verdict on every parity fixture; AST-only additionally reaches Track 3 where the Track-1 core returns `UNKNOWN`) — and gated only on a clean full flagged `run_eval` with no verified-rate regression, currently API-blocked. See `docs/superpowers/specs/2026-08-29-verifier-proper-checks.md`.
+> - **NOT this round (explicit decision):** the `VERIFIED_TEMPLATE` → `UNKNOWN` fail-close pass (~61 entries would drop — the honesty pass, separate round) and Phase 4 (coalition / small-Shapley).
+> - Suite: 204 → **262 passed / 3 xfailed / 0 failed** (~58 tests added — widening pins, regression locks, fail-closed characterization).
 
 **Stackelberg now has a real entry-specific path** (`_try_stackelberg_latex` in `src/tracks/track1_z3.py`): parses `follower_utility_latex` (resolving multi-clause "U = R - C, R = ..., C = ..." definitions), symbolically derives the follower's FOC and best response, and checks IR at that optimum — instead of the old placeholder. It fails closed by design (12 unit tests in `tests/test_stackelberg.py` cover the happy path, IR counterexamples, ambiguous-decision-variable cases, and a best-response cross-check that rejects rather than certifies when its own derived optimum disagrees with the paper's stated `best_response_latex`).
 
@@ -433,11 +441,18 @@ Sequenced in `docs/superpowers/specs/2026-08-29-verifier-proper-checks.md`:
    allocation forms is Phase 3); a synthesized highest-bidder+Clarke mechanism is
    certified `VERIFIED` (Vickrey). Corpus real machine-checked proofs: **6**
    (Contract 5, Stackelberg 1).
-3. **Phase 3 — fail-close the template fallbacks** (`VERIFIED_TEMPLATE` →
-   `UNKNOWN`; ~61 corpus entries drop — that lower number is the honest one) and
-   widen the entry-specific parsers now that they are AST-fed.
+3. **Phase 3 — widen the entry-specific parsers + AST-native completion: landed
+   2026-08-31.** Track 2/3/4 seams SymPy-native; `verify_from_ast` does real
+   multi-track routing (`_classify_ast`); VCG `Alloc` AST node + Synthesis emits
+   it; Track 3 box search extended (`max_ic_regret_over_box`, δ-bounded IC-regret).
+   **0 corpus flips** (plan-permitted partial landing — every widened parser
+   dead-ends on a second blocker per corpus entry); corpus byte-identical to
+   baseline 6/59/33/2/5; suite 204→262. `ARCHITECT_AST_VERIFY` stays default off,
+   flip code-ready, gated on an API-blocked eval. The `VERIFIED_TEMPLATE` →
+   `UNKNOWN` fail-close pass (~61 entries drop — the honest number) was **deferred
+   by explicit decision** to a separate round.
 4. **Phase 4 — bounded coalition / small-Shapley** (k ≤ 3): encode `v(S)`, prove
-   IC for Shapley payments over the restricted coalition space.
+   IC for Shapley payments over the restricted coalition space. **NOT this round.**
 
 Formal ceiling (named, not to be coded past): general Shapley IC (Roberts),
 n−1 collusion, VCG under interdependent values, output-signal manipulability.

@@ -86,6 +86,33 @@ Frozen regression gate on every task: `python -m verifier corpus.json` must stay
 
 **Result** — `ast_to_sympy` covers all 8 node types; SymPy→solver→verdict back-half extracted behind a seam in every track. New `verify_from_ast(m, meta)` + `_classify_ast(m)` in `src/architect/ast_verify.py`; `inspect_mechanism` calls it when `ARCHITECT_AST_VERIFY=1` (default off). Parity test: matches LaTeX path on loop's VERIFIED fixtures (Stackelberg-effort + 2-type Contract), no fix needed. Regression frozen: 25/73/2/5 unchanged. Live `live_smoke` (gpt-oss-120b): 4/4 VERIFIED, zero parse-family transcript entries. Flag default stays off; Track 2 & Track 3 seam helpers still re-parse LaTeX internally (Phase 3 work).
 
+**Phase 3 completion (2026-08-31, branch `phase3-verifier-widening`, b09cdfe..9a45926).** ✅
+The Track 2/3/4 seams are now SymPy-native (`track{2,3,4}_check_from_sympy` take
+parsed exprs, not `entry` dicts — Tasks 5–7), and `verify_from_ast` does **real**
+multi-track routing via `_classify_ast` (Task 8): Track 2/3/4 seams are reached
+directly, not funnelled through the Track-1 core. VCG gained a real allocation
+AST node (`AllocHighest` / `AllocTopK` / `AllocWeightedWelfare` + `Mechanism.allocation`,
+Task 9); Synthesis mode sets that node instead of injecting `meta["allocation_rule_latex"]`
+(Task 10), and `verify_from_ast(synthesized VCG)` reaches genuine entry-specific
+VERIFIED with a 9-profile grid proof. Approach C is complete.
+
+### `ARCHITECT_AST_VERIFY` — flag-default decision (2026-08-31)
+
+**Decision: default stays OFF. The flip is CODE-READY, gated only on one eval run.**
+
+- **Flip criterion:** a clean full **flagged `run_eval`** (`ARCHITECT_AST_VERIFY=1`)
+  with **no verified-rate regression** vs the LaTeX-path baseline and **zero**
+  `parse` / `OutsideParseableFragment` transcript entries.
+- **Status:** that eval is **API-blocked** (the NVIDIA endpoint / model roster —
+  same infra block that stops `run_eval` generally). Not a code gap.
+- **Why it is code-ready:** Tasks 5–9 made the AST path **strictly ≥ the LaTeX
+  path on every existing test** — `verify_from_ast` verdict `==` `inspect_mechanism`
+  verdict on every parity fixture, and the AST-only path additionally **reaches
+  Track 3** on log/exp intake where the Track-1 core would return `UNKNOWN`. No
+  test shows the AST path doing worse than the LaTeX path on any input.
+- **When unblocked:** run the flagged eval; if the two criteria hold, flip the
+  `inspect_mechanism` default and delete the env-var branch.
+
 ---
 
 ## Phase 2 — Real VCG check + constrained generation  ✅ landed 2026-08-30
@@ -161,6 +188,15 @@ real entries reach `VERIFIED` / `COUNTEREXAMPLE`, and wire the AST caller
 
 ## Phase 3 — Fail-close the template fallbacks; widen the entry-specific parsers
 
+**Phase 2 VCG encoder gaps — closed (2026-08-31, Tasks 2–4).** ✅
+`verify_vcg_dsic` now encodes **weighted-welfare-max (affine maximizer) + Clarke
+pivot** [fail-closed on symbolic / greek / subtraction / ratio / power / wrong-count
+weights → UNKNOWN]; ProportionalShare → honest UNKNOWN (not a guessed proof);
+`grid_bounded` verdict flag + `print_summary` sub-line; reserve-price encoded in
+a test fixture. Corpus VCG stays 33 `VERIFIED_SHAPE` — every argmax-welfare
+corpus entry pairs that allocation with a sum-externality payment `parse_payment`
+rejects, so the new capability lands for synthetic / synthesis-menu inputs only.
+
 **3a — Fail-close.** The generic Contract / Stackelberg / VCG template paths
 return `VERIFIED_TEMPLATE` for any entry regardless of its own math. Make them
 return `UNKNOWN`. This is a soundness fix, not a feature. Accept the consequence:
@@ -168,13 +204,38 @@ return `UNKNOWN`. This is a soundness fix, not a feature. Accept the consequence
 `tests/architect/` e2e tests need their expected verdicts updated. That lower
 number is the honest one — it is what the system can actually prove.
 
-**3b — Widen entry-specific coverage (now AST-fed, per Phase 1).** Cover the
-cases the LaTeX parser used to bail on, encoded from AST nodes instead:
-- Contract: `\sum`-style menu aggregation, ≥2 distinct type subscripts,
-  `n−1`-arithmetic notation, `f_{sub}(arg_{sub})` families.
-- Stackelberg: set/inequality summation bounds (`\sum_{i \in S}`,
-  `\sum_{a \le i \le b}`), multi-variable followers (fail-closed for now,
-  documented), norm notation.
+> **NOT in the Phase 3 widening round (2026-08-31) — deferred by explicit
+> decision.** The `VERIFIED_TEMPLATE` → `UNKNOWN` fail-close pass (3a) was **not**
+> done; it is the honesty pass and is scoped as a separate round. Phase 4
+> (coalition / small-Shapley) is likewise not this round.
+
+**3b — Widen entry-specific coverage (now AST-fed, per Phase 1).** ✅ **landed
+2026-08-31 (Tasks 11–14) — widening + fail-closed hardening only, 0 corpus flips
+(plan-permitted partial landing).** Cover the cases the LaTeX parser used to bail
+on, encoded from AST nodes instead:
+- Contract (Task 11): `\sum`-style menu aggregation, ≥2 distinct type subscripts,
+  `n−1`-arithmetic notation, `f_{sub}(arg_{sub})` families — **investigated, each
+  target class dead-ends on a second independent blocker; 0 flips, 5 fail-closed
+  pins**. (`\sum`-menu class has 0 corpus Contract entries.)
+- Stackelberg (Task 12): set/inequality summation bounds (`\sum_{i \in S}`,
+  `\sum_{a \le i \le b}`) — `_preprocess_stackelberg_sum_bounds` via own-term
+  isolation + `require_br_match`; multi-variable followers fail-closed; **0 flips,
+  22 tests, 1 fix round** (a paren-truncation false-VERIFIED, caught and fixed).
+- Function-call notation (Task 13): helper **reverted** after review found it
+  unsound; existing `_demote_stray_function_calls` / `_insert_implicit_multiplication`
+  / `_strip_call_syntax` already cover the corpus. 5 characterization pins.
+- Track 3 transcendental IC (Task 14): box search extended with
+  `max_ic_regret_over_box` (rigorous δ-bounded IC-regret upper bound) + multi-symbol
+  suppression; Architect prompt emits `Func("ln"/"exp")` for log/exp intake.
+  `Kang2019contract_mobile` (only transcendental Contract corpus entry) honestly
+  stays UNKNOWN; `iiot_log_linear` is an Architect eval benchmark, not a corpus
+  entry.
+
+**Corpus after Phase 3 (2026-08-31):** byte-identical to the Task-1 baseline —
+VERIFIED 6 / VERIFIED_TEMPLATE 59 / VERIFIED_SHAPE 33 / UNKNOWN 2 / UNSUPPORTED 5.
+Suite 204 → **262 passed / 3 xfailed / 0 failed** (~58 tests added). Full
+before/after in `docs/superpowers/notes/phase3-delta.md`;
+`docs/superpowers/notes/phase3-new-verified.md` has 0 entries.
 
 **Done when** the 5 `xfail`'d fixtures in `tests/verifier/` are re-triaged —
 each either passes (real check now engages) or carries a concrete, current
