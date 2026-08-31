@@ -961,6 +961,20 @@ def _insert_implicit_multiplication(s: str, known_call_names: "set[str]") -> str
     return re.sub(r"(\\?[A-Za-z][A-Za-z0-9_{}\\^']*)\s+\(", _repl, s)
 
 
+# Task 13 (function-call notation `f_{sub}(arg_{sub})`, e.g. `c_i(P_i)`):
+# investigated, no code needed. SymPy's parse_latex reads `c_i(P_i)` as a
+# Function application, but `_demote_stray_function_calls` (below) already
+# rewrites any residual AppliedUndef to `head * Mul(*args)` -- the correct
+# coefficient reading, with the argument's variable dependence retained and
+# no spurious free symbol. The *space* form `c_i (P_i)^2` is handled one
+# step earlier by `_insert_implicit_multiplication` (exponent scoping);
+# clause-backed `C_k(...)` refs by `_strip_call_syntax`. A pre-parse
+# string fold to an "opaque symbol" was tried and reverted: no name
+# reliably round-trips through parse_latex as a single Symbol across the
+# subscript shapes in play (`c_i_of_P_i` tokenizes as `c_{i_o} * f_{P_i}`).
+# See tests/verifier/test_funcall_widening.py for the characterization pins.
+
+
 def _demote_stray_function_calls(expr: Any) -> Any:
     """
     parse_latex reads juxtaposition like "c_i (P_i)" -- a coefficient next
