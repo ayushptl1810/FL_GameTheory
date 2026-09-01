@@ -1,8 +1,14 @@
 {
   "kind": "dict",
-  "note": "PLACEHOLDER — replace with a real ArchitectResult.mechanism_dict snapshot before reporting. Fixtures must not be hand-tuned (spec honest-framing). The Architect loop needs an LLM backend that is not available in this environment; tracked follow-up: 'replace placeholder sim mechanism fixtures'.",
+  "note": "Real ArchitectResult.mechanism_dict snapshot (ARCHITECT_AST_VERIFY=1, model=openai/gpt-oss-120b). setting=hierarchical_edge; expected_family=Stackelberg; status=VERIFIED; iterations=1; solver_calls=1; mode=Synthesis. Prompt: prescriptive linear-quadratic Stackelberg edge-pricing statement (see docs/sim-notes.md).",
+  "certificate": [
+    "FOC: d(follower utility)/de = 0  =>  e* = p/(2*c*k)  [concavity assumed from unique critical point]",
+    "IR: U_follower(e*, .) >= 0  [entry-specific utility]  -> VERIFIED"
+  ],
   "mechanism_dict": {
-    "payment_rule_latex": "p_i = q_i * B / n",
-    "client_utility_latex": "u_i = q_i - p_i"
+    "follower_utility_latex": "- c e^{2} k + e p",
+    "equilibrium_existence": true,
+    "follower_decision": "\\( e \\)",
+    "num_types": 1
   }
 }

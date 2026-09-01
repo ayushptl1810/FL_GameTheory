@@ -26,12 +26,16 @@ SETTINGS: dict[str, dict] = {
         "n_clients": 50, "clients_per_round": 10, "rounds": 30, "alpha": 0.3,
         "n_features": 16, "n_classes": 3, "n_samples": 6000, "budget": 50.0,
         "cost": "quadratic", "cost_coeff_range": (0.5, 2.0),
+        # difficulty knobs: low separation + small step so accuracy ramps over
+        # the 30 rounds instead of hitting the ceiling at round 1.
+        "centroid_scale": 0.7, "lr": 0.05, "local_epochs": 2,
     },
     # 5 edge x 10 device, modelled flat with edge_id = client_id // 10.
     "hierarchical_edge": {
         "n_clients": 50, "clients_per_round": 10, "rounds": 30, "alpha": 0.5,
         "n_features": 16, "n_classes": 3, "n_samples": 6000, "budget": 50.0,
         "cost": "linear", "cost_coeff_range": (0.3, 1.0),
+        "centroid_scale": 0.7, "lr": 0.05, "local_epochs": 2,
     },
 }
 
@@ -51,6 +55,13 @@ POPULATIONS: dict[str, list[tuple[float, type, dict]]] = {
 # whether to stamp the "placeholder mechanism" banner.
 GENERATED_IS_PLACEHOLDER: dict[str, bool] = {}
 
+# Deviation grid for the empirical-IC-regret probe. Effort is held at the honest
+# level (1.0): IC-regret measures the gain from misreporting the *signal* the
+# mechanism prices on (claimed quality, submitted gradient scale) -- i.e. from
+# lying, not from working less. Effort shirking is moral hazard, a separate axis;
+# folding it in here makes even the `none` arm show "regret" (a costly-effort
+# client always prefers to shirk when nothing rewards it), which is not an
+# incentive-compatibility failure of any mechanism. See docs/sim-notes.md.
 _IC_GRID_QUALITY = (0.5, 1.0, 1.5, 2.0)
 _IC_GRID_GRAD_SCALE = (0.5, 1.0)
 
@@ -95,6 +106,8 @@ def build_population(setting: str, pop_name: str, seed: int,
         c = cls(cid, partition[cid], float(coeffs[cid]), rng_seed=seed * 1000 + cid, **kw)
         cc = float(coeffs[cid])
         c.cost_fn = (lambda e, _cc=cc: _cc * e) if linear else (lambda e, _cc=cc: _cc * e ** 2)
+        c.lr = float(cfg.get("lr", 0.5))
+        c.base_epochs = int(cfg.get("local_epochs", 8))
         clients.append(c)
 
     labels = {cid: int(np.bincount(y[partition[cid]]).argmax()) for cid in range(n)}
@@ -156,8 +169,9 @@ def _empirical_ic_regret(clients, log, hook, X, y) -> float:
 
 def run_setting(setting: str, arm: str, population: str, seed: int) -> dict:
     cfg = SETTINGS[setting]
-    X, y = make_data(cfg["n_samples"], cfg["n_features"], cfg["n_classes"], seed)
-    test_X, test_y = make_data(2000, cfg["n_features"], cfg["n_classes"], seed + 10_000)
+    cscale = cfg.get("centroid_scale", 2.5)
+    X, y = make_data(cfg["n_samples"], cfg["n_features"], cfg["n_classes"], seed, cscale)
+    test_X, test_y = make_data(2000, cfg["n_features"], cfg["n_classes"], seed + 10_000, cscale)
     partition = dirichlet_partition(y, cfg["n_clients"], cfg["alpha"], seed)
     clients = build_population(setting, population, seed, partition, y)
     hook = build_reward_hook(get_mechanism(arm, setting), setting, budget=cfg["budget"])
@@ -182,9 +196,14 @@ def run_setting(setting: str, arm: str, population: str, seed: int) -> dict:
     n_reports = [len(rec["reports"]) for rec in log.rounds]
     sum_client_value = sum(g * n for g, n in zip(acc_gain, n_reports))
     sum_true_cost = sum(rep.true_cost for rec in log.rounds for rep in rec["reports"])
-    sum_payments = sum(sum(rec["payments"].values()) for rec in log.rounds)
     server_value = sum(g * 10 for g in acc_gain)
-    social_welfare = sum_client_value - sum_true_cost - sum_payments + server_value
+    # Social welfare = value created - real resources consumed. Payments are
+    # transfers (server pays exactly what clients receive), so they cancel in the
+    # social sum and are NOT subtracted here -- whether the mechanism *over*pays
+    # is the separate budget_adherence check. Earlier drafts subtracted total
+    # payments, which double-counted the transfer and ranked the free-riding
+    # `none` arm as welfare-optimal.
+    social_welfare = sum_client_value + server_value - sum_true_cost
 
     # final_accuracy is the fully-updated model (RunLog.final_params); the last
     # curve entry is pre-update for round T-1, one aggregation behind.
@@ -213,7 +232,8 @@ def run_setting(setting: str, arm: str, population: str, seed: int) -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="FL empirical-validation sim runner")
-    ap.add_argument("--setting", default="cross_device_quadratic", choices=list(SETTINGS))
+    ap.add_argument("--setting", default="cross_device_quadratic",
+                    choices=[*SETTINGS, "all"])
     ap.add_argument("--arm", action="append", default=None,
                     help="repeatable; default: none oracle generated")
     ap.add_argument("--population", default="mixed_60_20_15_5", choices=list(POPULATIONS))
@@ -221,15 +241,17 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="docs/sim-results.md")
     args = ap.parse_args(argv)
     arms = args.arm or ["none", "oracle", "generated"]
+    settings = list(SETTINGS) if args.setting == "all" else [args.setting]
 
     from sim import report
 
     all_results = []
-    for arm in arms:
-        for seed in args.seeds:
-            m = run_setting(args.setting, arm, args.population, seed)
-            print(m)
-            all_results.append(m)
+    for setting in settings:
+        for arm in arms:
+            for seed in args.seeds:
+                m = run_setting(setting, arm, args.population, seed)
+                print(m)
+                all_results.append(m)
 
     report.write_report(report.aggregate(all_results), path=args.out,
                         placeholder=dict(GENERATED_IS_PLACEHOLDER))

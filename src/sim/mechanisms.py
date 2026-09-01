@@ -7,6 +7,7 @@ a mechanism").
 """
 from __future__ import annotations
 
+import re
 import warnings
 
 import numpy as np
@@ -30,9 +31,17 @@ def _effort_proxy(report: ClientReport) -> float:
     return float(np.linalg.norm(report.delta_params))
 
 
+# Symbols the sim can bind from a per-round client report. A Contract mechanism
+# also mentions ``theta`` (the client's private cost type): the server never sees
+# it, so the sim binds the type the CLAIM implies -- a higher claimed quality
+# reads as a lower-cost (cheaper to reward) type.
+_KNOWN_SYMBOLS = ("q", "v", "e", "B", "n", "theta")
+
+
 def _symbol_env(report: ClientReport, ctx: RoundContext, n_reports: int) -> dict:
-    return {"q": report.claimed_quality, "v": report.claimed_quality,
-            "e": _effort_proxy(report), "B": ctx.budget, "n": float(n_reports)}
+    q = float(report.claimed_quality)
+    return {"q": q, "v": q, "e": _effort_proxy(report), "B": ctx.budget,
+            "n": float(n_reports), "theta": 1.0 / max(q, 0.1)}
 
 
 def _renormalise(raw: dict[int, float], budget: float) -> dict[int, float]:
@@ -44,16 +53,83 @@ def _renormalise(raw: dict[int, float], budget: float) -> dict[int, float]:
     return clamped
 
 
+_GEQ_SPLIT = re.compile(r"\\geq|\\leq|\\ge|\\le|<|>")
+_SUB_BRACE = re.compile(r"_\{[^}]*\}")
+_SUB_BARE = re.compile(r"_[A-Za-z0-9]+")
+_SUP_BRACE = re.compile(r"\^\{([^}]*)\}")
+_SUP_BARE = re.compile(r"\^([0-9A-Za-z]+)")
+_FRAC = re.compile(r"\\frac\{([^}]*)\}\{([^}]*)\}")
+_MACRO = re.compile(r"\\([A-Za-z]+)")
+_IMPLICIT_1 = re.compile(r"([0-9A-Za-z\)])\s+([A-Za-z\(])")
+_IMPLICIT_2 = re.compile(r"(\))\s*(\()")
+
+
+def _latex_to_sympy_str(latex: str) -> str:
+    """Best-effort LaTeX -> sympy-parseable string for generated / hand-written
+    mechanism fields. Handles the small vocabulary these fields use: an ``=`` or
+    ``\\geq 0`` split, ``_{i}`` / ``_i`` subscripts, ``^{2}`` superscripts, a
+    ``\\frac``, Greek macros, and implicit multiplication."""
+    s = _GEQ_SPLIT.split(latex)[0]              # keep the LHS of an inequality
+    if "=" in s:
+        s = s.split("=", 1)[1]                  # RHS of an assignment
+    s = s.replace("\\left", "").replace("\\right", "")
+    s = _FRAC.sub(r"((\1)/(\2))", s)
+    s = _SUB_BRACE.sub("", s)                   # drop {..} subscripts
+    s = _SUB_BARE.sub("", s)                    # drop bare subscripts
+    s = _SUP_BRACE.sub(r"**(\1)", s)            # ^{..} -> **(..)
+    s = _SUP_BARE.sub(r"**\1", s)               # ^2    -> **2
+    s = _MACRO.sub(r"\1", s)                    # \theta -> theta
+    s = s.replace("{", "(").replace("}", ")")
+    for _ in range(3):                          # implicit multiplication
+        s = _IMPLICIT_1.sub(r"\1*\2", s)
+        s = _IMPLICIT_2.sub(r"\1*\2", s)
+    return s.strip()
+
+
 def _rhs_expr(latex_or_ast):
     if isinstance(latex_or_ast, str):
-        s = latex_or_ast.split("=", 1)[-1]
-        s = s.replace("_i", "").replace("_j", "").replace("\\", "")
-        s = s.replace("{", "(").replace("}", ")")
-        env = {k: sympy.Symbol(k) for k in ("q", "e", "B", "n", "v")}
-        return sympy.sympify(s, locals=env)
+        env = {k: sympy.Symbol(k) for k in _KNOWN_SYMBOLS}
+        return sympy.sympify(_latex_to_sympy_str(latex_or_ast), locals=env)
     if ast_to_sympy is not None:
         return ast_to_sympy(latex_or_ast)
     raise TypeError(f"cannot build expr from {type(latex_or_ast)!r}")
+
+
+def _payment_from_utility(util_expr):
+    """U_i(reward, signals) -> reward(signals) at the IR-binding point (U_i = 0).
+
+    The reward variable is whichever free symbol is not in ``_KNOWN_SYMBOLS``
+    (e.g. ``R`` / ``w`` / ``p``). If there is not exactly one, or it cannot be
+    solved for, fall back to the utility expression unchanged. Reading the
+    payment off the verified IR constraint is not mechanism design -- it is the
+    deployment point the certificate already pins down.
+    """
+    unknown = [x for x in util_expr.free_symbols if str(x) not in _KNOWN_SYMBOLS]
+    if len(unknown) != 1:
+        return util_expr
+    sol = sympy.solve(sympy.Eq(util_expr, 0), unknown[0])
+    return sol[0] if sol else util_expr
+
+
+def _payment_from_follower_utility(util_expr):
+    """Stackelberg follower utility  U = p*e - <private cost in e>  ->  the
+    leader's transfer  p*e , i.e. the term(s) linear in the follower's effort
+    ``e``. Any leftover non-effort symbol in that term is the per-unit price the
+    leader sets; the sim binds it to 1 and lets the budget renormalisation fix
+    the scale, so the deployed rule is "pay in proportion to contributed effort,
+    capped at budget" -- the structure the certificate proves, nothing added.
+    """
+    e = sympy.Symbol("e")
+    if e not in util_expr.free_symbols:
+        return util_expr
+    try:
+        linear_coeff = sympy.Poly(sympy.expand(util_expr), e).coeff_monomial(e)
+    except sympy.PolynomialError:
+        return util_expr
+    if linear_coeff == 0:
+        return util_expr
+    price_syms = [s for s in linear_coeff.free_symbols if str(s) not in _KNOWN_SYMBOLS]
+    return (linear_coeff.subs({s: 1 for s in price_syms}) * e)
 
 
 def _hook_from_expr(expr, budget: float):
@@ -86,16 +162,22 @@ def build_reward_hook(mechanism, setting: str, *, budget: float):
         return _hook_from_expr(_rhs_expr(node), budget)
 
     if isinstance(mechanism, dict):
-        latex = (mechanism.get("payment_rule_latex")
-                 or mechanism.get("ir_participation_latex")
-                 or mechanism.get("client_utility_latex"))
-        if latex is None:
-            raise KeyError("mechanism_dict has no payment/utility latex field")
-        return _hook_from_expr(_rhs_expr(latex), budget)
+        if mechanism.get("payment_rule_latex"):
+            return _hook_from_expr(_rhs_expr(mechanism["payment_rule_latex"]), budget)
+        if mechanism.get("client_utility_latex"):
+            util = _rhs_expr(mechanism["client_utility_latex"])
+            return _hook_from_expr(_payment_from_utility(util), budget)
+        if mechanism.get("follower_utility_latex"):        # Stackelberg
+            util = _rhs_expr(mechanism["follower_utility_latex"])
+            return _hook_from_expr(_payment_from_follower_utility(util), budget)
+        if mechanism.get("ir_participation_latex"):
+            return _hook_from_expr(_rhs_expr(mechanism["ir_participation_latex"]), budget)
+        raise KeyError("mechanism_dict has no payment/utility latex field")
 
     raise TypeError(f"unsupported mechanism type {type(mechanism)!r}")
 
 
-# ponytail: the latex-string branch does crude cleanup (strip _i, braces) for
-# hand-written fixtures. Real generated mechanisms should be passed as a
-# Mechanism AST (run.py loads them that way), which uses ast_to_sympy directly.
+# ponytail: the latex-string branch does crude cleanup (subscripts, \frac, Greek,
+# implicit multiplication) for hand-written and LLM-generated fixtures. Passing a
+# Mechanism AST instead uses architect.serialize.ast_to_sympy directly and skips
+# all of this.

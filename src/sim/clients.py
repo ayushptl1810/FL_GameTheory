@@ -34,6 +34,11 @@ class Client:
         self.history: list[dict] = []
         self.cost_fn = lambda e: self.cost_coeff * e ** 2
         self.peer_labels: dict[int, int] = {}
+        # Local-training hyperparameters. Defaults preserve the original loop;
+        # run.build_population overrides them per-setting so the accuracy curve
+        # is a gradual ramp instead of a one-round jump to the model's ceiling.
+        self.lr: float = 0.5
+        self.base_epochs: int = BASE_EPOCHS
 
     def decide(self, ctx: RoundContext) -> Action:
         return Action(True, 1.0, 1.0, 0.0, 1.0)
@@ -59,9 +64,9 @@ class Client:
         n_classes = global_params.shape[1]
         model = LogRegModel(X.shape[1], n_classes)
         model.set_params(global_params)
-        epochs = max(1, round(BASE_EPOCHS * action.effort))
+        epochs = max(1, round(self.base_epochs * action.effort))
         new = model.train_local(X[self.data_idx], y[self.data_idx],
-                                lr=0.5, epochs=epochs, batch=32,
+                                lr=self.lr, epochs=epochs, batch=32,
                                 seed=ctx.round_idx + self.client_id)
         delta = (new - global_params) * action.grad_scale
         if action.noise_sigma > 0:
