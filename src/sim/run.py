@@ -55,6 +55,13 @@ POPULATIONS: dict[str, list[tuple[float, type, dict]]] = {
 # whether to stamp the "placeholder mechanism" banner.
 GENERATED_IS_PLACEHOLDER: dict[str, bool] = {}
 
+# Deviation grid for the empirical-IC-regret probe. Effort is held at the honest
+# level (1.0): IC-regret measures the gain from misreporting the *signal* the
+# mechanism prices on (claimed quality, submitted gradient scale) -- i.e. from
+# lying, not from working less. Effort shirking is moral hazard, a separate axis;
+# folding it in here makes even the `none` arm show "regret" (a costly-effort
+# client always prefers to shirk when nothing rewards it), which is not an
+# incentive-compatibility failure of any mechanism. See docs/sim-notes.md.
 _IC_GRID_QUALITY = (0.5, 1.0, 1.5, 2.0)
 _IC_GRID_GRAD_SCALE = (0.5, 1.0)
 
@@ -189,9 +196,14 @@ def run_setting(setting: str, arm: str, population: str, seed: int) -> dict:
     n_reports = [len(rec["reports"]) for rec in log.rounds]
     sum_client_value = sum(g * n for g, n in zip(acc_gain, n_reports))
     sum_true_cost = sum(rep.true_cost for rec in log.rounds for rep in rec["reports"])
-    sum_payments = sum(sum(rec["payments"].values()) for rec in log.rounds)
     server_value = sum(g * 10 for g in acc_gain)
-    social_welfare = sum_client_value - sum_true_cost - sum_payments + server_value
+    # Social welfare = value created - real resources consumed. Payments are
+    # transfers (server pays exactly what clients receive), so they cancel in the
+    # social sum and are NOT subtracted here -- whether the mechanism *over*pays
+    # is the separate budget_adherence check. Earlier drafts subtracted total
+    # payments, which double-counted the transfer and ranked the free-riding
+    # `none` arm as welfare-optimal.
+    social_welfare = sum_client_value + server_value - sum_true_cost
 
     # final_accuracy is the fully-updated model (RunLog.final_params); the last
     # curve entry is pre-update for round T-1, one aggregation behind.
