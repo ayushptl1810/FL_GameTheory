@@ -104,17 +104,16 @@ def write_report(agg: list[dict], path: str = "docs/sim-results.md",
     )
     lines.append("")
 
-    if any(GENERATED_IS_PLACEHOLDER.get(s) for s in settings):
-        lines.append(
-            "**⚠ placeholder mechanism** — the `generated` arm used a placeholder "
-            "fixture; numbers below are not a real loop output."
-        )
-        lines.append("")
-
     for setting in settings:
         rows = [r for r in agg if r["setting"] == setting]
         lines.append(f"## {setting}")
         lines.append("")
+        if GENERATED_IS_PLACEHOLDER.get(setting):
+            lines.append(
+                "**⚠ placeholder mechanism** — this setting's `generated` arm used a "
+                "placeholder fixture, not a real loop output; its row is not evidence."
+            )
+            lines.append("")
         lines.append("| arm | participation | final acc | social welfare | emp. IC-regret | budget ok |")
         lines.append("|---|---|---|---|---|---|")
         for r in sorted(rows, key=lambda r: r["arm"]):

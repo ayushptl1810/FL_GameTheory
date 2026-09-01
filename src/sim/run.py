@@ -220,7 +220,8 @@ def run_setting(setting: str, arm: str, population: str, seed: int) -> dict:
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="FL empirical-validation sim runner")
-    ap.add_argument("--setting", default="cross_device_quadratic", choices=list(SETTINGS))
+    ap.add_argument("--setting", default="cross_device_quadratic",
+                    choices=[*SETTINGS, "all"])
     ap.add_argument("--arm", action="append", default=None,
                     help="repeatable; default: none oracle generated")
     ap.add_argument("--population", default="mixed_60_20_15_5", choices=list(POPULATIONS))
@@ -228,15 +229,17 @@ def main(argv=None) -> int:
     ap.add_argument("--out", default="docs/sim-results.md")
     args = ap.parse_args(argv)
     arms = args.arm or ["none", "oracle", "generated"]
+    settings = list(SETTINGS) if args.setting == "all" else [args.setting]
 
     from sim import report
 
     all_results = []
-    for arm in arms:
-        for seed in args.seeds:
-            m = run_setting(args.setting, arm, args.population, seed)
-            print(m)
-            all_results.append(m)
+    for setting in settings:
+        for arm in arms:
+            for seed in args.seeds:
+                m = run_setting(setting, arm, args.population, seed)
+                print(m)
+                all_results.append(m)
 
     report.write_report(report.aggregate(all_results), path=args.out,
                         placeholder=dict(GENERATED_IS_PLACEHOLDER))

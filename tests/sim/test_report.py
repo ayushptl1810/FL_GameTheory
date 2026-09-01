@@ -32,3 +32,23 @@ def test_write_report_flags_generated_below_oracle(tmp_path):
     text = p.read_text().lower()
     assert "generated" in text and "ic-regret" in text
     assert "underperform" in text or "below" in text
+
+
+def test_placeholder_banner_is_per_setting(tmp_path):
+    p = tmp_path / "r.md"
+    rows = aggregate([
+        {"setting": "real1", "arm": "generated", "population": "p", "seed": 0,
+         "participation_rate": 0.9, "final_accuracy": 0.8, "social_welfare": 1.0,
+         "empirical_ic_regret": 0.1, "budget_adherence": True,
+         "curve_participation": [0.9], "curve_accuracy": [0.8]},
+        {"setting": "fake2", "arm": "generated", "population": "p", "seed": 0,
+         "participation_rate": 0.9, "final_accuracy": 0.8, "social_welfare": 1.0,
+         "empirical_ic_regret": 0.1, "budget_adherence": True,
+         "curve_participation": [0.9], "curve_accuracy": [0.8]},
+    ])
+    write_report(rows, path=str(p), placeholder={"fake2": True, "real1": False})
+    body = p.read_text()
+    fake_section = body.split("## fake2", 1)[1]
+    real_section = body.split("## real1", 1)[1].split("##", 1)[0]
+    assert "placeholder mechanism" in fake_section
+    assert "placeholder mechanism" not in real_section

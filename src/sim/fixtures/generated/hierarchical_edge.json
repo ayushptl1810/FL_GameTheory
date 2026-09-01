@@ -1,6 +1,6 @@
 {
   "kind": "dict",
-  "note": "PLACEHOLDER — replace with a real ArchitectResult.mechanism_dict snapshot before reporting. Fixtures must not be hand-tuned (spec honest-framing). The Architect loop needs an LLM backend that is not available in this environment; tracked follow-up: 'replace placeholder sim mechanism fixtures'.",
+  "note": "PLACEHOLDER - the Architect loop was run against this benchmark (ARCHITECT_AST_VERIFY=1, Groq openai/gpt-oss-120b) but did not reach an entry-specific VERIFIED verdict: every Stackelberg proposal stalled at VERIFIED_TEMPLATE ('category core returned no entry-specific result') across 12 iterations, twice. Stackelberg is the hardest family for the loop and this model. Fixture must not be hand-tuned (spec honest-framing). Tracked follow-up: replace with a real snapshot once the loop lands a Stackelberg proof here (stronger model, or the entry-specific Stackelberg seam engaging).",
   "mechanism_dict": {
     "payment_rule_latex": "p_i = q_i * B / n",
     "client_utility_latex": "u_i = q_i - p_i"
