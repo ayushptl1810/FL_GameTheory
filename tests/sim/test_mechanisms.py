@@ -39,3 +39,16 @@ def test_mechanism_dict_latex_builds_a_hook():
     hook = build_reward_hook(mdict, "unit", budget=100.0)
     out = hook([_rep(0, q=1.0), _rep(1, q=3.0)], _ctx(budget=100.0))
     assert out[1] > out[0] > 0.0
+
+
+def test_contract_utility_dict_derives_ir_binding_payment():
+    # Real generated cross_device_quadratic shape: no payment rule, only a
+    # client-utility form. Payment = the reward that makes U_i = 0 (IR binds).
+    mdict = {"client_utility_latex": r"R_{i} - e_{i}^{2} \theta_{i}",
+             "ir_participation_latex": r"R_{i} - e_{i}^{2} \theta_{i} \geq 0"}
+    hook = build_reward_hook(mdict, "cross_device_quadratic", budget=100.0)
+    # higher effort proxy (delta norm) => higher IR-binding reward
+    lo = _rep(0, q=1.0, dnorm=0.5)
+    hi = _rep(1, q=1.0, dnorm=2.0)
+    out = hook([lo, hi], _ctx(budget=100.0))
+    assert out[1] > out[0] >= 0.0

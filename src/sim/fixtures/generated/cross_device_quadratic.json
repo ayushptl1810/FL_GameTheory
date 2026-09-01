@@ -1,8 +1,17 @@
 {
   "kind": "dict",
-  "note": "PLACEHOLDER — replace with a real ArchitectResult.mechanism_dict snapshot before reporting. Fixtures must not be hand-tuned (spec honest-framing). The Architect loop needs an LLM backend that is not available in this environment; tracked follow-up: 'replace placeholder sim mechanism fixtures'.",
+  "note": "Real ArchitectResult.mechanism_dict snapshot (ARCHITECT_AST_VERIFY=1, model=openai/gpt-oss-120b). setting=cross_device_quadratic; expected_family=Contract; status=VERIFIED; iterations=3; solver_calls=3; mode=Hybrid.",
+  "certificate": [
+    "IR: U_i(own) \u2265 0  [entry-specific utility]",
+    "IC: U_i(own) \u2265 U_i(j) for all 2\u00d71 pairs  [entry-specific utility]"
+  ],
   "mechanism_dict": {
-    "payment_rule_latex": "p_i = q_i * B / n",
-    "client_utility_latex": "u_i = q_i - p_i"
+    "client_utility_latex": "R_{i} - e_{i}^{2} \\theta_{i}",
+    "ic_screening_latex": "R_{i} - e_{i}^{2} \\theta_{i} \\geq R_{j} - e_{j}^{2} \\theta_{i}",
+    "ir_participation_latex": "R_{i} - e_{i}^{2} \\theta_{i} \\geq 0",
+    "ic_condition_latex": "R_{i} - e_{i}^{2} \\theta_{i} \\geq R_{j} - e_{j}^{2} \\theta_{i}",
+    "ir_condition_latex": "R_{i} - e_{i}^{2} \\theta_{i} \\geq 0",
+    "num_types": 2,
+    "type_variable": "theta_i"
   }
 }
