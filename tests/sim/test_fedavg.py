@@ -57,3 +57,18 @@ def test_run_fedavg_improves_accuracy_and_logs_rounds():
     assert set(log.rounds[0]) == {"round_idx", "accuracy", "participation_rate", "payments", "reports"}
     assert log.rounds[-1]["accuracy"] > log.rounds[0]["accuracy"]
     assert 0.0 <= log.rounds[0]["participation_rate"] <= 1.0
+
+
+def test_centroid_scale_controls_difficulty():
+    # Lower separation => lower one-shot accuracy ceiling => harder task.
+    # Same shape+scale must reproduce the same distribution across seeds so a
+    # train/test split stays comparable (a fixed classifier scores similarly).
+    Xe, ye = make_data(600, 8, 3, seed=0, centroid_scale=2.5)
+    Xh, yh = make_data(600, 8, 3, seed=0, centroid_scale=0.7)
+    easy, hard = LogRegModel(8, 3), LogRegModel(8, 3)
+    easy.set_params(easy.train_local(Xe, ye, lr=0.5, epochs=40, batch=64, seed=0))
+    hard.set_params(hard.train_local(Xh, yh, lr=0.5, epochs=40, batch=64, seed=0))
+    assert easy.accuracy(Xe, ye) > hard.accuracy(Xh, yh) + 0.05
+    # reproducible distribution: a model fit on one draw generalises to another
+    Xh2, yh2 = make_data(600, 8, 3, seed=123, centroid_scale=0.7)
+    assert abs(hard.accuracy(Xh, yh) - hard.accuracy(Xh2, yh2)) < 0.1

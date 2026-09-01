@@ -11,17 +11,24 @@ from typing import Callable
 import numpy as np
 
 
-def make_data(n_samples: int, n_features: int, n_classes: int, seed: int):
+def make_data(n_samples: int, n_features: int, n_classes: int, seed: int,
+              centroid_scale: float = 2.5):
     """Gaussian blobs: one class centroid per class, unit-variance noise.
 
-    The centroids are fixed by ``(n_features, n_classes)`` alone (a dedicated
-    generator seeded independently of ``seed``) so that every ``make_data`` call
-    with the same shape samples the *same* distribution -- a train split and a
-    held-out test split drawn with different ``seed`` values stay comparable.
-    ``seed`` controls only which points are drawn.
+    The centroids are fixed by ``(n_features, n_classes, centroid_scale)`` alone
+    (a dedicated generator seeded independently of ``seed``) so that every
+    ``make_data`` call with the same shape+scale samples the *same* distribution
+    -- a train split and a held-out test split drawn with different ``seed``
+    values stay comparable. ``seed`` controls only which points are drawn.
+
+    ``centroid_scale`` sets class separation, i.e. task difficulty: the default
+    2.5 is near-separable (accuracy ceiling ~1.0, reached in one round); smaller
+    values lower the ceiling and slow convergence so the FedAvg accuracy curve
+    ramps up gradually over the round budget instead of jumping at round 1.
     """
-    centroid_rng = np.random.default_rng(1_000_003 * n_classes + n_features)
-    centroids = centroid_rng.normal(0.0, 2.5, size=(n_classes, n_features))
+    centroid_rng = np.random.default_rng(
+        int(1_000_003 * n_classes + n_features + 7919 * round(centroid_scale * 100)))
+    centroids = centroid_rng.normal(0.0, centroid_scale, size=(n_classes, n_features))
     rng = np.random.default_rng(seed)
     y = rng.integers(0, n_classes, size=n_samples)
     X = centroids[y] + rng.normal(0.0, 1.0, size=(n_samples, n_features))

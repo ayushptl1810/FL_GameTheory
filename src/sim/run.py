@@ -26,12 +26,16 @@ SETTINGS: dict[str, dict] = {
         "n_clients": 50, "clients_per_round": 10, "rounds": 30, "alpha": 0.3,
         "n_features": 16, "n_classes": 3, "n_samples": 6000, "budget": 50.0,
         "cost": "quadratic", "cost_coeff_range": (0.5, 2.0),
+        # difficulty knobs: low separation + small step so accuracy ramps over
+        # the 30 rounds instead of hitting the ceiling at round 1.
+        "centroid_scale": 0.7, "lr": 0.05, "local_epochs": 2,
     },
     # 5 edge x 10 device, modelled flat with edge_id = client_id // 10.
     "hierarchical_edge": {
         "n_clients": 50, "clients_per_round": 10, "rounds": 30, "alpha": 0.5,
         "n_features": 16, "n_classes": 3, "n_samples": 6000, "budget": 50.0,
         "cost": "linear", "cost_coeff_range": (0.3, 1.0),
+        "centroid_scale": 0.7, "lr": 0.05, "local_epochs": 2,
     },
 }
 
@@ -95,6 +99,8 @@ def build_population(setting: str, pop_name: str, seed: int,
         c = cls(cid, partition[cid], float(coeffs[cid]), rng_seed=seed * 1000 + cid, **kw)
         cc = float(coeffs[cid])
         c.cost_fn = (lambda e, _cc=cc: _cc * e) if linear else (lambda e, _cc=cc: _cc * e ** 2)
+        c.lr = float(cfg.get("lr", 0.5))
+        c.base_epochs = int(cfg.get("local_epochs", 8))
         clients.append(c)
 
     labels = {cid: int(np.bincount(y[partition[cid]]).argmax()) for cid in range(n)}
@@ -156,8 +162,9 @@ def _empirical_ic_regret(clients, log, hook, X, y) -> float:
 
 def run_setting(setting: str, arm: str, population: str, seed: int) -> dict:
     cfg = SETTINGS[setting]
-    X, y = make_data(cfg["n_samples"], cfg["n_features"], cfg["n_classes"], seed)
-    test_X, test_y = make_data(2000, cfg["n_features"], cfg["n_classes"], seed + 10_000)
+    cscale = cfg.get("centroid_scale", 2.5)
+    X, y = make_data(cfg["n_samples"], cfg["n_features"], cfg["n_classes"], seed, cscale)
+    test_X, test_y = make_data(2000, cfg["n_features"], cfg["n_classes"], seed + 10_000, cscale)
     partition = dirichlet_partition(y, cfg["n_clients"], cfg["alpha"], seed)
     clients = build_population(setting, population, seed, partition, y)
     hook = build_reward_hook(get_mechanism(arm, setting), setting, budget=cfg["budget"])
