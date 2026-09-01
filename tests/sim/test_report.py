@@ -20,9 +20,20 @@ def test_aggregate_groups_and_takes_regret_max():
 
 
 def test_sparkline_charset_and_empty():
-    s = sparkline([1, 2, 3, 4, 5, 6, 7, 8])
+    s = sparkline([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8])
     assert s and set(s).issubset(set("▁▂▃▄▅▆▇█"))
     assert sparkline([]) == ""
+
+
+def test_sparkline_absolute_scale():
+    # rising 0..1 series -> non-decreasing bar heights
+    bars = sparkline([0.0, 0.25, 0.5, 0.75, 1.0])
+    heights = ["▁▂▃▄▅▆▇█".index(c) for c in bars]
+    assert heights == sorted(heights) and heights[0] == 0 and heights[-1] == 7
+    # constant full participation -> all full bars, not empty ones
+    assert set(sparkline([1.0] * 10)) == {"█"}
+    # constant mid -> a mid bar (absolute, not min/max normalised to ▁)
+    assert set(sparkline([0.5] * 6)) == {"▅"}
 
 
 def test_write_report_flags_generated_below_oracle(tmp_path):
@@ -31,7 +42,8 @@ def test_write_report_flags_generated_below_oracle(tmp_path):
     write_report(agg, path=str(p))
     text = p.read_text().lower()
     assert "generated" in text and "ic-regret" in text
-    assert "underperform" in text or "below" in text
+    # the worse-than-oracle finding is disclosed, not buried
+    assert any(w in text for w in ("trails", "below", "underperform"))
 
 
 def test_placeholder_banner_is_per_setting(tmp_path):
