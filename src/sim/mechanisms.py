@@ -111,6 +111,27 @@ def _payment_from_utility(util_expr):
     return sol[0] if sol else util_expr
 
 
+def _payment_from_follower_utility(util_expr):
+    """Stackelberg follower utility  U = p*e - <private cost in e>  ->  the
+    leader's transfer  p*e , i.e. the term(s) linear in the follower's effort
+    ``e``. Any leftover non-effort symbol in that term is the per-unit price the
+    leader sets; the sim binds it to 1 and lets the budget renormalisation fix
+    the scale, so the deployed rule is "pay in proportion to contributed effort,
+    capped at budget" -- the structure the certificate proves, nothing added.
+    """
+    e = sympy.Symbol("e")
+    if e not in util_expr.free_symbols:
+        return util_expr
+    try:
+        linear_coeff = sympy.Poly(sympy.expand(util_expr), e).coeff_monomial(e)
+    except sympy.PolynomialError:
+        return util_expr
+    if linear_coeff == 0:
+        return util_expr
+    price_syms = [s for s in linear_coeff.free_symbols if str(s) not in _KNOWN_SYMBOLS]
+    return (linear_coeff.subs({s: 1 for s in price_syms}) * e)
+
+
 def _hook_from_expr(expr, budget: float):
     syms = sorted(expr.free_symbols, key=str)
     f = sympy.lambdify([sympy.Symbol(str(s)) for s in syms], expr, "numpy")
@@ -146,6 +167,9 @@ def build_reward_hook(mechanism, setting: str, *, budget: float):
         if mechanism.get("client_utility_latex"):
             util = _rhs_expr(mechanism["client_utility_latex"])
             return _hook_from_expr(_payment_from_utility(util), budget)
+        if mechanism.get("follower_utility_latex"):        # Stackelberg
+            util = _rhs_expr(mechanism["follower_utility_latex"])
+            return _hook_from_expr(_payment_from_follower_utility(util), budget)
         if mechanism.get("ir_participation_latex"):
             return _hook_from_expr(_rhs_expr(mechanism["ir_participation_latex"]), budget)
         raise KeyError("mechanism_dict has no payment/utility latex field")

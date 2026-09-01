@@ -1,8 +1,14 @@
 {
   "kind": "dict",
-  "note": "PLACEHOLDER - the Architect loop was run against this benchmark (ARCHITECT_AST_VERIFY=1, Groq openai/gpt-oss-120b) but did not reach an entry-specific VERIFIED verdict: every Stackelberg proposal stalled at VERIFIED_TEMPLATE ('category core returned no entry-specific result') across 12 iterations, twice. Stackelberg is the hardest family for the loop and this model. Fixture must not be hand-tuned (spec honest-framing). Tracked follow-up: replace with a real snapshot once the loop lands a Stackelberg proof here (stronger model, or the entry-specific Stackelberg seam engaging).",
+  "note": "Real ArchitectResult.mechanism_dict snapshot (ARCHITECT_AST_VERIFY=1, model=openai/gpt-oss-120b). setting=hierarchical_edge; expected_family=Stackelberg; status=VERIFIED; iterations=1; solver_calls=1; mode=Synthesis. Prompt: prescriptive linear-quadratic Stackelberg edge-pricing statement (see docs/sim-notes.md).",
+  "certificate": [
+    "FOC: d(follower utility)/de = 0  =>  e* = p/(2*c*k)  [concavity assumed from unique critical point]",
+    "IR: U_follower(e*, .) >= 0  [entry-specific utility]  -> VERIFIED"
+  ],
   "mechanism_dict": {
-    "payment_rule_latex": "p_i = q_i * B / n",
-    "client_utility_latex": "u_i = q_i - p_i"
+    "follower_utility_latex": "- c e^{2} k + e p",
+    "equilibrium_existence": true,
+    "follower_decision": "\\( e \\)",
+    "num_types": 1
   }
 }
