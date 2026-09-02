@@ -70,3 +70,31 @@ def test_run_batch_only_filters_by_category(tmp_path, monkeypatch):
     cp = _corpus(tmp_path)
     out = run_batch(cp, only="VCG", today="2026-08-31")
     assert out["summary"]["selected"] == 1
+
+
+def test_run_batch_resume_skips_already_formalized(tmp_path, monkeypatch):
+    _stub_verified(monkeypatch)
+    data = [
+        {"paper_id": "aaa", "category": "Contract",
+         "mechanism": {"ic_screening_latex": "x", "ir_participation_latex": "y"},
+         "formalized_ast": {"t": "Mechanism"}},
+        {"paper_id": "bbb", "category": "Contract",
+         "mechanism": {"ic_screening_latex": "x", "ir_participation_latex": "y"}},
+    ]
+    cp = tmp_path / "corpus.json"
+    cp.write_text(json.dumps(data))
+    out = run_batch(str(cp), only="Contract", resume=True, today="2026-09-02")
+    assert out["summary"]["selected"] == 1
+    assert out["records"][0]["paper_id"] == "bbb"
+
+
+def test_run_batch_limit_caps_selection(tmp_path, monkeypatch):
+    _stub_verified(monkeypatch)
+    data = [
+        {"paper_id": f"p{i}", "category": "VCG",
+         "mechanism": {"payment_rule_latex": "p"}} for i in range(5)
+    ]
+    cp = tmp_path / "corpus.json"
+    cp.write_text(json.dumps(data))
+    out = run_batch(str(cp), only="VCG", limit=2, today="2026-09-02")
+    assert out["summary"]["selected"] == 2

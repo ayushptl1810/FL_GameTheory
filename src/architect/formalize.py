@@ -177,13 +177,18 @@ def _report_md(records, today):
 
 
 def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
-              complete=llm_complete, today=None):
+              complete=llm_complete, today=None, resume=False, limit=None):
     today = today or date.today().isoformat()
     with open(corpus_path) as fh:
         corpus = json.load(fh)
     model = os.environ.get("ARCHITECT_LLM_MODEL", "default")
+    selected = _select(corpus, ids, only)
+    if resume:
+        selected = [e for e in selected if not e.get("formalized_ast")]
+    if limit is not None:
+        selected = selected[:limit]
     records = []
-    for entry in _select(corpus, ids, only):
+    for entry in selected:
         pid = entry.get("paper_id", "")
         txt = pdf_text(pid)
         r = formalize_with_retry(entry, txt, complete=complete)
@@ -219,9 +224,14 @@ def main(argv=None):
     ap.add_argument("--ids", default=None, help="comma-separated paper_id list")
     ap.add_argument("--only", default=None, help="restrict to one category")
     ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--resume", action="store_true",
+                    help="skip entries that already have formalized_ast")
+    ap.add_argument("--limit", type=int, default=None,
+                    help="process at most N entries after selection/resume")
     args = ap.parse_args(argv)
     ids = args.ids.split(",") if args.ids else None
-    out = run_batch(args.corpus_path, ids=ids, only=args.only, dry_run=args.dry_run)
+    out = run_batch(args.corpus_path, ids=ids, only=args.only,
+                    dry_run=args.dry_run, resume=args.resume, limit=args.limit)
     print("summary:", out["summary"], "report:", out["report_path"])
 
 
