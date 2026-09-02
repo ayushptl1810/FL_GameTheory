@@ -76,3 +76,57 @@ def adversary_check(m, entry, pdf_text, *, complete=llm_complete):
         return c if isinstance(c, list) else []
     except Exception:
         return []
+
+
+from dataclasses import dataclass, field
+from architect.ast_verify import verify_from_ast
+
+
+@dataclass
+class FormalizeResult:
+    verdict: str
+    ast: object | None
+    adversary_log: list = field(default_factory=list)
+    retries: int = 0
+    pdf_used: bool = False
+    notes: str = ""
+
+
+def _verify(m, entry):
+    return verify_from_ast(m, meta={"paper_id": entry.get("paper_id", "")})
+
+
+def formalize_with_retry(entry, pdf_text, *, complete=llm_complete):
+    used = pdf_text is not None
+    m = formalize_entry(entry, pdf_text, complete=complete)
+    if m is None:
+        return FormalizeResult("UNKNOWN", None, [], 0, used,
+                               "formalization returned no valid AST")
+    res = _verify(m, entry)
+    concerns, adversary_log = None, []
+    if res.verdict == "VERIFIED":
+        c = adversary_check(m, entry, pdf_text, complete=complete)
+        if not c:
+            return FormalizeResult("VERIFIED", m, [[]], 0, used, "")
+        concerns, adversary_log = c, [c]
+    elif res.verdict == "COUNTEREXAMPLE":
+        concerns, adversary_log = None, []
+    else:
+        return FormalizeResult(res.verdict, m, [], 0, used, getattr(res, "notes", "") or "")
+
+    m2 = formalize_entry(entry, pdf_text, complete=complete, concerns=concerns)
+    if m2 is None:
+        return FormalizeResult("UNKNOWN", m, adversary_log, 1, used,
+                               "retry formalization returned no valid AST")
+    res2 = _verify(m2, entry)
+    if res2.verdict == "VERIFIED":
+        c2 = adversary_check(m2, entry, pdf_text, complete=complete)
+        if not c2:
+            return FormalizeResult("VERIFIED", m2, adversary_log + [[]], 1, used, "")
+        return FormalizeResult("UNKNOWN", m2, adversary_log + [c2], 1, used,
+                               "adversary still flagged after retry")
+    if res2.verdict == "COUNTEREXAMPLE":
+        return FormalizeResult("COUNTEREXAMPLE", m2, adversary_log, 1, used,
+                               "counterexample persists after retry")
+    return FormalizeResult(res2.verdict, m2, adversary_log, 1, used,
+                           getattr(res2, "notes", "") or "")

@@ -107,3 +107,76 @@ def test_adversary_non_list_concerns_returns_empty():
     out = adversary_check(_m(), _entry(), None,
                           complete=lambda s, u, *, json_mode=False: '{"concerns": "nope"}')
     assert out == []
+
+
+from architect.formalize import formalize_with_retry, FormalizeResult
+import architect.formalize as F
+from architect.ast import Mechanism, Sym
+
+
+class _Res:
+    def __init__(self, verdict, notes=""):
+        self.verdict = verdict
+        self.notes = notes
+
+
+def _install(monkeypatch, *, asts, verdicts, adv):
+    a_it, v_it, d_it = iter(asts), iter(verdicts), iter(adv)
+    monkeypatch.setattr(F, "formalize_entry", lambda *a, **k: next(a_it))
+    monkeypatch.setattr(F, "verify_from_ast", lambda *a, **k: _Res(next(v_it)))
+    monkeypatch.setattr(F, "adversary_check", lambda *a, **k: next(d_it))
+
+
+def _m(tag="u"):
+    return Mechanism(category="Contract", utility=Sym(tag), payment=Sym("P"),
+                     ic=Sym("g"), ir=Sym("u"))
+
+
+def test_retry_verified_clean_first_pass(monkeypatch):
+    _install(monkeypatch, asts=[_m()], verdicts=["VERIFIED"], adv=[[]])
+    r = formalize_with_retry({"paper_id": "x"}, "pdf")
+    assert r.verdict == "VERIFIED" and r.retries == 0 and r.pdf_used is True
+
+
+def test_retry_none_ast_is_unknown(monkeypatch):
+    _install(monkeypatch, asts=[None], verdicts=[], adv=[])
+    r = formalize_with_retry({"paper_id": "x"}, None)
+    assert r.verdict == "UNKNOWN" and r.ast is None and r.pdf_used is False
+
+
+def test_retry_adversary_flags_then_clean(monkeypatch):
+    _install(monkeypatch, asts=[_m("a"), _m("b")],
+             verdicts=["VERIFIED", "VERIFIED"],
+             adv=[[{"field": "ic", "issue": "dropped term"}], []])
+    r = formalize_with_retry({"paper_id": "x"}, "pdf")
+    assert r.verdict == "VERIFIED" and r.retries == 1
+    assert r.adversary_log == [[{"field": "ic", "issue": "dropped term"}], []]
+
+
+def test_retry_adversary_still_flags_is_unknown(monkeypatch):
+    _install(monkeypatch, asts=[_m("a"), _m("b")],
+             verdicts=["VERIFIED", "VERIFIED"],
+             adv=[[{"field": "ic", "issue": "x"}], [{"field": "ic", "issue": "still x"}]])
+    r = formalize_with_retry({"paper_id": "x"}, "pdf")
+    assert r.verdict == "UNKNOWN" and r.retries == 1
+    assert "still flagged" in r.notes
+
+
+def test_retry_counterexample_then_verified(monkeypatch):
+    _install(monkeypatch, asts=[_m("a"), _m("b")],
+             verdicts=["COUNTEREXAMPLE", "VERIFIED"], adv=[[]])
+    r = formalize_with_retry({"paper_id": "x"}, None)
+    assert r.verdict == "VERIFIED" and r.retries == 1
+
+
+def test_retry_counterexample_persists(monkeypatch):
+    _install(monkeypatch, asts=[_m("a"), _m("b")],
+             verdicts=["COUNTEREXAMPLE", "COUNTEREXAMPLE"], adv=[])
+    r = formalize_with_retry({"paper_id": "x"}, None)
+    assert r.verdict == "COUNTEREXAMPLE" and r.retries == 1
+
+
+def test_retry_unknown_verdict_no_retry(monkeypatch):
+    _install(monkeypatch, asts=[_m()], verdicts=["UNKNOWN"], adv=[])
+    r = formalize_with_retry({"paper_id": "x"}, "pdf")
+    assert r.verdict == "UNKNOWN" and r.retries == 0
