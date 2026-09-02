@@ -255,7 +255,10 @@ def verify_corpus(entries_dir: Path, gold_only: bool = False) -> list[Verificati
 
 # ── Summary printer ───────────────────────────────────────────────────────────
 
-def print_summary(results: list[VerificationResult]) -> None:
+def print_summary(
+    results: list[VerificationResult],
+    backlog_path: str = "docs/superpowers/notes/MANUAL-backlog.md",
+) -> None:
     counts: Counter[str] = Counter(r.verdict for r in results)
     total = len(results)
 
@@ -350,6 +353,23 @@ def print_summary(results: list[VerificationResult]) -> None:
         if r.verdict not in ("VERIFIED", "VERIFIED_TEMPLATE", "VERIFIED_SHAPE", "UNSUPPORTED"):
             print(r)
             print()
+
+    manual = [r for r in results if r.verdict == "MANUAL"]
+    if manual:
+        bar = "█" * min(len(manual), 40)
+        print(f"  MANUAL            {bar}  ({len(manual)})")
+        print("\n  ## Diagnosed (MANUAL)")
+        for r in manual:
+            print(f"  - {r.paper_id}: {r.notes}")
+        try:
+            with open(backlog_path) as fh:
+                blob = fh.read()
+        except OSError:
+            blob = ""
+        missing = [r.paper_id for r in manual if r.paper_id not in blob]
+        if missing:
+            print(f"  ⚠️  MANUAL entries missing from MANUAL-backlog.md: "
+                  f"{', '.join(missing)}")
 
     flagged = [r for r in results if "RECONCILE-FLAG" in (r.notes or "")]
     if flagged:
