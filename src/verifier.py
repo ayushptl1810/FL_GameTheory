@@ -24,6 +24,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import re
 import sys
@@ -184,22 +185,23 @@ _LATEX_WEAK = {"VERIFIED_TEMPLATE", "VERIFIED_SHAPE", "UNKNOWN", "UNSUPPORTED"}
 def _flag(chosen: VerificationResult, latex: VerificationResult,
          llm: VerificationResult) -> VerificationResult:
     tag = f"RECONCILE-FLAG: LaTeX={latex.verdict} LLM={llm.verdict}"
-    chosen.notes = f"{chosen.notes} | {tag}".strip(" |")
-    return chosen
+    notes = f"{chosen.notes} | {tag}".strip(" |")
+    return dataclasses.replace(chosen, notes=notes)
 
 
 def _reconcile(llm: VerificationResult,
                latex: VerificationResult) -> tuple[VerificationResult, bool]:
     latex_is_verified = latex.verdict == "VERIFIED" and getattr(latex, "entry_specific", False)
-    if latex.verdict in _LATEX_WEAK and llm.verdict == "VERIFIED":
+    llm_is_verified = llm.verdict == "VERIFIED" and getattr(llm, "entry_specific", False)
+    if latex.verdict in _LATEX_WEAK and llm_is_verified:
         return llm, False
     if latex.verdict in _LATEX_WEAK and llm.verdict == "COUNTEREXAMPLE":
         return _flag(llm, latex, llm), True
-    if latex_is_verified and llm.verdict == "VERIFIED":
+    if latex_is_verified and llm_is_verified:
         return latex, False
     if latex_is_verified and llm.verdict in ("COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"):
         return _flag(latex, latex, llm), True
-    if latex.verdict == "COUNTEREXAMPLE" and llm.verdict == "VERIFIED":
+    if latex.verdict == "COUNTEREXAMPLE" and llm_is_verified:
         return _flag(latex, latex, llm), True
     return latex, False
 

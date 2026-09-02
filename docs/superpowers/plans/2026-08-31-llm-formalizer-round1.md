@@ -25,13 +25,15 @@
 
 | LaTeX-path verdict | LLM-path verdict | `_reconcile` returns |
 |---|---|---|
-| `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE` / `UNKNOWN` / `UNSUPPORTED` | `VERIFIED` | `(llm, flagged=False)` — LLM wins, entry flips |
+| `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE` / `UNKNOWN` / `UNSUPPORTED` | `VERIFIED` (`entry_specific=True`) | `(llm, flagged=False)` — LLM wins, entry flips |
 | `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE` / `UNKNOWN` / `UNSUPPORTED` | `COUNTEREXAMPLE` | `(llm, flagged=True)` — LLM wins, listed for review |
-| `VERIFIED` (`entry_specific=True`) | `VERIFIED` | `(latex, flagged=False)` — agree, keep LaTeX result |
+| `VERIFIED` (`entry_specific=True`) | `VERIFIED` (`entry_specific=True`) | `(latex, flagged=False)` — agree, keep LaTeX result |
 | `VERIFIED` (`entry_specific=True`) | `COUNTEREXAMPLE` / `UNKNOWN` / `UNSUPPORTED` | `(latex, flagged=True)` — existing proof stands, human decides |
-| `COUNTEREXAMPLE` | `VERIFIED` | `(latex, flagged=True)` — existing counterexample stands, human decides |
+| `COUNTEREXAMPLE` | `VERIFIED` (`entry_specific=True`) | `(latex, flagged=True)` — existing counterexample stands, human decides |
 | `COUNTEREXAMPLE` | anything else | `(latex, flagged=False)` — no upgrade, keep LaTeX result |
 | any | `UNKNOWN` (and LaTeX not `VERIFIED`/`COUNTEREXAMPLE`) | `(latex, flagged=False)` — no improvement, keep LaTeX result |
+
+A non-entry-specific LLM `VERIFIED` is treated as no upgrade — keep the LaTeX result.
 
 ---
 

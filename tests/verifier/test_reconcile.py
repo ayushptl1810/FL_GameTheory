@@ -50,6 +50,18 @@ def test_latex_counterexample_llm_unknown_keeps_latex():
     assert chosen.verdict == "COUNTEREXAMPLE" and flagged is False
 
 
+def test_non_entry_specific_llm_verified_does_not_upgrade():
+    chosen, flagged = _reconcile(_r("VERIFIED", entry_specific=False),
+                                 _r("VERIFIED_TEMPLATE"))
+    assert chosen.verdict == "VERIFIED_TEMPLATE" and flagged is False
+
+
+def test_non_entry_specific_llm_verified_vs_latex_counterexample():
+    chosen, flagged = _reconcile(_r("VERIFIED", entry_specific=False),
+                                 _r("COUNTEREXAMPLE"))
+    assert chosen.verdict == "COUNTEREXAMPLE" and flagged is False
+
+
 from architect.ast import Mechanism, Sym, to_dict
 from verifier import verify
 

@@ -177,7 +177,8 @@ def _report_md(records, today):
 
 
 def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
-              complete=llm_complete, today=None, resume=False, limit=None):
+              complete=llm_complete, today=None, resume=False, limit=None,
+              report_dir="docs/superpowers/notes"):
     today = today or date.today().isoformat()
     with open(corpus_path) as fh:
         corpus = json.load(fh)
@@ -210,11 +211,11 @@ def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
             json.dump(corpus, fh, indent=2, ensure_ascii=False)
             fh.write("\n")
     md, summary = _report_md(records, today)
-    report_path = os.path.join("docs", "superpowers", "notes",
-                               f"formalize-run-{today}.md")
-    os.makedirs(os.path.dirname(report_path), exist_ok=True)
-    with open(report_path, "w") as fh:
-        fh.write(md)
+    report_path = os.path.join(report_dir, f"formalize-run-{today}.md")
+    if not dry_run:
+        os.makedirs(os.path.dirname(report_path), exist_ok=True)
+        with open(report_path, "w") as fh:
+            fh.write(md)
     return {"records": records, "report_path": report_path, "summary": summary}
 
 
@@ -228,10 +229,13 @@ def main(argv=None):
                     help="skip entries that already have formalized_ast")
     ap.add_argument("--limit", type=int, default=None,
                     help="process at most N entries after selection/resume")
+    ap.add_argument("--report-dir", default="docs/superpowers/notes",
+                    help="directory for the run report markdown")
     args = ap.parse_args(argv)
     ids = args.ids.split(",") if args.ids else None
     out = run_batch(args.corpus_path, ids=ids, only=args.only,
-                    dry_run=args.dry_run, resume=args.resume, limit=args.limit)
+                    dry_run=args.dry_run, resume=args.resume, limit=args.limit,
+                    report_dir=args.report_dir)
     print("summary:", out["summary"], "report:", out["report_path"])
 
 

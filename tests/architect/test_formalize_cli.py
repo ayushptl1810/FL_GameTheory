@@ -1,5 +1,6 @@
 # tests/architect/test_formalize_cli.py
 import json
+import os
 import pytest
 from architect.formalize import run_batch, FormalizeResult
 import architect.formalize as F
@@ -46,8 +47,10 @@ def test_run_batch_dry_run_does_not_write(tmp_path, monkeypatch):
     _stub_verified(monkeypatch)
     cp = _corpus(tmp_path)
     before = open(cp).read()
-    run_batch(cp, ids=["aaa"], dry_run=True, today="2026-08-31")
+    out = run_batch(cp, ids=["aaa"], dry_run=True, today="2026-08-31",
+                    report_dir=str(tmp_path))
     assert open(cp).read() == before
+    assert not os.path.exists(out["report_path"])
 
 
 def test_run_batch_report_has_human_queue(tmp_path, monkeypatch):
