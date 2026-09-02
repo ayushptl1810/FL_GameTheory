@@ -241,3 +241,56 @@ def main(argv=None):
 
 if __name__ == "__main__":
     main()
+
+
+import re as _re
+
+MANUAL_BACKLOG_PATH = "docs/superpowers/notes/MANUAL-backlog.md"
+
+
+def write_manual_diagnosis(entry, *, round_, track, limit, mechanism,
+                           obstruction, human_task, today=None):
+    for name, val in (("limit", limit), ("obstruction", obstruction),
+                      ("human_task", human_task)):
+        if not str(val).strip():
+            raise ValueError(f"MANUAL diagnosis requires a non-empty {name!r}")
+    diag = {
+        "round": round_, "track": int(track), "limit": limit,
+        "mechanism": mechanism, "obstruction": obstruction,
+        "human_task": human_task,
+        "date": today or date.today().isoformat(),
+    }
+    entry["verdict_override"] = "MANUAL"
+    entry["manual_diagnosis"] = diag
+    return diag
+
+
+def _backlog_section(entry):
+    d = entry["manual_diagnosis"]
+    return (
+        f"## {entry.get('paper_id','')} ({entry.get('category','')}) — {d['round']}\n\n"
+        f"**Mechanism:** {d['mechanism']}\n"
+        f"**Obstruction:** {d['obstruction']} (Track {d['track']}: {d['limit']})\n"
+        f"**Human task:** {d['human_task']}\n"
+        f"**Diagnosed:** {d['date']}\n"
+    )
+
+
+def append_backlog_paragraph(entry, *, backlog_path=MANUAL_BACKLOG_PATH):
+    pid = entry.get("paper_id", "")
+    section = _backlog_section(entry)
+    header = ("# MANUAL Backlog\n\nOne paragraph per corpus entry that no "
+              "automated track can decide.\n")
+    try:
+        with open(backlog_path) as fh:
+            body = fh.read()
+    except OSError:
+        body = header
+    pat = _re.compile(rf"(?ms)^## {_re.escape(pid)} .*?(?=^## |\Z)")
+    body = pat.sub("", body).rstrip() + "\n"
+    if not body.startswith("# MANUAL Backlog"):
+        body = header + "\n" + body
+    body = body.rstrip() + "\n\n" + section
+    os.makedirs(os.path.dirname(backlog_path), exist_ok=True)
+    with open(backlog_path, "w") as fh:
+        fh.write(body.rstrip() + "\n")
