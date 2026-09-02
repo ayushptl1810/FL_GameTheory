@@ -2,6 +2,20 @@ from __future__ import annotations
 import os
 import re
 
+
+def _load_env():
+    try:
+        from dotenv import load_dotenv, find_dotenv
+    except ImportError:
+        return
+    path = find_dotenv(usecwd=True)
+    if path:
+        load_dotenv(path, override=False)
+
+
+_load_env()
+
+
 class LLMError(RuntimeError):
     pass
 
