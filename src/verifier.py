@@ -45,6 +45,9 @@ from tracks.track2_sos import verify_track2
 from tracks.track3_dreal import verify_track3
 from tracks.track4_sympy import verify_track4
 
+from architect.ast import from_dict, ASTSchemaError
+from architect.ast_verify import verify_from_ast
+
 _RAG_ONLY = frozenset({"RL", "Valuation", "Naive"})
 
 # ── Utility-structure router ──────────────────────────────────────────────────
@@ -90,7 +93,7 @@ def _classify_utility(entry: dict) -> int:
 
 # ── Dispatcher ────────────────────────────────────────────────────────────────
 
-def verify(entry: dict) -> VerificationResult:
+def _verify_latex(entry: dict) -> VerificationResult:
     """Route entry to the appropriate track and return a VerificationResult."""
     category = entry.get("category", "")
     paper_id = entry.get("paper_id", "<unknown>")
@@ -173,6 +176,47 @@ def verify(entry: dict) -> VerificationResult:
             notes=f"No verifier for category '{category}'.",
         )
     return fn(entry)
+
+
+_LATEX_WEAK = {"VERIFIED_TEMPLATE", "VERIFIED_SHAPE", "UNKNOWN", "UNSUPPORTED"}
+
+
+def _flag(chosen: VerificationResult, latex: VerificationResult,
+         llm: VerificationResult) -> VerificationResult:
+    tag = f"RECONCILE-FLAG: LaTeX={latex.verdict} LLM={llm.verdict}"
+    chosen.notes = f"{chosen.notes} | {tag}".strip(" |")
+    return chosen
+
+
+def _reconcile(llm: VerificationResult,
+               latex: VerificationResult) -> tuple[VerificationResult, bool]:
+    latex_is_verified = latex.verdict == "VERIFIED" and getattr(latex, "entry_specific", False)
+    if latex.verdict in _LATEX_WEAK and llm.verdict == "VERIFIED":
+        return llm, False
+    if latex.verdict in _LATEX_WEAK and llm.verdict == "COUNTEREXAMPLE":
+        return _flag(llm, latex, llm), True
+    if latex_is_verified and llm.verdict == "VERIFIED":
+        return latex, False
+    if latex_is_verified and llm.verdict in ("COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"):
+        return _flag(latex, latex, llm), True
+    if latex.verdict == "COUNTEREXAMPLE" and llm.verdict == "VERIFIED":
+        return _flag(latex, latex, llm), True
+    return latex, False
+
+
+def verify(entry: dict) -> VerificationResult:
+    """Prefer a stored formalized_ast; reconcile with the LaTeX path."""
+    latex_res = _verify_latex(entry)
+    fa = entry.get("formalized_ast")
+    if not fa:
+        return latex_res
+    try:
+        m = from_dict(fa)
+    except ASTSchemaError:
+        return latex_res
+    llm_res = verify_from_ast(m, meta={"paper_id": entry.get("paper_id", "")})
+    chosen, _flagged = _reconcile(llm_res, latex_res)
+    return chosen
 
 
 # ── Batch loader ──────────────────────────────────────────────────────────────
