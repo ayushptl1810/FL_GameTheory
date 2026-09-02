@@ -149,3 +149,83 @@ def validate_alloc(node) -> None:
             raise ASTSchemaError("AllocWeightedWelfare.weights must be a list of strings")
         return
     raise ASTSchemaError(f"unknown Alloc node type {type(node).__name__}")
+
+
+_NODE_TAGS = {
+    "Const": ("value",),
+    "Sym": ("name",),
+    "Unknown": ("name",),
+    "Sum": ("terms",),
+    "Prod": ("factors",),
+    "Pow": ("base", "exp"),
+    "Func": ("name", "arg"),
+    "IndexedFamily": ("name", "index", "over"),
+    "AllocHighest": (),
+    "AllocTopK": ("k",),
+    "AllocWeightedWelfare": ("weights",),
+}
+_TAG_TO_CLS = {
+    "Const": Const, "Sym": Sym, "Unknown": Unknown, "Sum": Sum, "Prod": Prod,
+    "Pow": Pow, "Func": Func, "IndexedFamily": IndexedFamily,
+    "AllocHighest": AllocHighest, "AllocTopK": AllocTopK,
+    "AllocWeightedWelfare": AllocWeightedWelfare,
+}
+
+
+def _enc(v):
+    if type(v).__name__ in _NODE_TAGS:
+        return to_dict(v)
+    if isinstance(v, list):
+        return [_enc(x) for x in v]
+    return v
+
+
+def to_dict(node):
+    tag = type(node).__name__
+    if tag == "Mechanism":
+        return {
+            "t": "Mechanism", "category": node.category,
+            "utility": to_dict(node.utility), "payment": to_dict(node.payment),
+            "ic": to_dict(node.ic), "ir": to_dict(node.ir),
+            "params": dict(node.params), "type_space": list(node.type_space),
+            "allocation": to_dict(node.allocation) if node.allocation is not None else None,
+            "meta": dict(node.meta),
+        }
+    if tag not in _NODE_TAGS:
+        raise ASTSchemaError(f"cannot serialize {tag}")
+    out = {"t": tag}
+    for f in _NODE_TAGS[tag]:
+        out[f] = _enc(getattr(node, f))
+    return out
+
+
+def _dec(v):
+    if isinstance(v, dict) and "t" in v:
+        return from_dict(v)
+    if isinstance(v, list):
+        return [_dec(x) for x in v]
+    return v
+
+
+def from_dict(d):
+    if not isinstance(d, dict) or "t" not in d:
+        raise ASTSchemaError(f"not a node dict: {d!r}")
+    tag = d["t"]
+    if tag == "Mechanism":
+        m = Mechanism(
+            category=d["category"],
+            utility=from_dict(d["utility"]), payment=from_dict(d["payment"]),
+            ic=from_dict(d["ic"]), ir=from_dict(d["ir"]),
+            params=dict(d.get("params", {})), type_space=list(d.get("type_space", [])),
+            allocation=(from_dict(d["allocation"]) if d.get("allocation") is not None else None),
+            meta=dict(d.get("meta", {})),
+        )
+        for sub in (m.utility, m.payment, m.ic, m.ir):
+            validate_ast(sub)
+        if m.allocation is not None:
+            validate_alloc(m.allocation)
+        return m
+    if tag not in _TAG_TO_CLS:
+        raise ASTSchemaError(f"unknown node tag {tag!r}")
+    kwargs = {f: _dec(d[f]) for f in _NODE_TAGS[tag]}
+    return _TAG_TO_CLS[tag](**kwargs)
