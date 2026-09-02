@@ -206,8 +206,26 @@ def _reconcile(llm: VerificationResult,
     return latex, False
 
 
+def _manual_note(entry: dict) -> str:
+    d = entry.get("manual_diagnosis") or {}
+    if not d:
+        return "MANUAL: no diagnosis recorded"
+    return (f"MANUAL ({d.get('round', '?')}): {d.get('obstruction', '')} "
+            f"[Track {d.get('track', 0)}: {d.get('limit', '')}]")
+
+
 def verify(entry: dict) -> VerificationResult:
     """Prefer a stored formalized_ast; reconcile with the LaTeX path."""
+    if entry.get("verdict_override") == "MANUAL":
+        d = entry.get("manual_diagnosis") or {}
+        return VerificationResult(
+            verdict="MANUAL",
+            category=entry.get("category", ""),
+            paper_id=entry.get("paper_id", ""),
+            track=int(d.get("track", 0) or 0),
+            notes=_manual_note(entry),
+            entry_specific=False,
+        )
     latex_res = _verify_latex(entry)
     fa = entry.get("formalized_ast")
     if not fa:
