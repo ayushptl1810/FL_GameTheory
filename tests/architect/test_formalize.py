@@ -73,3 +73,37 @@ def test_formalize_entry_passes_concerns_on_retry():
     formalize_entry(_entry(), None, complete=fake_complete,
                     concerns=[{"field": "ic", "issue": "dropped the upward IC term"}])
     assert "dropped the upward IC term" in seen["user"]
+
+
+from architect.formalize import adversary_check
+from architect.ast import Mechanism, Sym
+
+
+def _m():
+    return Mechanism(category="Contract", utility=Sym("u"), payment=Sym("P"),
+                     ic=Sym("gap"), ir=Sym("u"))
+
+
+def test_adversary_clean_returns_empty():
+    out = adversary_check(_m(), _entry(), None,
+                          complete=lambda s, u, *, json_mode=False: '{"concerns": []}')
+    assert out == []
+
+
+def test_adversary_reports_concerns():
+    payload = '{"concerns": [{"field": "ic", "issue": "missing downward IC"}]}'
+    out = adversary_check(_m(), _entry(), "PAPER",
+                          complete=lambda s, u, *, json_mode=False: payload)
+    assert out == [{"field": "ic", "issue": "missing downward IC"}]
+
+
+def test_adversary_broken_output_returns_empty():
+    out = adversary_check(_m(), _entry(), None,
+                          complete=lambda s, u, *, json_mode=False: "garbage")
+    assert out == []
+
+
+def test_adversary_non_list_concerns_returns_empty():
+    out = adversary_check(_m(), _entry(), None,
+                          complete=lambda s, u, *, json_mode=False: '{"concerns": "nope"}')
+    assert out == []

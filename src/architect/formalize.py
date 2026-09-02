@@ -50,3 +50,29 @@ def formalize_entry(entry, pdf_text, *, complete=llm_complete, concerns=None):
         return from_dict(json.loads(raw))
     except (json.JSONDecodeError, ASTSchemaError, KeyError, TypeError):
         return None
+
+
+ADVERSARY_SYSTEM_PROMPT = (
+    "You are an adversarial reviewer. Compare a serialized Mechanism AST against "
+    "the paper's stated mechanism. Return ONLY JSON: "
+    '{"concerns": [{"field": "utility"|"payment"|"ic"|"ir"|"allocation"|"type_space", '
+    '"issue": "<one sentence>"}]}. Return an empty list only if the AST faithfully '
+    "represents the paper. Look for: a dropped constraint term, a summation over the "
+    "wrong index set, a flipped sign, a quantifier over the wrong variable, a type "
+    "value that contradicts the text. Do not nitpick notation or naming."
+)
+
+
+def adversary_check(m, entry, pdf_text, *, complete=llm_complete):
+    ast_json = json.dumps(to_dict(m), indent=1)
+    mech = json.dumps(entry.get("mechanism", {}), indent=1)
+    parts = [f"AST:\n{ast_json}", f"paper mechanism dict:\n{mech}"]
+    if pdf_text:
+        parts.append("paper text (excerpt):\n" + pdf_text)
+    try:
+        raw = complete(ADVERSARY_SYSTEM_PROMPT, "\n\n".join(parts), json_mode=True)
+        data = json.loads(raw)
+        c = data.get("concerns")
+        return c if isinstance(c, list) else []
+    except Exception:
+        return []
