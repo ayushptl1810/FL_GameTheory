@@ -130,3 +130,100 @@ def formalize_with_retry(entry, pdf_text, *, complete=llm_complete):
                                "counterexample persists after retry")
     return FormalizeResult(res2.verdict, m2, adversary_log, 1, used,
                            getattr(res2, "notes", "") or "")
+
+
+import os
+import argparse
+from datetime import date
+from architect.pdf_text import pdf_text
+
+
+def _select(corpus, ids, only):
+    if ids:
+        want = set(ids)
+        return [e for e in corpus if e.get("paper_id") in want]
+    if only:
+        return [e for e in corpus if e.get("category") == only]
+    return list(corpus)
+
+
+def _report_md(records, today):
+    lines = [f"# Formalize run — {today}", "",
+             "| paper_id | category | verdict | retries | adversary_rounds | pdf_used | notes |",
+             "|---|---|---|---|---|---|---|"]
+    for r in records:
+        lines.append(
+            f"| {r['paper_id']} | {r['category']} | {r['verdict']} | {r['retries']} "
+            f"| {r['adversary_rounds']} | {r['pdf_used']} | {r['notes']} |")
+    queue = [r for r in records if r["verdict"] in ("UNKNOWN", "COUNTEREXAMPLE")]
+    lines += ["", "## Human queue", ""]
+    if queue:
+        for r in queue:
+            lines.append(f"- {r['paper_id']} ({r['verdict']}): {r['notes']}")
+    else:
+        lines.append("- (empty)")
+    n = len(records)
+    summary = {
+        "selected": n,
+        "verified": sum(1 for r in records if r["verdict"] == "VERIFIED"),
+        "counterexample": sum(1 for r in records if r["verdict"] == "COUNTEREXAMPLE"),
+        "unknown": sum(1 for r in records if r["verdict"] == "UNKNOWN"),
+        "dict_only": sum(1 for r in records if not r["pdf_used"]),
+    }
+    lines += ["", "## Summary", ""]
+    for k, v in summary.items():
+        lines.append(f"- {k}: {v}")
+    return "\n".join(lines) + "\n", summary
+
+
+def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
+              complete=llm_complete, today=None):
+    today = today or date.today().isoformat()
+    with open(corpus_path) as fh:
+        corpus = json.load(fh)
+    model = os.environ.get("ARCHITECT_LLM_MODEL", "default")
+    records = []
+    for entry in _select(corpus, ids, only):
+        pid = entry.get("paper_id", "")
+        txt = pdf_text(pid)
+        r = formalize_with_retry(entry, txt, complete=complete)
+        if r.ast is not None and r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+            entry["formalized_ast"] = to_dict(r.ast)
+            entry["formalization_meta"] = {
+                "model": model, "verdict": r.verdict, "retries": r.retries,
+                "adversary_rounds": len(r.adversary_log), "pdf_used": r.pdf_used,
+                "flagged": False, "date": today,
+            }
+        records.append({
+            "paper_id": pid, "category": entry.get("category", ""),
+            "verdict": r.verdict, "retries": r.retries,
+            "adversary_rounds": len(r.adversary_log), "pdf_used": r.pdf_used,
+            "notes": r.notes,
+        })
+    if not dry_run:
+        with open(corpus_path, "w") as fh:
+            json.dump(corpus, fh, indent=2, ensure_ascii=False)
+            fh.write("\n")
+    md, summary = _report_md(records, today)
+    report_path = os.path.join("docs", "superpowers", "notes",
+                               f"formalize-run-{today}.md")
+    os.makedirs(os.path.dirname(report_path), exist_ok=True)
+    with open(report_path, "w") as fh:
+        fh.write(md)
+    return {"records": records, "report_path": report_path, "summary": summary}
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(prog="python -m architect.formalize")
+    ap.add_argument("corpus_path")
+    ap.add_argument("--ids", default=None, help="comma-separated paper_id list")
+    ap.add_argument("--only", default=None, help="restrict to one category")
+    ap.add_argument("--dry-run", action="store_true")
+    args = ap.parse_args(argv)
+    ids = args.ids.split(",") if args.ids else None
+    out = run_batch(args.corpus_path, ids=ids, only=args.only, dry_run=args.dry_run)
+    print("summary:", out["summary"], "report:", out["report_path"])
+
+
+if __name__ == "__main__":
+    main()
