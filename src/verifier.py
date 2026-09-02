@@ -331,6 +331,13 @@ def print_summary(results: list[VerificationResult]) -> None:
             print(r)
             print()
 
+    flagged = [r for r in results if "RECONCILE-FLAG" in (r.notes or "")]
+    if flagged:
+        print(f"\n  ## Needs review ({len(flagged)} LLM/LaTeX verdict conflicts)")
+        for r in flagged:
+            tag = r.notes[r.notes.index("RECONCILE-FLAG"):]
+            print(f"  - {r.paper_id}: {tag}")
+
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 

@@ -76,3 +76,24 @@ def test_verify_corrupt_stored_ast_falls_back(monkeypatch):
     monkeypatch.setattr(V, "_verify_latex", lambda e: _r("VERIFIED_TEMPLATE"))
     out = verify(entry)
     assert out.verdict == "VERIFIED_TEMPLATE"
+
+
+from verifier import print_summary
+
+
+def test_print_summary_lists_reconcile_flags(capsys):
+    flagged = _r("VERIFIED", entry_specific=True,
+                 notes="grid-exact | RECONCILE-FLAG: LaTeX=COUNTEREXAMPLE LLM=VERIFIED")
+    flagged.paper_id = "conflict_entry"
+    clean = _r("VERIFIED", entry_specific=True, notes="grid-exact")
+    print_summary([flagged, clean])
+    out = capsys.readouterr().out
+    assert "Needs review" in out
+    assert "conflict_entry" in out
+    assert "RECONCILE-FLAG" in out
+
+
+def test_print_summary_no_flag_block_when_none(capsys):
+    print_summary([_r("VERIFIED", entry_specific=True, notes="grid-exact")])
+    out = capsys.readouterr().out
+    assert "Needs review" not in out
