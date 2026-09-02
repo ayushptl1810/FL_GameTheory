@@ -1,6 +1,17 @@
 # LLM Formalizer — Corpus's Primary Verification Path — Design
 
-**Status:** Design approved 2026-08-31. Round 1 = pipeline + tests only, no corpus batch.
+**Status:** Design approved 2026-08-31. This is **Round 1 (R1)** of the
+Zero-UNKNOWN Program (`docs/superpowers/specs/2026-09-02-zero-unknown-program-design.md`).
+R1 = pipeline + tests + a 5-entry smoke run. No corpus batch — the sweep is R2/R3.
+
+## Where this fits
+
+The Zero-UNKNOWN Program drives every verifiable corpus entry to `VERIFIED` /
+`REFUTED` / diagnosed `MANUAL`, eliminating `UNKNOWN`. R1 builds the formalization
+engine every later round uses. R1's own corpus effect is limited to the smoke set;
+R2 (VCG sweep) and R3 (Contract + Stackelberg sweep) run this engine across the
+full ~101 entries. The program spec owns the round structure, the automation
+ceiling, and the cross-round invariants; this spec owns the R1 pipeline design.
 
 ## Problem
 
@@ -238,14 +249,16 @@ Chosen to exercise all four solver tracks + the dict-only fallback:
 - The untracked `docs/superpowers/plans/2026-08-30-fl-simulation-validation.md` is not part
   of this work — never `git add` it.
 
-## Round 2 (out of scope — noted for the seam)
+## Rounds R2–R8 (out of scope here)
 
-Round 2 runs `python -m architect.formalize corpus.json` across all ~101 verifiable entries,
-category by category (VCG first — most mature `verify_from_ast` path), works the human-review
-queue, and lands the corpus flips in reviewed batches. Round 2 also decides, from Round 1's
-measured adversary catch rate and human-queue size, whether to relax the conflict rule to
-let the LLM auto-overturn existing verdicts. Round 1's smoke-run report is the input to that
-decision.
+The corpus sweep and everything after it live in the program spec
+(`2026-09-02-zero-unknown-program-design.md`): R2 = VCG sweep, R3 = Contract +
+Stackelberg sweep, R4 = track widenings from R2/R3 `MANUAL` diagnostics, R5 =
+coalition/Shapley track, R6 = second-formalizer pass on residual `MANUAL`, R7 =
+honesty pass + `MANUAL-backlog.md` (the hard `UNKNOWN = 0` gate), R8 =
+`ARCHITECT_AST_VERIFY` flip. R1's smoke-run report (adversary catch rate,
+human-queue size, per-entry cost) is the input to R2's planning — including
+whether to relax the conflict rule to let the LLM auto-overturn existing verdicts.
 
 ## Self-Review
 

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3, pytest, existing `architect.llm.llm_complete` (OpenAI-wire, provider via env), `pdfminer.six` (already installed), the existing `architect.ast` / `architect.serialize` / `architect.ast_verify` / `verifier` modules.
 
-**Spec:** `docs/superpowers/specs/2026-08-31-llm-formalizer-design.md`
+**Spec:** `docs/superpowers/specs/2026-08-31-llm-formalizer-design.md` (R1 feature spec), nested under `docs/superpowers/specs/2026-09-02-zero-unknown-program-design.md` (the R1–R8 program). This plan is **Round 1 (R1)** of that program: it builds the formalization engine; R2/R3 run the corpus sweep.
 
 ## Global Constraints
 
@@ -1309,6 +1309,227 @@ git commit -m "feat: formalizer smoke run — <N> corpus entries flipped to real
 
 ---
 
+## Task 9: `print_summary` surfaces `RECONCILE-FLAG` entries
+
+**Files:**
+- Modify: `src/verifier.py` (`print_summary`)
+- Test: `tests/verifier/test_reconcile.py` (extend)
+
+**Interfaces:**
+- Consumes: `VerificationResult.notes` (a flagged entry carries `"RECONCILE-FLAG: LaTeX=<v> LLM=<v>"` in `notes`, appended by `_flag` in Task 7).
+- Produces: a new `## Needs review` block in `print_summary` output, printed only when ≥1 result's `notes` contains `"RECONCILE-FLAG"`: a count line and one bullet per flagged entry (`- <paper_id>: <the RECONCILE-FLAG substring>`).
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/verifier/test_reconcile.py  (append)
+from verifier import print_summary
+
+
+def test_print_summary_lists_reconcile_flags(capsys):
+    flagged = _r("VERIFIED", entry_specific=True,
+                 notes="grid-exact | RECONCILE-FLAG: LaTeX=COUNTEREXAMPLE LLM=VERIFIED")
+    flagged.paper_id = "conflict_entry"
+    clean = _r("VERIFIED", entry_specific=True, notes="grid-exact")
+    print_summary([flagged, clean])
+    out = capsys.readouterr().out
+    assert "Needs review" in out
+    assert "conflict_entry" in out
+    assert "RECONCILE-FLAG" in out
+
+
+def test_print_summary_no_flag_block_when_none(capsys):
+    print_summary([_r("VERIFIED", entry_specific=True, notes="grid-exact")])
+    out = capsys.readouterr().out
+    assert "Needs review" not in out
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `PYTHONPATH=src pytest tests/verifier/test_reconcile.py -k reconcile_flags -v`
+Expected: FAIL — `assert "Needs review" in out` fails (block not emitted).
+
+- [ ] **Step 3: Write minimal implementation**
+
+At the end of `print_summary` (after the existing output, before the function returns):
+
+```python
+    flagged = [r for r in results if "RECONCILE-FLAG" in (r.notes or "")]
+    if flagged:
+        print(f"\n  ## Needs review ({len(flagged)} LLM/LaTeX verdict conflicts)")
+        for r in flagged:
+            tag = r.notes[r.notes.index("RECONCILE-FLAG"):]
+            print(f"  - {r.paper_id}: {tag}")
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `PYTHONPATH=src pytest tests/verifier/test_reconcile.py -v`
+Expected: PASS.
+
+- [ ] **Step 5: Corpus + full suite + commit**
+
+Run: `PYTHONPATH=src python -m verifier corpus.json | tail -6`
+Expected: no `## Needs review` block (no corpus entry has a stored AST yet), summary otherwise byte-identical to baseline.
+
+Run: `PYTHONPATH=src pytest -q | tail -3`
+Expected: 304 passed / 3 xfailed / 0 failed.
+
+```bash
+git add src/verifier.py tests/verifier/test_reconcile.py
+git commit -m "feat: print_summary surfaces RECONCILE-FLAG conflicts as a Needs-review block"
+```
+
+---
+
+## Task 10: Batch resumability — `--resume` and `--limit`
+
+**Files:**
+- Modify: `src/architect/formalize.py` (`run_batch`, `main`)
+- Test: `tests/architect/test_formalize_cli.py` (extend)
+
+**Interfaces:**
+- Consumes: `run_batch` (Task 6).
+- Produces:
+  - `run_batch(..., resume: bool = False, limit: int | None = None)` — two new kwargs.
+    - `resume=True`: after selecting entries (by `ids`/`only`/all), drop any entry that already has a non-empty `entry.get("formalized_ast")`.
+    - `limit=N`: after the resume filter, keep only the first `N` remaining entries.
+    - Both default off ⇒ Task 6 behaviour is unchanged.
+  - `main` argparse gains `--resume` (store_true) and `--limit` (int, default `None`).
+
+- [ ] **Step 1: Write the failing test**
+
+```python
+# tests/architect/test_formalize_cli.py  (append)
+def test_run_batch_resume_skips_already_formalized(tmp_path, monkeypatch):
+    _stub_verified(monkeypatch)
+    data = [
+        {"paper_id": "aaa", "category": "Contract",
+         "mechanism": {"ic_screening_latex": "x", "ir_participation_latex": "y"},
+         "formalized_ast": {"t": "Mechanism"}},
+        {"paper_id": "bbb", "category": "Contract",
+         "mechanism": {"ic_screening_latex": "x", "ir_participation_latex": "y"}},
+    ]
+    cp = tmp_path / "corpus.json"
+    cp.write_text(json.dumps(data))
+    out = run_batch(str(cp), only="Contract", resume=True, today="2026-09-02")
+    assert out["summary"]["selected"] == 1
+    assert out["records"][0]["paper_id"] == "bbb"
+
+
+def test_run_batch_limit_caps_selection(tmp_path, monkeypatch):
+    _stub_verified(monkeypatch)
+    data = [
+        {"paper_id": f"p{i}", "category": "VCG",
+         "mechanism": {"payment_rule_latex": "p"}} for i in range(5)
+    ]
+    cp = tmp_path / "corpus.json"
+    cp.write_text(json.dumps(data))
+    out = run_batch(str(cp), only="VCG", limit=2, today="2026-09-02")
+    assert out["summary"]["selected"] == 2
+```
+
+- [ ] **Step 2: Run test to verify it fails**
+
+Run: `PYTHONPATH=src pytest tests/architect/test_formalize_cli.py -k "resume or limit" -v`
+Expected: FAIL — `run_batch() got an unexpected keyword argument 'resume'`.
+
+- [ ] **Step 3: Write minimal implementation**
+
+Restructure `run_batch` to compute the selection list before the loop:
+
+```python
+def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
+              complete=llm_complete, today=None, resume=False, limit=None):
+    today = today or date.today().isoformat()
+    with open(corpus_path) as fh:
+        corpus = json.load(fh)
+    model = os.environ.get("ARCHITECT_LLM_MODEL", "default")
+    selected = _select(corpus, ids, only)
+    if resume:
+        selected = [e for e in selected if not e.get("formalized_ast")]
+    if limit is not None:
+        selected = selected[:limit]
+    records = []
+    for entry in selected:
+        ...   # body unchanged
+```
+
+In `main`:
+
+```python
+    ap.add_argument("--resume", action="store_true",
+                    help="skip entries that already have formalized_ast")
+    ap.add_argument("--limit", type=int, default=None,
+                    help="process at most N entries after selection/resume")
+    ...
+    out = run_batch(args.corpus_path, ids=ids, only=args.only,
+                    dry_run=args.dry_run, resume=args.resume, limit=args.limit)
+```
+
+- [ ] **Step 4: Run test to verify it passes**
+
+Run: `PYTHONPATH=src pytest tests/architect/test_formalize_cli.py -v`
+Expected: PASS (6 tests).
+
+- [ ] **Step 5: Full suite + commit**
+
+Run: `PYTHONPATH=src pytest -q | tail -3`
+Expected: 306 passed / 3 xfailed / 0 failed.
+
+```bash
+git add src/architect/formalize.py tests/architect/test_formalize_cli.py
+git commit -m "feat: formalize batch --resume (skip done) + --limit (cost cap)"
+```
+
+---
+
+## Appendix: Human-queue protocol (written process, no code)
+
+R2/R3 run the formalizer at corpus scale and will produce two kinds of entry that
+need a human:
+
+1. **`UNKNOWN` + human queue** — the formalizer + one retry could not produce a
+   solver-accepted AST whose adversary pass is clean. Listed in the run report's
+   `## Human queue` section.
+2. **`RECONCILE-FLAG`** — the LLM verdict conflicts with an existing entry-specific
+   `VERIFIED` or a cross-path `COUNTEREXAMPLE`↔`VERIFIED`. Surfaced by
+   `print_summary`'s `## Needs review` block (Task 9).
+
+**The protocol (applied in R2 onward, established here):**
+
+- **Owner:** the round's controller works the queue before the round's final
+  whole-branch review. The queue is not deferred across rounds.
+- **`UNKNOWN` queue item — decide one of:**
+  - *Formalization gap* — the AST was wrong/incomplete in a way a better prompt or
+    a different model would fix. Note it; it becomes an R6 (second-formalizer)
+    candidate. Entry stays `UNKNOWN` for now.
+  - *Solver-track ceiling* — the mechanism is past the decidable fragment (name the
+    track + the specific limit from the program spec's ceiling table). Set the
+    entry to `MANUAL` and append a `MANUAL-backlog.md` paragraph.
+  - *Genuinely unclear* — leave `UNKNOWN`, note "needs a human read of the paper to
+    classify" — this is itself an R7 backlog item.
+- **`RECONCILE-FLAG` item — decide one of:**
+  - *LaTeX proof is right, LLM formalization is wrong* — discard the
+    `formalized_ast` for that entry (delete both keys from `corpus.json` by hand),
+    note why. Entry keeps its LaTeX verdict.
+  - *LLM formalization is right, the LaTeX-path proof was over-claiming* — a real
+    finding. Record it, keep the LLM verdict, open a follow-up note to fix the
+    LaTeX path. Requires a hand-derivation confirming the LLM side.
+  - *Both plausible, cannot decide from the material* — leave the existing verdict
+    (the conservative side), keep the flag, escalate to a paper read. R7 backlog
+    item.
+- **Recording:** every queue resolution is logged in the round's
+  `round-<Rn>-new-verified.md` (for flips), `MANUAL-backlog.md` (for `MANUAL`
+  reclassifications), or the round's execution notes (for "stays as-is,
+  escalated"). A queue item is not "done" until its resolution is written
+  somewhere durable.
+- **Round exit:** a round may not merge to `main` with unresolved `RECONCILE-FLAG`
+  items on entries that round touched. `UNKNOWN`-queue items may carry forward
+  (they are the R6 input) but each must have a written disposition.
+
+---
+
 ## Self-Review
 
 **Spec coverage:**
@@ -1323,8 +1544,12 @@ git commit -m "feat: formalizer smoke run — <N> corpus entries flipped to real
 - Deterministic `verify(corpus.json)` with no API key → Task 7 gate + Task 8 marker skip. ✓
 - 5-entry smoke set exercising all tracks + dict-only fallback → Task 8. ✓
 - Monotone Round-1 corpus movement, hand-checked flips, run report → Task 8 Steps 6–7. ✓
+- Program-spec R1.5 item — `print_summary` surfaces `RECONCILE-FLAG` → Task 9. ✓
+- Program-spec R1.5 item — batch resumability (`--resume`, `--limit` cost cap) → Task 10. ✓
+- Program-spec R1.5 item — written human-queue protocol for R2 onward → Appendix. ✓
+- Program-spec invariant — a `RECONCILE-FLAG` conflict is visible, not buried in one entry's `.notes` → Task 9 (`## Needs review` block) + Appendix (how it is worked). ✓
 
-**Placeholder scan:** every code step has a full code block; every test step has runnable assertions; the smoke set is enumerated; the report format is specified field-by-field. Task 8 Step 5 has an explicit "blocked on API key → stop and record" branch, not a TODO. No "add error handling" / "similar to Task N". ✓
+**Placeholder scan:** every code step has a full code block; every test step has runnable assertions; the smoke set is enumerated; the report format is specified field-by-field. Task 8 Step 5 has an explicit "blocked on API key → stop and record" branch, not a TODO. The Appendix is a written process, not code, and names every decision branch. No "add error handling" / "similar to Task N". ✓
 
 **Type consistency:**
 - `to_dict` / `from_dict` (Task 1) — used by `formalize_entry` (Task 3), `adversary_check` (Task 4), `run_batch` (Task 6), `verify` (Task 7). Same names throughout.
@@ -1335,7 +1560,8 @@ git commit -m "feat: formalizer smoke run — <N> corpus entries flipped to real
 - `run_batch(corpus_path, *, ids, only, dry_run, complete, today)` (Task 6) — called by `main` (Task 6) and the smoke test (Task 8) with matching kwargs.
 - `verify_from_ast(m, meta=...)` — existing signature in `src/architect/ast_verify.py:285`, called from Tasks 5 and 7. Match.
 - `adversary_log` — Task 5 defines it as a list of concern-lists; Task 6 reads `len(r.adversary_log)` as `adversary_rounds`; Task 6 test asserts on the count only. Consistent.
+- `run_batch` gains `resume` / `limit` kwargs in Task 10 with defaults that preserve Task 6 behaviour; the smoke test (Task 8) and Task 6 tests do not pass them, so they stay green. `_reconcile`'s `_flag` (Task 7) writes the exact `"RECONCILE-FLAG: LaTeX=... LLM=..."` substring that Task 9's `print_summary` block and its test both match on. Consistent.
 
-**Scope check:** one subsystem (the formalization pipeline). No corpus sweep, no loop changes, no new track. Round 2 explicitly out. Single plan. ✓
+**Scope check:** one subsystem (the formalization pipeline + its operational surface). No corpus sweep, no loop changes, no new solver track. R2–R8 explicitly out (program spec). The R1.5 items folded in (Tasks 9–10, Appendix) are the minimum needed to make R1's output *usable* by R2 without an immediate follow-up round. Single plan. ✓
 
-**Risk note:** Tasks 1–7 and Task 8 Steps 1–4 are mechanical and fully covered by stubbed-LLM tests — no API key needed to reach a green, committed pipeline. Only Task 8 Steps 5–7 need a real key and human judgement; the plan makes that boundary explicit and lets execution stop cleanly at the last key-free commit if no key is available.
+**Risk note:** Tasks 1–7, 9, 10 and Task 8 Steps 1–4 are mechanical and fully covered by stubbed-LLM tests — no API key needed to reach a green, committed pipeline. Only Task 8 Steps 5–7 need a real key and human judgement; the plan makes that boundary explicit and lets execution stop cleanly at the last key-free commit if no key is available. The Appendix protocol is exercised for real only in R2 onward.
