@@ -96,7 +96,83 @@ def _verify(m, entry):
     return verify_from_ast(m, meta={"paper_id": entry.get("paper_id", "")})
 
 
+_VCG_CLASSIFY_SYS = (
+    'You classify a Federated-Learning auction ALLOCATION rule (given as LaTeX) '
+    'into exactly one type. Return ONLY JSON: {"t":"AllocHighest"} OR '
+    '{"t":"AllocTopK","k":<int>} OR {"t":"AllocWeightedWelfare",'
+    '"weights":["<w1>","<w2>",...]} OR {"t":null}. AllocHighest: winner is the '
+    'single argmax of a welfare/score/objective (reverse-auction: argmin cost). '
+    'AllocTopK: the k highest are selected, k a fixed integer. '
+    'AllocWeightedWelfare: winner maximizes a weighted sum of named terms; '
+    'weights = the coefficient symbols in order. null: an opaque algorithm, a '
+    'learned policy, a piecewise/threshold rule, or a rule none of the above '
+    'fit. Do not guess.'
+)
+
+
+def classify_vcg_allocation(alloc_latex, *, complete=llm_complete):
+    """Classify a VCG allocation-rule LaTeX string into a typed-node spec.
+
+    Never raises: any failure path returns {"t": None}.
+    """
+    if not alloc_latex:
+        return {"t": None}
+    try:
+        raw = complete(_VCG_CLASSIFY_SYS,
+                       "allocation_rule_latex: " + repr(alloc_latex),
+                       json_mode=True)
+        d = json.loads(raw)
+    except Exception:
+        return {"t": None}
+    if not isinstance(d, dict) or "t" not in d:
+        return {"t": None}
+    t = d["t"]
+    if t is None:
+        return {"t": None}
+    if t == "AllocHighest":
+        return d
+    if t == "AllocTopK":
+        return d if isinstance(d.get("k"), int) and not isinstance(d.get("k"), bool) else {"t": None}
+    if t == "AllocWeightedWelfare":
+        w = d.get("weights")
+        return d if isinstance(w, list) and w else {"t": None}
+    return {"t": None}
+
+
+def formalize_vcg_entry(entry, *, complete=llm_complete):
+    from architect.ast import (
+        Mechanism, Sym, AllocHighest, AllocTopK, AllocWeightedWelfare,
+    )
+    m = entry.get("mechanism", {})
+    cls = classify_vcg_allocation(m.get("allocation_rule_latex"), complete=complete)
+    t = cls.get("t")
+    if t == "AllocHighest":
+        node = AllocHighest()
+    elif t == "AllocTopK":
+        node = AllocTopK(int(cls["k"]))
+    elif t == "AllocWeightedWelfare":
+        node = AllocWeightedWelfare([str(w) for w in cls["weights"]])
+    else:
+        node = None
+    meta = {
+        "num_clients": entry.get("num_clients"),
+        "allocation_rule_latex": m.get("allocation_rule_latex"),
+        "payment_rule_latex": m.get("payment_rule_latex"),
+        "client_utility_latex": m.get("client_utility_latex"),
+        "auction_type": m.get("auction_type", "reverse"),
+    }
+    mech = Mechanism(category="VCG", utility=Sym("u"), payment=Sym("v"),
+                     ic=Sym("v"), ir=Sym("v"), type_space=[],
+                     allocation=node, meta=meta)
+    res = verify_from_ast(mech, meta={"paper_id": entry.get("paper_id", "")})
+    return FormalizeResult(verdict=res.verdict, ast=mech, adversary_log=[],
+                           retries=0, pdf_used=False,
+                           notes=(getattr(res, "notes", "") or ""))
+
+
 def formalize_with_retry(entry, pdf_text, *, complete=llm_complete):
+    if entry.get("category") == "VCG":
+        return formalize_vcg_entry(entry, complete=complete)
     used = pdf_text is not None
     m = formalize_entry(entry, pdf_text, complete=complete)
     if m is None:
