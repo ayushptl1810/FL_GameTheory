@@ -113,9 +113,12 @@ def test_stackelberg_verdicts_unchanged_after_seam_extraction():
     expected_stackelberg = {
         "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
         "1811_12082": ("VERIFIED_TEMPLATE", False),
-        "2101_05628": ("VERIFIED_TEMPLATE", False),
-        "2101_12428": ("VERIFIED_TEMPLATE", False),
-        "2103_05866": ("VERIFIED_TEMPLATE", False),
+        # R3b Task 15: adjudicated MANUAL (vector / multi-stage follower
+        # decisions the single-variable FOC path cannot reduce). The seam
+        # this test locks is unchanged; only the verdict_override is new.
+        "2101_05628": ("MANUAL", False),
+        "2101_12428": ("MANUAL", False),
+        "2103_05866": ("MANUAL", False),
         "2110_12876": ("VERIFIED_TEMPLATE", False),
     }
     assert len(STACKELBERG) == len(expected_stackelberg)

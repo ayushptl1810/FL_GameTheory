@@ -139,7 +139,17 @@
         "pricing of an OSP will not be known in advance by other OSPs"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "OSPs (leaders) announce prices; each mobile device (follower) picks an offloading strategy vector alpha_i = (alpha_{i,1},...,alpha_{i,N}) splitting its task across N OSPs.",
+      "obstruction": "Both best_response_latex and follower_foc_latex are null, and the follower decision is an N-dimensional simplex-constrained vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). _stackelberg_check_core's single-variable d(leader_utility)/d(follower_decision) FOC cannot express the stationarity system.",
+      "human_task": "record the paper's per-component stationarity system (or its KKT form) and extend the Stackelberg checker to multi-variable stationarity before this can be discharged.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2101_12428",
@@ -171,7 +181,17 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "Chains post block rewards R_m; each staker n allocates a stake vector s_n = (s_n^1,...,s_n^M) across M chains subject to a budget sum_m s_n^m <= B_n.",
+      "obstruction": "The recorded follower_foc_latex is a budget-eliminated *difference* of two per-chain derivatives (dU/ds_n^m - dU/ds_n^M = 0 for m=1..M-1), so the M-1 conditions are coupled to each other through the eliminated component s_n^M = B_n - sum_{m<M} s_n^m. It is not a single-variable stationarity equation and the components do not decouple, so the single-variable FOC path cannot consume it.",
+      "human_task": "extend the Stackelberg checker to budget-coupled multi-component stationarity systems, or record a decoupled per-component FOC if the paper admits one.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2102_03401",
@@ -276,7 +296,17 @@
       "ir_follower_latex": null,
       "key_assumptions": []
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": ">2-stage / multi-layer game -- 2-player leader-follower FOC model does not apply",
+      "mechanism": "A three-stage game: the protocol designer sets fee-per-byte and a waiting-tax rate vector (Stage I), users choose transaction generation rates (Stage II), and miners choose which transactions to include (Stage III).",
+      "obstruction": "The entry is explicitly a THREE-STAGE Stackelberg game and the recorded follower_decision ('transaction generation rates and transaction selection') conflates two distinct player layers with different equilibrium concepts. best_response_latex is a prose note recording that the Stage-III miner NE is a discrete argmin over a queue set and the Stage-II user equilibrium is a multi-branch piecewise closed form built from M/M/1 auxiliary functions that was judged too OCR-risky to transcribe; follower_foc_latex is null.",
+      "human_task": "split the entry into its two follower layers with separate equilibrium statements, transcribe the Stage-II piecewise equilibrium from Eqs. 16-19, and give the checker a multi-stage backward-induction model.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2105_09462",
@@ -1404,7 +1434,17 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "follower best-response is a backward recursion over the horizon -- Track 1 single-shot FOC cannot encode it",
+      "mechanism": "Server posts a reward R_t and sampling probability x_t; each client picks a correction factor alpha_i^t adjusting its privacy budget over a T-period horizon.",
+      "obstruction": "best_response_latex (Theorem 1, Eq. 21) is a genuine backward recursion: alpha_i^{t*} depends on alpha_i^r for all r > t via S(t) and the product prod_{r=t+1}^{j-1} alpha_i^r, terminated by alpha_i^T = 0. follower_foc_latex is the bare placeholder 'dU_i/dalpha_t^i = 0' with no algebraic content. Track 1's single-shot d(leader_utility)/d(follower_decision) check cannot encode a multi-period dynamic-programming recursion.",
+      "human_task": "either unroll the recursion for a fixed small horizon T and record the resulting explicit closed form, or add a finite-horizon backward-induction mode to the Stackelberg checker.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2412_13551",
@@ -1501,7 +1541,17 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "Provider sets unit prices p_r and p_w; each user jointly chooses rendering resources x_i^r AND bandwidth resources x_i^w.",
+      "obstruction": "The follower decision is two variables chosen jointly; follower_foc_latex records two separate partial-derivative equations and best_response_latex two separate maximizers. The single-variable FOC path has no way to express a joint stationarity system, and the entry's own follower_decision field flags that the verifier's pipeline cannot yet handle this.",
+      "human_task": "extend _stackelberg_check_core to accept a vector of decision variables with a system of partial-derivative conditions; the two components here happen to separate, so this is the cheapest multi-variable case to unblock.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2502_12176",
@@ -2878,7 +2928,17 @@
         "quasi-static Rayleigh fading channels"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "follower FOC is transcendental with no closed-form root (paper states this explicitly) -- Track 1 cannot solve the stationarity equation",
+      "mechanism": "Cloud server sets rewards to edge servers; each edge server chooses its number of local aggregations K_l.",
+      "obstruction": "best_response_latex is deliberately null: the paper states on p.21, immediately after the recorded FOC (Eq. 31), that there is 'a lack of the closed-form solution for the optimal edge aggregation strategies of the edge server l', and solves the equilibrium numerically by variational inequality / iterative updates instead. The recorded follower_foc_latex mixes Z_l = sqrt(A_l - F_l K_l / B_l) inside rational terms of degree 2 in Z_l and has no closed-form root in K_l, so there is no equilibrium point for the FOC check to substitute and verify.",
+      "human_task": "decide whether a numerically-certified equilibrium (interval enclosure of the FOC root) is acceptable evidence for this corpus, and if so add a numeric-root Track to the Stackelberg checker.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Cong2020vcg",
@@ -3235,7 +3295,17 @@
         "leader-follower competition relationship"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "Leader allocates reward R_n and model size sigma; each follower jointly chooses data quantity |D'_n| AND compensation S_n (FS_n = (D'_n, S_n)).",
+      "obstruction": "Both best_response_latex and follower_foc_latex are null (fail-closed on human review) and the follower decision is an explicit two-component joint choice inside a multi-objective bi-level program. There is no recorded stationarity condition of any kind for Track 1 to discharge.",
+      "human_task": "transcribe the paper's bi-level optimality conditions for (D'_n, S_n) if they exist in closed form, and extend the checker to multi-variable stationarity; otherwise this stays a genuine obstruction.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Han2025paid_models",
@@ -3880,7 +3950,17 @@
       "ir_follower_latex": null,
       "key_assumptions": []
     },
-    "z3_verdict": "UNSUPPORTED"
+    "z3_verdict": "UNSUPPORTED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "no proved equilibrium; Track 1 Stackelberg needs one",
+      "mechanism": "Base station posts a reward; UEs choose a number of local iterations. Utilities are described in words only.",
+      "obstruction": "equilibrium_existence not established in the corpus entry -- position-paper (short IEEE magazine article), the Stackelberg game is described only qualitatively, and no explicit utility, derived best-response, FOC or IR constraint appears anywhere in the 7 pages.",
+      "human_task": "a technical treatment with a derived Stackelberg equilibrium is needed; this venue does not provide one -- replace the entry with a full-length paper or drop it from the Stackelberg slice.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Khan2023ip_fl",
@@ -4161,7 +4241,17 @@
         "congestion game modeling"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "SFL tenants post price incentives P_i; each device j chooses a participation vector {q_{i,j}}_{i in [1,M]} across all M tenants simultaneously.",
+      "obstruction": "best_response_latex is a bare argmax placeholder (q*_{i,j} = argmax lambda_j) with no algebraic content, and follower_foc_latex is a full KKT system: M stationarity equations plus two complementary-slackness conditions, two primal feasibility conditions and two dual feasibility conditions for the simplex constraints phi_j^{(1)}, phi_j^{(2)}. That is a constrained multi-variable system, not a single-variable FOC.",
+      "human_task": "add KKT-system support (stationarity plus complementary slackness) to the Stackelberg checker, or record an explicit closed-form solution of the KKT system if the paper derives one.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Li2026network",
@@ -4418,7 +4508,17 @@
         "convex expenditure formulation"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "Server pays R^t to edge nodes; each node k jointly chooses data volume B_k^t AND privacy/noise budget epsilon_k^t.",
+      "obstruction": "The follower decision is two variables chosen jointly and follower_foc_latex is null (fail-closed). best_response_latex gives two separate maximizers but with no recorded stationarity conditions to differentiate against, so there is nothing for a d(leader_utility)/d(follower_decision) check to consume, and the single-variable path could not express the joint system in any case.",
+      "human_task": "transcribe the two partial-derivative conditions from the paper and extend the checker to joint stationarity.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Lu2021cluster_auction",
@@ -4495,7 +4595,17 @@
         "independent client participation levels"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "follower best-response is an implicit argmax over a box and the recorded FOC is an implicit cubic in q_n* with no transcribed root -- Track 1 has no closed form to substitute",
+      "mechanism": "Server sets customized per-client prices P_n; each client n chooses a participation probability q_n in [0, q_{n,max}].",
+      "obstruction": "best_response_latex is a bare argmax placeholder (q_n^{SE}(P) = argmax_{0<=q_n<=q_{n,max}} U_n(q_n,P_n)) with no algebraic content. follower_foc_latex is implicit in the unknown -- P_n + v_n (alpha/R) a_n^2 G_n^2 / q_n^{*2} - 2 c_n q_n^* = 0 is a cubic in q_n* whose root the entry never records -- and the true optimum is the box-clipped value, not the interior stationary point. There is no closed-form single-variable best response for the FOC check to verify against.",
+      "human_task": "record the explicit (clipped) root of the cubic from the paper, or add root-solving plus box-projection to the Stackelberg checker.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "MURIM2025reputation",
@@ -4806,7 +4916,17 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "follower FOC is transcendental (1/theta - log(1/theta) = const) with no closed-form root, and the best response is a min-clipped implicit solution -- Track 1 cannot solve the stationarity equation",
+      "mechanism": "Server posts a uniform reward r; each client k chooses a local accuracy level theta_k.",
+      "obstruction": "follower_foc_latex is 1/theta_k - log(1/theta_k) = (r + nu_k T_k)/((1-nu_k) gamma_k) - 1, a transcendental equation in theta_k with no closed-form root (its solution is a Lambert-W branch the paper never writes down). best_response_latex is correspondingly implicit: theta_k*(r) = min{ hat-theta_k(r) | g_k(r) = log(e^{1/hat-theta_k} hat-theta_k), theta_th } -- it defines hat-theta_k only as 'the value satisfying' the transcendental relation, then clips at theta_th. Nothing algebraic can be substituted into a d(leader_utility)/d(follower_decision) check.",
+      "human_task": "record the Lambert-W closed form if the branch can be pinned down soundly, and add transcendental/special-function support plus the min-clip to the checker.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Pandey2022fedtoken",
@@ -4866,7 +4986,17 @@
         "Bounded Gradient on Random Sample"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "payment/cost are unspecified generic functions f, d -- no algebraic form to differentiate",
+      "mechanism": "Aggregator chooses payment functions evaluating agents' contributions; each agent k chooses an effort level e_k in [0,1].",
+      "obstruction": "Payment_k = f(Q / (Phi delta_k^2(e_k) + Phi delta_{k'}^2(e_{k'}) + Upsilon)) and Cost_k = c * d(|delta_k(0) - delta_k(e_k)|) are built from unspecified generic functions f and d, so the recorded follower_foc_latex (du_k/de_k = 0) and best_response_latex (a cases-form: 0 if the max is non-positive, else 'hat-e_k where du_k/de_k = 0') carry no algebraic content -- they restate the definition of a stationary point rather than solve it. Only an experiment-specific logarithmic instantiation (Sec. 6.2) has a closed form, and even that is in the Wasserstein variable delta_k rather than e_k. Venue is viXra (non-peer-reviewed). The entry's notes additionally flag that Appendix A.9 restates the same Theorem 4 in an inconsistent hat/no-hat notation, unresolved.",
+      "human_task": "pin f and d to the paper's actual instantiation (and resolve the Appendix A.9 notation conflict) before any obligation can be built; given the venue, verify the result independently first.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Peng2023auction_medical",
@@ -5426,7 +5556,17 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply; the stored best response is additionally not an interior FOC solution",
+      "mechanism": "Leader sets unit prices p_ti and p_mi; each miner i jointly chooses CPU cycles per second for training q_ti AND for mining q_mi.",
+      "obstruction": "Two obstructions compound. (1) The follower decision is two variables chosen jointly, while follower_foc_latex records only the single partial dU_i/dq_ti = p_ti - 2 rho_i q_ti = 0 -- there is no recorded condition for q_mi. (2) That FOC is inconsistent with the recorded utility (U_i has revenue mu_i p_ti / q_ti and cost rho_i mu_i q_ti^2, so the true derivative is strictly negative and the optimum is a corner, not an interior stationary point), and the stored best_response q_ti* = (p_ti/rho_i)^{1/3} is not the root of the recorded FOC either. Substituting it into a d(leader_utility)/d(follower_decision) check would certify a stationarity claim the entry's own algebra contradicts.",
+      "human_task": "re-derive the follower problem against the PDF to settle whether the optimum is interior or a corner, correct the recorded FOC/best-response pair, and extend the checker to joint stationarity.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Wang2022motilearn_contract",
@@ -5962,7 +6102,17 @@
         "heterogeneous data owners"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3b",
+      "track": 1,
+      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "mechanism": "Multiple task leaders post reward rates p_i; each data owner j chooses a task-accuracy vector {epsilon_j^i} for tasks i = 1..K simultaneously under a shared resource budget.",
+      "obstruction": "Three compounding obstructions. The follower chooses a K-component vector coupled by the resource budget sum_i L_j^i <= tau_j^max; best_response_latex is a three-branch piecewise form whose active-constraint branch carries a Lagrange multiplier lambda_j found only by bisection search (Algorithm 1, Eq. 27); and both branch values bar-epsilon and hat-epsilon are defined implicitly as roots of the transcendental relation log(e^{1/eps} eps) = const, which the recorded follower_foc_latex also is. None of the three is expressible as a single-variable closed-form stationarity condition.",
+      "human_task": "add multi-variable stationarity with an active-set/Lagrangian branch plus transcendental root support; alternatively record only the constraint-inactive branch as a scoped-down obligation and state that scoping explicitly.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Yuan2023marl_incentive",

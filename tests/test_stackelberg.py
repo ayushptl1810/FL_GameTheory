@@ -141,3 +141,59 @@ class TestDemoteStrayFunctionCalls:
         f = sp.Function("c")(p)
         demoted = _demote_stray_function_calls(f + c)
         assert not demoted.atoms(sp.core.function.AppliedUndef)
+
+
+class TestNonStringFollowerDecisionFailsClosed:
+    """R3b: the LLM formalizer put a dict (not LaTeX) under
+    m.meta['follower_decision'] for at least one Stackelberg corpus entry.
+    The two string-consuming readers must treat a non-str as absent ('')
+    so the entry degrades to UNKNOWN instead of crashing the whole sweep
+    with TypeError: expected string or bytes-like object, got 'dict'.
+    """
+
+    def test_extract_follower_symbol_with_dict_does_not_raise(self):
+        from tracks.track1_z3 import _extract_follower_symbol
+
+        out = _extract_follower_symbol(
+            {"mechanism": {"follower_decision": {"x": 1}}}, set()
+        )
+        assert out is None
+
+    def test_follower_decision_latex_with_dict_does_not_raise(self):
+        from tracks.track1_z3 import _follower_decision_latex
+
+        assert _follower_decision_latex({"mechanism": {"follower_decision": {"x": 1}}}) is None
+
+    def test_extract_follower_symbol_with_dict_foc_and_br(self):
+        from tracks.track1_z3 import _extract_follower_symbol
+
+        out = _extract_follower_symbol(
+            {"mechanism": {
+                "follower_decision": {"x": 1},
+                "follower_foc_latex": {"y": 2},
+                "best_response_latex": {"z": 3},
+            }},
+            set(),
+        )
+        assert out is None
+
+    def test_verify_from_ast_stackelberg_dict_follower_decision_returns_verdict(self):
+        from architect.ast_verify import verify_from_ast
+        from architect.ast import Mechanism, Sum, Prod, Const, Pow, Sym
+
+        # Canonical VERIFIED shape, but meta.follower_decision is a dict and
+        # best_response_latex is a dict -> both must fail closed, not raise.
+        m = Mechanism(
+            category="Stackelberg",
+            utility=Sum([Prod([Sym("p_i"), Sym("e_i")]),
+                         Prod([Const(-0.5), Sym("c"), Pow(Sym("e_i"), 2)])]),
+            payment=Sym("p_i"), ic=Sym("e_i"), ir=Sym("e_i"),
+            type_space=[],
+            meta={
+                "equilibrium_existence": True,
+                "follower_decision": {"symbol": "e_i"},
+                "best_response_latex": {"lhs": "e_i", "rhs": "p_i"},
+            },
+        )
+        res = verify_from_ast(m)
+        assert res.verdict in {"UNKNOWN", "VERIFIED_TEMPLATE", "UNSUPPORTED"}

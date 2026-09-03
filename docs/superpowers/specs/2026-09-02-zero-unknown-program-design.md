@@ -140,8 +140,29 @@ CLI-only, 0/10 empty-IC entries flip — model declines, papers state IC in pros
 `_strip_contract_prose`, a Bayesian-`E[.]`→Track 4 bail-out, and reverted an
 unsound flip (`_strip_call_args_on_powers` misread period superscripts as
 exponents) with a strengthened regression pin. Merge commit `cd8e5b0`. Delta:
-`docs/superpowers/notes/round-R2-R3-delta.md` (`## Contract (R3a)`). R3b
-(Stackelberg) pending.
+`docs/superpowers/notes/round-R2-R3-delta.md` (`## Contract (R3a)`).
+
+**R3b (Stackelberg) landed 2026-09-03:** diagnose-only round — the R1 formalizer
+produced 0 valid ASTs for the Stackelberg corpus. 0 new `VERIFIED` (the 1
+pre-existing entry-specific `VERIFIED`, `Sarikaya2019stackelberg_workers`, held).
+15 `MANUAL` (all Track 1: vector / multi-variable follower decisions the
+single-variable FOC path cannot reduce ×8, transcendental / implicit FOC with no
+closed-form root ×3, backward-recursion best-response, >2-stage game, unspecified
+generic payment functions, and `Khan2019edge` — a position paper with no proved
+equilibrium, `UNSUPPORTED → MANUAL`). 14 `VERIFIED_TEMPLATE` R6 formalization-miss
+candidates (each has a clean scalar closed-form follower best-response the AST
+path failed to build — all discharged by one Stackelberg-specific formalize path,
+analogous to the R2 VCG allocation-classifier). Stackelberg `UNKNOWN` = 0 (was 0),
+`UNSUPPORTED` 1 → 0. Task 14-pre added a fail-closed `_as_str` guard in
+`src/tracks/track1_z3.py` (the sweep crashed on a non-string `follower_decision`
+the LLM emitted; 6 meta-field readers now coerce non-`str` → `""`). Merge commit
+`<R3b-merge>`. Delta: `docs/superpowers/notes/round-R2-R3-delta.md`
+(`## Stackelberg (R3b)` + `## Combined counts + R4 handoff`).
+
+**R2 + R3 combined:** in-scope UNKNOWN (VCG + Contract + Stackelberg) 2 → **0**.
+9 entry-specific `VERIFIED` (6 pre-existing + 3 new VCG), 60 `MANUAL` with
+catalogued ceilings (R4 input, grouped by recurring obstruction in the delta),
+32 R6 formalization-miss candidates. The 4 Shapley entries stay `UNSUPPORTED` (R5).
 
 ### R4 — Track widenings driven by R2/R3 `MANUAL` reasons
 
