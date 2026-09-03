@@ -375,24 +375,6 @@ def _strip_contract_prose(s: str) -> str:
     return s.strip().rstrip(",.")
 
 
-def _strip_call_args_on_powers(s: str) -> str:
-    """Drop menu-item indexation args from a call on a subscripted power.
-
-    Papers sometimes write a two-stage contract's IR as
-    "\\theta_i^2 R_i^2(\\theta_k^1) - cT_i^2(\\theta_k^1) - E \\geq 0", where
-    "(\\theta_k^1)" tags WHICH first-stage menu item the second-stage
-    quantity belongs to. It is an indexation, not a functional dependence,
-    and the identical tag appears on every term, so removing it leaves the
-    algebra unchanged. Only fires on a single symbol-with-scripts argument
-    directly following a "^2" power, so it cannot swallow a real argument
-    list that the surrounding expression varies over.
-    """
-    return re.sub(
-        r"(?<=\^2)\(\s*\\?[A-Za-z]+(?:_\{?[A-Za-z0-9]+\}?)?(?:\^\{?[0-9]+\}?)?\s*\)",
-        "", s,
-    )
-
-
 def _expand_utility_call_shorthand(text: str, client_utility_latex: str) -> str:
     """
     Papers frequently state IC/IR compactly by referencing the utility
@@ -483,9 +465,6 @@ def _parse_contract_entry(entry: dict) -> "tuple[Any, Any, str, str, int, bool] 
 
     ir_raw = _strip_contract_prose(ir_raw)
     ic_raw = _strip_contract_prose(ic_raw)
-    ir_raw = _strip_call_args_on_powers(ir_raw)
-    ic_raw = _strip_call_args_on_powers(ic_raw)
-
     ir_raw = _expand_utility_call_shorthand(ir_raw, client_utility_latex)
     ic_raw = _expand_utility_call_shorthand(ic_raw, client_utility_latex)
 

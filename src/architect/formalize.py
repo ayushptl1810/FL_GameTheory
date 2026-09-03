@@ -391,25 +391,26 @@ def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
         pid = entry.get("paper_id", "")
         txt = pdf_text(pid)
         r = formalize_with_retry(entry, txt, complete=complete)
-        # Contract LLM-extraction path: the `_llm` mechanism keys are the
-        # auditable artifact (the analogue of `formalized_ast`). They are
-        # already stashed on entry["mechanism"] by formalize_contract_entry;
-        # record the provenance so a reviewer can tell paper-transcribed
-        # latex from model-extracted latex.
-        if r.verdict in ("VERIFIED", "COUNTEREXAMPLE") and any(
-            k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS
-        ):
-            entry["formalization_meta"] = {
-                "model": model, "verdict": r.verdict,
-                "source": "llm_ic_extraction", "date": today,
-            }
-        if r.ast is not None and r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
-            entry["formalized_ast"] = to_dict(r.ast)
-            entry["formalization_meta"] = {
-                "model": model, "verdict": r.verdict, "retries": r.retries,
-                "adversary_rounds": len(r.adversary_log), "pdf_used": r.pdf_used,
-                "flagged": False, "date": today,
-            }
+        # `formalization_meta` is written in exactly ONE place, on whichever
+        # artifact this entry actually produced: an AST (the usual path) or
+        # the Contract `_llm` mechanism keys stashed by
+        # formalize_contract_entry. Keeping the two branches mutually
+        # exclusive stops the AST write from clobbering the Contract
+        # provenance, which records that the IC latex came from a model
+        # rather than the paper's own transcription.
+        if r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+            if r.ast is not None:
+                entry["formalized_ast"] = to_dict(r.ast)
+                entry["formalization_meta"] = {
+                    "model": model, "verdict": r.verdict, "retries": r.retries,
+                    "adversary_rounds": len(r.adversary_log),
+                    "pdf_used": r.pdf_used, "flagged": False, "date": today,
+                }
+            elif any(k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS):
+                entry["formalization_meta"] = {
+                    "model": model, "verdict": r.verdict,
+                    "source": "llm_ic_extraction", "date": today,
+                }
         records.append({
             "paper_id": pid, "category": entry.get("category", ""),
             "verdict": r.verdict, "retries": r.retries,

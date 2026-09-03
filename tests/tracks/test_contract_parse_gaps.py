@@ -1,13 +1,10 @@
 r"""Task 11-pre Part A: `_parse_contract_entry` gap fixes.
 
-Two textual pre-steps were added ahead of the existing utility-call
-expansion:
+One textual pre-step was added ahead of the existing utility-call expansion:
 
   * `_strip_contract_prose`        -- drops an "IC:" label, a `\text{...}`
     prose lead-in, a trailing `\quad \forall ...` quantifier, and any
     SECOND contract introduced after a `\qquad`.
-  * `_strip_call_args_on_powers`   -- drops a menu-item indexation tag on a
-    squared quantity, e.g. `R_i^2(\theta_k^1)` -> `R_i^2`.
 
 Plus a Bayesian bail-out: an `E_{...}[...]` / `\mathbb{E}` wrapper makes
 `_parse_contract_entry` return None so `verify()` falls through to the
@@ -22,11 +19,7 @@ import pathlib
 
 import pytest
 
-from tracks.track1_z3 import (
-    _parse_contract_entry,
-    _strip_call_args_on_powers,
-    _strip_contract_prose,
-)
+from tracks.track1_z3 import _parse_contract_entry, _strip_contract_prose
 from verifier import verify
 
 _CORPUS = json.loads(
@@ -78,41 +71,6 @@ def test_strip_prose_handles_empty_string():
 
 
 # --------------------------------------------------------------------------
-# _strip_call_args_on_powers
-# --------------------------------------------------------------------------
-
-def test_strip_call_args_removes_menu_indexation_tag():
-    s = r"\theta_i^2 R_i^2(\theta_k^1) - cT_i^2(\theta_k^1) - E"
-    assert _strip_call_args_on_powers(s) == r"\theta_i^2 R_i^2 - cT_i^2 - E"
-
-
-def test_strip_call_args_leaves_a_non_power_call_alone():
-    """Only a call directly on a `^2` is an indexation tag. A general
-    function call carries real arguments and must NOT be stripped."""
-    s = r"\theta_j S(\rho_j(t),\zeta_j(t)) - C(\rho_j(t),\phi_j(t))"
-    assert _strip_call_args_on_powers(s) == s
-
-
-# --------------------------------------------------------------------------
-# Entries that now parse
-# --------------------------------------------------------------------------
-
-def test_wen2025_parses_to_the_screening_shape():
-    r"""The `(\theta_k^1)` tag was the only blocker; removing it exposes a
-    clean type-fixed / contract-varying IC."""
-    parsed = _parse_contract_entry(_entry("Wen2025diffusion_contract"))
-    assert parsed is not None
-    _U_ir, U_rhs, type_sub, contract_sub, _n, _from_lhs = parsed
-    assert (type_sub, contract_sub) == ("i", "j")
-    # The deviating-contract utility must retain the TRUE type's subscript.
-    assert any("theta_" in str(s) and "i" in str(s) for s in U_rhs.free_symbols)
-
-
-def test_wen2025_verifies_end_to_end():
-    assert verify(_entry("Wen2025diffusion_contract")).verdict == "VERIFIED"
-
-
-# --------------------------------------------------------------------------
 # Fail-closed: forms deliberately NOT widened
 # --------------------------------------------------------------------------
 
@@ -141,10 +99,28 @@ def test_wen2025_verifies_end_to_end():
         ("Wu2021contract_DP", "bundle-argument utility call"),
         # Prime notation as the contract index plus a `|\gamma` conditional.
         ("2403_09153", "prime contract index and conditional bar"),
+        # Superscripts are PERIOD indices, not exponents (see below).
+        ("Wen2025diffusion_contract", "period superscripts, not exponents"),
     ],
 )
 def test_unsupported_forms_still_fail_closed(paper_id, why):
     assert _parse_contract_entry(_entry(paper_id)) is None, why
+
+
+def test_wen2025_period_superscripts_stay_template():
+    r"""Wen2025's IC/IR carry `^2`/`^1` PERIOD indices, not exponents: the
+    paper's utility (Eq. 6) is the linear `u_n = theta_n R_n - c T_n - E`,
+    and Eqs. 13-14 restate it under "IR/IC Constraints in Period 2". This
+    entry's own `notes` field records the transcription as "the PERIOD-2
+    static myopic IC/IR only".
+
+    An earlier Task 11-pre attempt stripped the `(\theta_k^1)` call args as
+    a menu-indexation tag, which made the entry parse and report VERIFIED --
+    but on `theta_i^2 R_i^2 - c T_i^2 >= theta_i^2 R_j^2 - c T_j^2`, a
+    different obligation from the paper's linear one. That widening was
+    reverted; the entry must stay on the template.
+    """
+    assert verify(_entry("Wen2025diffusion_contract")).verdict == "VERIFIED_TEMPLATE"
 
 
 def test_bayesian_expectation_bails_to_track4():
@@ -156,6 +132,9 @@ def test_bayesian_expectation_bails_to_track4():
 
 
 def test_bayesian_bailout_does_not_catch_a_plain_symbol_named_E():
-    r"""Wen2025's utility carries a bare constant `E`. The Bayesian guard
-    keys on `E_{...}[` / `\mathbb{E}` and must not fire on that."""
-    assert _parse_contract_entry(_entry("Wen2025diffusion_contract")) is not None
+    r"""The Bayesian guard keys on `E_{...}[` / `\mathbb{E}`, so a bare
+    symbol named `E` -- or an `E[...]` that is part of the paper's own
+    algebra rather than a screening-wide expectation wrapper -- must still
+    parse. Han2025paid_models writes `E[v(r_i)] - c_i*m_i \geq ...` and is a
+    pre-existing entry-specific parse; the guard must not swallow it."""
+    assert _parse_contract_entry(_entry("Han2025paid_models")) is not None

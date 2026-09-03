@@ -28,14 +28,13 @@ behavior on one representative entry per class, with real IC/IR verdict
 assertions, so Tasks 12/13 (which also touch track1_z3.py) cannot silently
 regress them into a guessed VERIFIED / COUNTEREXAMPLE.
 
-Task 11-pre UPDATE: one of the three class-(a) pins -- Wen2025diffusion_contract
--- was re-examined and found NOT to be a genuine ambiguity. Its sole blocker was
-the `(\theta_k^1)` menu-item indexation tag, identical on every term and
-carrying no functional dependence. Stripping it (`_strip_call_args_on_powers`)
-yields the textbook screening shape, and the entry is now a legitimate
-entry-specific VERIFIED; its test asserts that structure instead of a
-fail-closed pin. The expectation-notation and `n-1`-arithmetic pins stand
-unchanged, and both remain genuine fail-closed cases.
+Task 11-pre CONFIRMED all three pins after a failed attempt to lift the
+Wen2025diffusion_contract one. Stripping its `(\theta_k^1)` call args as a
+"menu-item indexation tag" does make the entry parse and report VERIFIED --
+but on the WRONG obligation: the paper's utility (Eq. 6) is linear
+(`u_n = theta_n R_n - c T_n - E`) and every `^2`/`^1` in its IC/IR is a
+PERIOD index, not an exponent. The widening was reverted. Treat a superscript
+in this corpus as a period/stage label until the paper says otherwise.
 """
 import json
 import pathlib
@@ -83,39 +82,31 @@ def test_two_subscript_ir_with_expectation_notation_fails_closed():
     assert res.verdict in _ACCEPTED_FALLBACK, res.verdict
 
 
-def test_superscript_label_ir_parses_after_arg_stripping():
-    """(a) Wen2025: IR LHS `\\theta_i^2 R_i^2(\\theta_k^1) - cT_i^2(...) - E`.
+def test_two_subscript_ir_with_superscript_label_fails_closed():
+    """(a) Wen2025: IR LHS `\\theta_i^2 R_i^2(\\theta_k^1) - cT_i^2(...) - E`
+    -> {i, k} subscripts, plus `^2` stage-index / power ambiguity and
+    spurious function-call args. Must fail closed.
 
-    Task 11 pinned this fail-closed because of an apparent `^2`
-    stage-index / power ambiguity. Task 11-pre resolved it: the only real
-    blocker was the `(\\theta_k^1)` menu-item indexation tag, which appears
-    IDENTICALLY on every second-stage term and is not a functional
-    dependence (`_strip_call_args_on_powers`). With it removed the entry
-    parses to the textbook screening shape -- type `i` held fixed on both
-    sides, contract index varying `i` -> `j`:
+    The superscripts here are PERIOD indices, not exponents: the paper's
+    utility (Eq. 6) is the LINEAR `u_n = theta_n R_n - c T_n - E`, and Eqs.
+    13-14 restate it under the headings "IR/IC Constraints in Period 2",
+    so `theta_i^2 R_i^2` means "period-2 theta times period-2 R". The
+    corpus `contract_menu_latex` uses the same superscript-before-subscript
+    period ordering, and this entry's `notes` field records that the
+    transcription is "the PERIOD-2 static myopic IC/IR only".
 
-        IR  : theta_i^2 R_i^2 - c T_i^2 - E
-        RHS : theta_i^2 R_j^2 - c T_j^2 - E
-
-    The `^2` is a genuine squaring, applied uniformly to both sides, so the
-    IC gap is preserved under either reading. The soundness gate still
-    applies: the RHS must carry the deviating type's subscript.
+    Reading those `^2`s as squaring would hand Z3
+    `theta_i^2 R_i^2 - c T_i^2 >= theta_i^2 R_j^2 - c T_j^2`, a DIFFERENT
+    proof obligation from the paper's linear
+    `theta_i R_i - c T_i >= theta_i R_j - c T_j`. A VERIFIED on that would
+    not certify the paper's contract, so the parse must decline.
     """
-    from tracks.track1_z3 import _parse_contract_entry
-
-    parsed = _parse_contract_entry(_entry("Wen2025diffusion_contract"))
-    assert parsed is not None, "expected the arg-stripped IR/IC to parse"
-    _U_ir, U_rhs, type_sub, contract_sub, _n, _from_lhs = parsed
-    assert type_sub != contract_sub, (type_sub, contract_sub)
-    # Soundness: the deviating-contract utility must still depend on the
-    # TRUE type, else the obligation says nothing about incentives.
-    assert any(
-        str(s).startswith("theta_") and type_sub in str(s)
-        for s in U_rhs.free_symbols
-    ), sorted(map(str, U_rhs.free_symbols))
-
     res = verify(_entry("Wen2025diffusion_contract"))
-    assert res.verdict == "VERIFIED", res.verdict
+    if res.entry_specific:
+        assert res.verdict not in _UNSOUND, (
+            f"superscript-label IR produced {res.verdict}; expected fail-closed"
+        )
+    assert res.verdict in _ACCEPTED_FALLBACK, res.verdict
 
 
 def test_sum_menu_aggregation_absent_from_contract_corpus():
