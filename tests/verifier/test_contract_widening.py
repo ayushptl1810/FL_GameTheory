@@ -27,6 +27,14 @@ So Task 11 lands as "widening investigation + regression pins, 0 clean flips"
 behavior on one representative entry per class, with real IC/IR verdict
 assertions, so Tasks 12/13 (which also touch track1_z3.py) cannot silently
 regress them into a guessed VERIFIED / COUNTEREXAMPLE.
+
+Task 11-pre CONFIRMED all three pins after a failed attempt to lift the
+Wen2025diffusion_contract one. Stripping its `(\theta_k^1)` call args as a
+"menu-item indexation tag" does make the entry parse and report VERIFIED --
+but on the WRONG obligation: the paper's utility (Eq. 6) is linear
+(`u_n = theta_n R_n - c T_n - E`) and every `^2`/`^1` in its IC/IR is a
+PERIOD index, not an exponent. The widening was reverted. Treat a superscript
+in this corpus as a period/stage label until the paper says otherwise.
 """
 import json
 import pathlib
@@ -47,7 +55,12 @@ def _entry(paper_id: str) -> dict:
 
 # A guessed positive verdict on any of these would be a soundness failure.
 _UNSOUND = {"VERIFIED", "COUNTEREXAMPLE"}
-_ACCEPTED_FALLBACK = {"VERIFIED_TEMPLATE", "UNKNOWN", "UNSUPPORTED"}
+# MANUAL is a fail-closed verdict by construction: it is set by an explicit
+# `verdict_override` recording a diagnosed obstruction, never by a solver
+# guessing. Several of these entries were diagnosed MANUAL in R3a (Task 12),
+# which is strictly stronger than the VERIFIED_TEMPLATE they fell back to
+# before -- the generic template no longer masks the real blocker.
+_ACCEPTED_FALLBACK = {"VERIFIED_TEMPLATE", "UNKNOWN", "UNSUPPORTED", "MANUAL"}
 
 
 def test_n_minus_1_arithmetic_ic_does_not_produce_guessed_verdict():
@@ -77,7 +90,22 @@ def test_two_subscript_ir_with_expectation_notation_fails_closed():
 def test_two_subscript_ir_with_superscript_label_fails_closed():
     """(a) Wen2025: IR LHS `\\theta_i^2 R_i^2(\\theta_k^1) - cT_i^2(...) - E`
     -> {i, k} subscripts, plus `^2` stage-index / power ambiguity and
-    spurious function-call args. Must fail closed."""
+    spurious function-call args. Must fail closed.
+
+    The superscripts here are PERIOD indices, not exponents: the paper's
+    utility (Eq. 6) is the LINEAR `u_n = theta_n R_n - c T_n - E`, and Eqs.
+    13-14 restate it under the headings "IR/IC Constraints in Period 2",
+    so `theta_i^2 R_i^2` means "period-2 theta times period-2 R". The
+    corpus `contract_menu_latex` uses the same superscript-before-subscript
+    period ordering, and this entry's `notes` field records that the
+    transcription is "the PERIOD-2 static myopic IC/IR only".
+
+    Reading those `^2`s as squaring would hand Z3
+    `theta_i^2 R_i^2 - c T_i^2 >= theta_i^2 R_j^2 - c T_j^2`, a DIFFERENT
+    proof obligation from the paper's linear
+    `theta_i R_i - c T_i >= theta_i R_j - c T_j`. A VERIFIED on that would
+    not certify the paper's contract, so the parse must decline.
+    """
     res = verify(_entry("Wen2025diffusion_contract"))
     if res.entry_specific:
         assert res.verdict not in _UNSOUND, (

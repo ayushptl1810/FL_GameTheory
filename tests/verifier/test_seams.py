@@ -75,8 +75,15 @@ def test_contract_verdicts_unchanged_after_seam_extraction():
         "Lim2020contract_healthcare": ("VERIFIED", True),
         "Sun2022coded": ("VERIFIED", True),
         "Tan2025renegotiable_contract": ("VERIFIED", True),
-        "2102_03401": ("VERIFIED_TEMPLATE", False),
-        "2308_12502": ("VERIFIED_TEMPLATE", False),
+        # R3a Task 12: 2102_03401 and 2308_12502 were diagnosed MANUAL. Both
+        # parse and pass the soundness gate, but the Z3 encoding rejects their
+        # utilities (opaque u_3(.) / symbolic superscript on r_j^L, plus a
+        # population-coupled kappa_j), so no solver ever ran on the entry's own
+        # math -- the VERIFIED_TEMPLATE was a generic linear-cost skeleton.
+        # 2403_09153 stays on the template as an R6 candidate (prime-notation
+        # contract index is a parser gap, not a semantic obstruction).
+        "2102_03401": ("MANUAL", False),
+        "2308_12502": ("MANUAL", False),
         "2403_09153": ("VERIFIED_TEMPLATE", False),
     }
     assert len(CONTRACT) == len(expected_contract)
@@ -127,9 +134,16 @@ _EXPECTED_T234 = {
     "Lim2020contract_healthcare": ("VERIFIED", True, 2),
     "Sun2022coded": ("VERIFIED", True, 2),
     "Tan2025renegotiable_contract": ("VERIFIED", True, 2),
-    "Kang2019contract_mobile": ("UNKNOWN", True, 3),
+    # R3a Task 12 diagnosed the two remaining UNKNOWNs plus the Bayesian
+    # 2602_21844 as MANUAL. Kang2019contract_mobile: Track 3's box search is
+    # intractable at 9/11 free variables. 2602_21844: Track 4 cannot reduce the
+    # multi-agent posterior expectation E_{c_{-k}}[.] to a closed form. Both
+    # keep their track; only the verdict is now recorded rather than left
+    # UNKNOWN, and entry_specific drops to False with the override.
+    "Kang2019contract_mobile": ("MANUAL", False, 3),
     "Sarikaya2019stackelberg_workers": ("VERIFIED", True, 3),
     "Li2025bayesian_incentive": ("VERIFIED", True, 4),
+    "2602_21844": ("MANUAL", False, 4),
 }
 
 
@@ -172,7 +186,9 @@ def test_track2_verdicts_unchanged_after_sympy_native_refactor():
 # bound extraction lifted into verify_track3's front-end).
 _EXPECTED_TRACK3 = {
     "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
-    "Kang2019contract_mobile": ("UNKNOWN", True),
+    # R3a Task 12: diagnosed MANUAL (9 free vars in IC / 11 in IR make the
+    # interval box search intractable at delta=0.001). Still routes to Track 3.
+    "Kang2019contract_mobile": ("MANUAL", False),
 }
 
 
@@ -194,6 +210,10 @@ def test_track3_verdicts_unchanged_after_sympy_native_refactor():
 # lifted into verify_track4's front-end via _parse_ic_gap).
 _EXPECTED_TRACK4 = {
     "Li2025bayesian_incentive": ("VERIFIED", True),
+    # R3a Task 12: diagnosed MANUAL -- Track 4's symbolic integrator cannot
+    # reduce the multi-agent posterior expectation E_{c_{-k}}[.] to a
+    # posynomial-checkable closed form.
+    "2602_21844": ("MANUAL", False),
 }
 
 

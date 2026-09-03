@@ -340,6 +340,41 @@ def _preprocess_contract_latex(s: str) -> str:
     return s
 
 
+_BAYESIAN_RE = re.compile(r"\\mathbb\{E\}|(?<![A-Za-z])E_\{|(?<![A-Za-z])E\\left\[")
+
+
+def _strip_contract_prose(s: str) -> str:
+    """Strip editorial scaffolding papers wrap around an IC/IR inequality.
+
+    Corpus IC/IR strings are transcribed from papers and frequently carry a
+    label ("IC: "), a \\text{...} prose lead-in naming the equation, a
+    trailing "\\quad \\forall i, k \\in I" quantifier, and -- for papers
+    stating two contracts at once -- a second inequality after a \\qquad.
+
+    Keeps only the FIRST "LHS \\geq RHS" inequality (the primary contract)
+    and drops surrounding prose. Purely textual: if nothing matches, the
+    string is returned unchanged and the caller's own parse gates still
+    decide. Never invents or reorders terms.
+    """
+    if not s:
+        return s
+    # A second contract is introduced by \qquad after the first inequality.
+    for sep in (r"\geq", r"\ge", "≥"):
+        i = s.find(sep)
+        if i != -1:
+            j = s.find(r"\qquad", i)
+            if j != -1:
+                s = s[:j]
+            break
+    s = re.sub(r"^\s*(IC|IR)\s*:\s*", "", s)
+    # Leading prose: one or more \text{...} runs, each optionally colon-tailed.
+    s = re.sub(r"^\s*(?:\\text\s*\{[^{}]*\}\s*:?\s*)+", "", s)
+    # Trailing quantifier / commentary.
+    s = re.sub(r",?\s*\\(?:quad|qquad)\s*(?:\\forall|\\text\s*\{).*$", "", s)
+    s = re.sub(r",\s*\\forall\b.*$", "", s)
+    return s.strip().rstrip(",.")
+
+
 def _expand_utility_call_shorthand(text: str, client_utility_latex: str) -> str:
     """
     Papers frequently state IC/IR compactly by referencing the utility
@@ -405,10 +440,31 @@ def _parse_contract_entry(entry: dict) -> "tuple[Any, Any, str, str, int, bool] 
     mech   = entry.get("mechanism") or {}
     ir_raw = mech.get("ir_participation_latex") or ""
     ic_raw = mech.get("ic_screening_latex") or ""
+    client_utility_latex = mech.get("client_utility_latex") or ""
+
+    # LLM-extracted latex is a FALLBACK only: the paper's own transcription
+    # always wins when present. These `_llm` keys are committed corpus data
+    # (written by architect.formalize), so verify() stays deterministic and
+    # API-key-free -- nothing here calls a model.
+    if not ic_raw or not ir_raw:
+        ic_raw = ic_raw or mech.get("ic_screening_latex_llm") or ""
+        ir_raw = ir_raw or mech.get("ir_participation_latex_llm") or ""
+        client_utility_latex = (
+            client_utility_latex or mech.get("client_utility_latex_llm") or ""
+        )
     if not ir_raw or not ic_raw:
         return None
 
-    client_utility_latex = mech.get("client_utility_latex") or ""
+    # Bayesian expectation wrappers (E_{c_{-k}}[.], \mathbb{E}[.]) state an
+    # EX-ANTE constraint. Stripping the expectation and grid-checking the
+    # inside would prove something strictly stronger than the paper claims,
+    # so fail closed and let verify() fall through to the Track 4 Bayesian
+    # path, which handles the quantifier properly.
+    if _BAYESIAN_RE.search(ic_raw) or _BAYESIAN_RE.search(ir_raw):
+        return None
+
+    ir_raw = _strip_contract_prose(ir_raw)
+    ic_raw = _strip_contract_prose(ic_raw)
     ir_raw = _expand_utility_call_shorthand(ir_raw, client_utility_latex)
     ic_raw = _expand_utility_call_shorthand(ic_raw, client_utility_latex)
 

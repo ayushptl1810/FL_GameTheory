@@ -84,7 +84,12 @@ def test_corpus_entries_with_funcall_notation_at_baseline():
     expected = {
         "Sarikaya2019stackelberg_workers": "VERIFIED",        # already entry-specific
         "1811_12082": "VERIFIED_TEMPLATE",                    # blocked by \exp + set-\sum
-        "2102_03401": "VERIFIED_TEMPLATE",                    # u_3(...) = coeff*(cost)
+        # R3a Task 12: diagnosed MANUAL. The IC/IR parse and pass the soundness
+        # gate, but u_3(.) is never defined algebraically, so _sp_to_z3 raises
+        # "unsupported SymPy node u_{3}" and no obligation is built -- the old
+        # VERIFIED_TEMPLATE was the generic linear-cost skeleton, not a
+        # statement about this paper's own math.
+        "2102_03401": "MANUAL",                               # u_3(...) undefined
     }
     for pid, want in expected.items():
         r = verify(_entry(pid))
