@@ -33,3 +33,13 @@ def test_render_table_has_counts_block(tmp_path):
     assert "| # | Paper ID | Category | Verdict | Entry-Specific |" in md
     assert "## Verdict Counts" in md
     assert "v1" in md
+
+
+def test_out_is_required():
+    import subprocess, sys, os
+    r = subprocess.run(
+        [sys.executable, "-m", "scripts.snapshot_verdicts", "corpus.json", "--only", "VCG"],
+        capture_output=True, text=True, env={"PYTHONPATH": "src", **os.environ},
+    )
+    assert r.returncode != 0
+    assert "--out" in (r.stderr + r.stdout)
