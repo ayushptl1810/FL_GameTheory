@@ -3770,7 +3770,15 @@
         "reputation as a metric to measure reliability",
         "multi-weight subjective logic model for reputation calculation",
         "consortium blockchain for secure reputation management"
-      ]
+      ],
+      "positivity_domain": [
+        "\\rho_n > 0",
+        "h_n > 0",
+        "N_0 > 0",
+        "\\rho_m > 0",
+        "h_m > 0"
+      ],
+      "positivity_domain_source": "Kang2019reliable (IEEE IoT-J, DOI 10.1109/JIOT.2019.2940820), Sec. III-C, transmission rate r_n = B ln(1 + rho_n h_n / N_0): rho_n is the transmission power of worker n, h_n is the channel gain of the peer-to-peer link between worker n and the task publisher, and N_0 is the background noise -- all strictly positive physical quantities by definition. The same channel parameters appear per-worker (rho_m, h_m) in the IC constraint (Eq. 19)."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",

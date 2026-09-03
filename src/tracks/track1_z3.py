@@ -234,7 +234,9 @@ def _is_definitely_positive_sum(expr: Any) -> bool:
     this codebase: every Symbol is a positive real (Z3 preconditions add
     `var > 0` for every free variable). Checks that expr expands to a sum
     of monomials each with a positive numeric coefficient and only
-    plain-symbol / positive-integer-power factors -- and at least one term
+    plain-symbol / nonzero-integer-power factors (a positive real to any
+    nonzero integer power is still positive, so 1/x is fine) -- and at least
+    one term
     actually contains a symbol (so it isn't just a positive constant that
     happens to be 0 after all-zero substitution). Conservative: returns
     False (not just "unknown") on anything it can't establish this way.
@@ -251,8 +253,11 @@ def _is_definitely_positive_sum(expr: Any) -> bool:
             if isinstance(factor, _sp.Symbol):
                 saw_symbol_term = True
                 continue
+            # A positive real raised to ANY nonzero integer power is still > 0,
+            # so negative exponents (i.e. division by a symbol, as in
+            # rho*h/N_0) count as positive factors too.
             if (isinstance(factor, _sp.Pow) and isinstance(factor.args[0], _sp.Symbol)
-                    and factor.args[1].is_Integer and factor.args[1] > 0):
+                    and factor.args[1].is_Integer and factor.args[1] != 0):
                 saw_symbol_term = True
                 continue
             return False

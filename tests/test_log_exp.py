@@ -45,9 +45,17 @@ class TestIsDefinitelyPositiveSum:
         x, y = sp.symbols("x y")
         assert _is_definitely_positive_sum(x - y) is False
 
-    def test_negative_power_rejected(self):
+    def test_negative_power_accepted(self):
+        # R4: a positive real to any nonzero integer power is still > 0, so
+        # 1/x is a positive factor. This admits Shannon-capacity arguments
+        # such as log(1 + rho*h/N_0), whose arg - 1 contains Pow(N_0, -1).
         x = sp.Symbol("x")
-        assert _is_definitely_positive_sum(x ** -1) is False
+        assert _is_definitely_positive_sum(x ** -1) is True
+
+    def test_non_integer_power_rejected(self):
+        # Still fail closed on anything that is not a plain integer power.
+        x = sp.Symbol("x")
+        assert _is_definitely_positive_sum(x ** sp.Rational(1, 2)) is False
 
 
 class TestSpToZ3LogExp:
