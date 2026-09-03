@@ -14,15 +14,22 @@ def test_vcg_verdicts_unchanged_after_seam_extraction():
     # 4 of these 8, so verify_from_ast's finite-grid DSIC proof now succeeds
     # entry-specifically -> VERIFIED/True. The other 4 keep the regex fallback
     # (classifier returned null / rule not grid-encodable) -> VERIFIED_SHAPE/False.
+    # R2 Task 9 (hand-check, 2026-09-03): Cui2024auction_market's flip was REVERTED
+    # -- its payment b_{t,j}*DeltaG_{t,i} is a first-price product, not a Clarke
+    # pivot -- then diagnosed MANUAL. 2404_13841 and Ahmed2023frimfl were also
+    # diagnosed MANUAL (budget-constrained greedy, out of the grid-decidable
+    # family). Batool2022fl_mab stays VERIFIED_SHAPE as an R6 formalization-miss
+    # candidate. The remaining 4 VERIFIED flips were each cross-checked against
+    # Groves 1973 / Clarke 1971 by hand.
     expected = {
-        "2404_13841": ("VERIFIED_SHAPE", False),
+        "2404_13841": ("MANUAL", False),
         "2504_05563": ("VERIFIED", True),
         "3626307_3626311": ("VERIFIED", True),
-        "Ahmed2023frimfl": ("VERIFIED_SHAPE", False),
+        "Ahmed2023frimfl": ("MANUAL", False),
         "Batool2022fl_mab": ("VERIFIED_SHAPE", False),
         "Cheng2022uav": ("VERIFIED", True),
         "Cong2020vcg": ("VERIFIED", True),
-        "Cui2024auction_market": ("VERIFIED", True),
+        "Cui2024auction_market": ("MANUAL", False),
     }
     for e in VCG:
         r = verify(e)
