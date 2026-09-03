@@ -33,7 +33,7 @@ Captured before the sweep. Out-of-scope categories (`RL`, `Valuation`, `Naive`) 
 | 25 | Tan2025longterm | VCG | VERIFIED_SHAPE | False |
 | 26 | Wei2024truthful_bandit | VCG | UNKNOWN | False | <!-- R2: shape verdict was a regex match, no solver run (program spec); sweep produced UNKNOWN; diagnosed MANUAL in Task 9 -->
 | 27 | Xia2026privacy_mfg | VCG | UNKNOWN | False | <!-- R2: shape verdict was a regex match, no solver run (program spec); sweep produced UNKNOWN; diagnosed MANUAL in Task 9 -->
-| 28 | Xiang2025esr_mhfl | VCG | UNKNOWN | False | <!-- R2: shape verdict was a regex match, no solver run (program spec); sweep produced UNKNOWN; diagnosed MANUAL in Task 9 -->
+| 28 | Xiang2025esr_mhfl | VCG | VERIFIED_SHAPE | False |
 | 29 | Yang2023buyers_market | VCG | UNKNOWN | False | <!-- R2: shape verdict was a regex match, no solver run (program spec); sweep produced UNKNOWN; diagnosed MANUAL in Task 9 -->
 | 30 | Zhang2022expost_auction | VCG | VERIFIED_SHAPE | False |
 | 31 | Zhang2022online | VCG | UNKNOWN | False | <!-- R2: shape verdict was a regex match, no solver run (program spec); sweep produced UNKNOWN; diagnosed MANUAL in Task 9 -->

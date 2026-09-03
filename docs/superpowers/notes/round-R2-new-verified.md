@@ -85,7 +85,7 @@ in Part 2 below.
   that is not a with-vs-without-i welfare difference, and it makes the payment
   directly decreasing in i's own report, the opposite of a pivot. Fails BOTH criteria.
 
-## MANUAL diagnoses (real obstruction) — 21 entries
+## MANUAL diagnoses (real obstruction) — 20 entries
 
 Ceiling phrase in brackets. All carry `verdict_override: MANUAL` +
 `manual_diagnosis` and a MANUAL-backlog.md paragraph; their baseline rows were
@@ -108,14 +108,13 @@ rewritten `VERIFIED_SHAPE` -> `UNKNOWN`.
 | Seo2022noniid_auction | non-polynomial gap Z3 cannot linearize |
 | Tan2023hire | RL-policy or opaque-algorithm allocation, not a closed-form rule |
 | Wei2024truthful_bandit | non-polynomial gap Z3 cannot linearize |
-| Xia2026privacy_mfg | budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family |
-| Xiang2025esr_mhfl | budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family |
+| Xia2026privacy_mfg | payment budget cap min(B/k, ·) breaks the Clarke-pivot form; top-k allocation is fine but the payment is not Groves |
 | Yang2023buyers_market | continuous bid space with no valid discretization |
 | Zhang2022online | continuous bid space with no valid discretization |
 | Zhang2024auction_comm | non-polynomial gap Z3 cannot linearize |
 | Zheng2023fl_market | budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family |
 
-## R6 candidates (formalization miss) — 8 entries
+## R6 candidates (formalization miss) — 9 entries
 
 These stay `VERIFIED_SHAPE`. Their allocation genuinely IS (or plausibly reduces
 to) a grid-decidable argmax with a Groves-shaped payment; the sweep's parser or
@@ -129,6 +128,13 @@ these are the R6 work queue.**
 - **Tan2025longterm** — `x* = argmax Σ v_i(b_i) x_i`, payment
   `r(x*) - Σ_{k≠i} c(x_k*, γ̂_k)` — the same Groves form that *did* flip for
   3626307_3626311. Gap: classifier inconsistency, not a real obstruction.
+- **Xiang2025esr_mhfl** — `x* = argmax Σ x_ij v_ij` (a *constrained* argmax, not a
+  budget-constrained greedy) with payment `r(x*) - Σ_{k≠i} c(x_k*, γ̂_k)`. Gap:
+  constrained argmax + Groves payment (same form as the 3626307_3626311 flip);
+  classifier returned null / didn't build a typed node. R6: re-extract with
+  constrained-argmax handling. *(Moved out of MANUAL in fix round 1 — my original
+  diagnosis conceded both the argmax and the Groves shape, and its "human task"
+  was an R6 re-extraction question, not a ceiling.)*
 - **Liu2023reverse_auction** — `W = argmax_{W⊆N} φ(W) - Σ costs`, payment
   `φ(W) - φ(W\{i}) - b_i`: an explicit with-vs-without-i pivot. Gap: subset-valued
   argmax over `W ⊆ N` is not expressible as `AllocHighest` over per-client scores;

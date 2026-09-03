@@ -96,15 +96,8 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 ## Xia2026privacy_mfg (VCG) — R2
 
 **Mechanism:** Top-k indicator q_i=1 iff i<=k, with payment min(B/k, c(v_{k+1}, 1/(n-k))) capped by a per-winner budget share.
-**Obstruction:** The payment is a min of a budget-share cap and a critical value; the budget cap makes it neither a Clarke pivot nor a pure critical-value payment, so the top-k allocation alone is not enough for a grid DSIC proof. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Obstruction:** The payment is a min of a budget-share cap and a critical value; the budget cap makes it neither a Clarke pivot nor a pure critical-value payment, so the top-k allocation alone is not enough for a grid DSIC proof. (Track 1: payment budget cap min(B/k, ·) breaks the Clarke-pivot form; top-k allocation is fine but the payment is not Groves)
 **Human task:** Determine whether the budget cap ever binds under the paper's assumptions; if it does not, the mechanism reduces to a critical-value top-k.
-**Diagnosed:** 2026-09-03
-
-## Xiang2025esr_mhfl (VCG) — R2
-
-**Mechanism:** Constrained binary assignment argmax sum x_ij v_ij subject to per-client budget B_i, individual-rationality, coverage and capacity constraints; payment is a Groves-shaped r(x*) - sum_{k!=i} c(x_k*).
-**Obstruction:** Although the payment is Groves-shaped, the allocation is a multi-constraint 0/1 integer program (budget + capacity + coverage), not an unconstrained welfare argmax, so Groves does not apply and the constrained argmax is not in the grid-decidable family. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Check whether the constraints are slack at the optimum; if binding, the mechanism is not Groves and a separate truthfulness argument is needed.
 **Diagnosed:** 2026-09-03
 
 ## Yang2023buyers_market (VCG) — R2
