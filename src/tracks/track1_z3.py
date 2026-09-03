@@ -375,6 +375,52 @@ def _strip_contract_prose(s: str) -> str:
     return s.strip().rstrip(",.")
 
 
+_POS_RE = re.compile(r"^\s*(?P<syms>[A-Za-z0-9_{}\\,\s^]+?)\s*>\s*0\s*$")
+
+
+def _positivity_domain(mech: dict) -> "list[tuple[str, str]]":
+    """Parse mechanism['positivity_domain'] -> [(symbol_name, '>0'), ...].
+
+    Accepts 'x > 0' and comma-shorthand 'x, y > 0'. Anything that is not a
+    '<symbols> > 0' string is ignored (fail closed -- a malformed entry
+    contributes no facts rather than a guessed one).
+    """
+    raw = mech.get("positivity_domain")
+    if not isinstance(raw, list):
+        return []
+    out: "list[tuple[str, str]]" = []
+    for item in raw:
+        if not isinstance(item, str):
+            continue
+        m = _POS_RE.match(item)
+        if not m:
+            continue
+        for sym in m.group("syms").split(","):
+            name = sym.strip().strip("{}").replace("\\", "")
+            if name:
+                out.append((name, ">0"))
+    return out
+
+
+def _opaque_inline(mech: dict, latex: str) -> str:
+    """Replace opaque_function_forms[name](args) with the declared LaTeX form.
+
+    Textual substitution only. If a form fails to parse downstream, the
+    normal _sp_to_z3 'unsupported node' bail still applies -- this only
+    removes the *opaque* barrier when the paper supplies the form.
+    """
+    forms = mech.get("opaque_function_forms")
+    if not isinstance(forms, dict):
+        return latex
+    out = latex
+    for name, form in forms.items():
+        if not isinstance(name, str) or not isinstance(form, str):
+            continue
+        repl = "(" + form + ")"
+        out = re.sub(re.escape(name) + r"\s*\([^()]*\)", lambda _m: repl, out)
+    return out
+
+
 def _expand_utility_call_shorthand(text: str, client_utility_latex: str) -> str:
     """
     Papers frequently state IC/IR compactly by referencing the utility
@@ -465,6 +511,12 @@ def _parse_contract_entry(entry: dict) -> "tuple[Any, Any, str, str, int, bool] 
 
     ir_raw = _strip_contract_prose(ir_raw)
     ic_raw = _strip_contract_prose(ic_raw)
+    # Inline paper-declared closed forms for otherwise-opaque function symbols
+    # (mechanism['opaque_function_forms']); no-op when the field is absent, as
+    # it is for every current corpus entry.
+    ir_raw = _opaque_inline(mech, ir_raw)
+    ic_raw = _opaque_inline(mech, ic_raw)
+    client_utility_latex = _opaque_inline(mech, client_utility_latex)
     ir_raw = _expand_utility_call_shorthand(ir_raw, client_utility_latex)
     ic_raw = _expand_utility_call_shorthand(ic_raw, client_utility_latex)
 
@@ -577,6 +629,22 @@ def _contract_check_core(
     """
     mech = meta or {}
     cache: dict = {}
+
+    # Paper-declared positivity domain (mechanism['positivity_domain']): rebind
+    # the named symbols as SymPy positives BEFORE _sp_to_z3 runs, so a ln/log
+    # term whose argument is one of them clears the "argument sign not
+    # established" bail. Declared data, not a guess; no-op (empty) for every
+    # current corpus entry.
+    _pos_syms = {name for name, _ in _positivity_domain(mech)}
+    if _pos_syms:
+        _subs_map = {
+            s: _sp.Symbol(str(s), positive=True)
+            for s in (U_ir.free_symbols | U_rhs.free_symbols)
+            if str(s) in _pos_syms
+        }
+        if _subs_map:
+            U_ir = U_ir.subs(_subs_map)
+            U_rhs = U_rhs.subs(_subs_map)
 
     def _U(type_k: int, contract_l: "int | None" = None) -> Any:
         l = contract_l if contract_l is not None else type_k
