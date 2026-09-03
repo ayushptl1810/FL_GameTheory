@@ -126,6 +126,23 @@ diagnosed `MANUAL` (their obstruction becomes an R4 mini-spec).
 - Depends on: R2
 - Plan authored at round start.
 
+**R3a (Contract) landed 2026-09-03:** diagnose-only round — the R1 formalizer
+produced 0 valid ASTs for the Contract corpus (same wall as VCG). 0 new
+`VERIFIED` (the 5 pre-existing entry-specific `VERIFIED` held via `verify()`'s
+own LaTeX path). 25 `MANUAL` (catalogued ceilings across Tracks 1/3/4: undefined
+opaque utility functions, transcendental log/Shannon-capacity terms, degenerate
+or population-coupled IC, Bayesian expectation-form IC, no adverse-selection
+screening IC in the paper), 8 `VERIFIED_TEMPLATE` R6 formalization-miss
+candidates (bundle-arg maps, undefined `G`/`C`/`S`, prime-as-index, predicate-form
+IC), 0 `UNKNOWN` in the Contract slice (was 2). Task 11-pre added the LLM
+IC-extraction path (`extract_contract_constraints` + `formalize_contract_entry`,
+CLI-only, 0/10 empty-IC entries flip — model declines, papers state IC in prose),
+`_strip_contract_prose`, a Bayesian-`E[.]`→Track 4 bail-out, and reverted an
+unsound flip (`_strip_call_args_on_powers` misread period superscripts as
+exponents) with a strengthened regression pin. Merge commit `cd8e5b0`. Delta:
+`docs/superpowers/notes/round-R2-R3-delta.md` (`## Contract (R3a)`). R3b
+(Stackelberg) pending.
+
 ### R4 — Track widenings driven by R2/R3 `MANUAL` reasons
 
 Every `MANUAL` note from R2/R3 is a mini-spec. Implement the obstructions that
