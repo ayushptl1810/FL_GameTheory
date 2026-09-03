@@ -1595,7 +1595,48 @@
       ],
       "mechanism_modification": "adaptation of Myerson and VCG payment rules to the data market setting"
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "unspecified",
+        "allocation_rule_latex": "W⋆(cˆ) ∈ argmax[SW := v (W)− cˆ f (W)]",
+        "payment_rule_latex": "p_i = v_i(W) - \\sum_{k \\neq i} c_k f_k(W⋆(cˆ))",
+        "client_utility_latex": "u_i = v_i(W) - p_i",
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2505_02462",
@@ -2427,7 +2468,48 @@
         "valuation v_i in [0,V_max]"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "x_i(b) = \\arg\\max_{x_i} \\sum_{i} v_i(x_i) - c_i(x_i)",
+        "payment_rule_latex": "p_i(b) = r(x^*) - \\sum_{k \\neq i} c(x_k^*, \\hat{\\gamma}_k)",
+        "client_utility_latex": "u_i = v_i - p_i",
+        "auction_type": "multi-unit"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Ahmed2023frimfl",
@@ -2653,7 +2735,48 @@
         "each FLSD can only buy the dataset from one DO and employ one UAV"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "\\mathbf{X}^* = \\arg\\max_{\\mathbf{X}} F(x_{l,m,n}), \\quad x_{l,m,n} \\in \\{0,1\\}",
+        "payment_rule_latex": "P_{i,k}^f = F(x_{l,m,n}^*) - F_{\\setminus(i,k)}(y_{l,m,n}^{t*}) + J_{l,(i,k)}",
+        "client_utility_latex": "U_{(i,k)} = \\sum_{l \\in \\mathcal{L}} x_{l,i,k}\\left(P_{i,k}^f - J_{l,(i,k)}\\right)",
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Chu2023hierarchical",
@@ -2718,7 +2841,48 @@
         "Smoothness and Monotonicity"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "x^* = \\arg\\max S(x, \\gamma^\\hat)",
+        "payment_rule_latex": "p_i = S(x^*, \\gamma^\\hat) - S(z^*, \\gamma^\\hat)",
+        "client_utility_latex": "u_i = v_i - p_i",
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Cui2024auction_market",
@@ -2751,7 +2915,48 @@
         "Unified Bidding Strategy"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "f_a(b_t, D_t) = \\arg\\max_{i \\in N} b_{t,i}",
+        "payment_rule_latex": "p_{i,j} = b_{t,j} \\cdot \\Delta G_{t,i}",
+        "client_utility_latex": "u_i = v_i - p_i",
+        "auction_type": "forward"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Deng2020fmore_auction",
@@ -2939,7 +3144,48 @@
         "federations have limited budget"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "unspecified",
+        "allocation_rule_latex": "p(n,t) = 1 if b_n(t) is among the lowest bids, 0 otherwise",
+        "payment_rule_latex": "p_i(b) = b_i - C_i(t)",
+        "client_utility_latex": "u_i = b_i - C_i(t)",
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Guo2023stackelberg_industrial",
@@ -3300,7 +3546,48 @@
         "parameter server has a fixed reward budget"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "n_t = \\arg\\max_n \\sum_{i=1}^{n} \\frac{b_{t,n+1}}{q_{t,n+1}} q_{t,i} \\leq B_t",
+        "payment_rule_latex": "r_{t,i} = \\frac{b_{t,n_t+1}}{q_{t,n_t+1}} q_{t,i}",
+        "client_utility_latex": null,
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Kang2019contract_mobile",
@@ -5657,7 +5944,48 @@
         "clients have private cost functions"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "X = \\arg\\max_{i \\in K} S(s_i, p_i)",
+        "payment_rule_latex": "p_i = \\sum_{j \\neq i} c_j - c_i",
+        "client_utility_latex": "u_i = p_i - c_i",
+        "auction_type": "forward"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Zhao2023truthful",

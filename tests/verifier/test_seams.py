@@ -7,20 +7,22 @@ VCG = [e for e in CORPUS if e.get("category") == "VCG"][:8]
 
 
 def test_vcg_verdicts_unchanged_after_seam_extraction():
-    # Phase 2 Task 5: verify_vcg now dispatches to the real finite-grid DSIC
-    # check first; every one of these 8 entries fails that check closed
-    # (UNKNOWN/UNSUPPORTED) and falls through to the regex path, whose success
-    # is now VERIFIED_SHAPE (a structural match, not a proof) with
-    # entry_specific=False. Was VERIFIED/True (5) or VERIFIED_TEMPLATE/False (3).
+    # Phase 2 Task 5 established VERIFIED_SHAPE/False for all 8 (grid check failed
+    # closed, regex fallback = structural match, not a proof).
+    # R2 (2026-09-03) VCG sweep: the allocation-classifier formalization path
+    # (architect.formalize.formalize_vcg_entry) built a typed allocation node for
+    # 4 of these 8, so verify_from_ast's finite-grid DSIC proof now succeeds
+    # entry-specifically -> VERIFIED/True. The other 4 keep the regex fallback
+    # (classifier returned null / rule not grid-encodable) -> VERIFIED_SHAPE/False.
     expected = {
         "2404_13841": ("VERIFIED_SHAPE", False),
-        "2504_05563": ("VERIFIED_SHAPE", False),
-        "3626307_3626311": ("VERIFIED_SHAPE", False),
+        "2504_05563": ("VERIFIED", True),
+        "3626307_3626311": ("VERIFIED", True),
         "Ahmed2023frimfl": ("VERIFIED_SHAPE", False),
         "Batool2022fl_mab": ("VERIFIED_SHAPE", False),
-        "Cheng2022uav": ("VERIFIED_SHAPE", False),
-        "Cong2020vcg": ("VERIFIED_SHAPE", False),
-        "Cui2024auction_market": ("VERIFIED_SHAPE", False),
+        "Cheng2022uav": ("VERIFIED", True),
+        "Cong2020vcg": ("VERIFIED", True),
+        "Cui2024auction_market": ("VERIFIED", True),
     }
     for e in VCG:
         r = verify(e)
