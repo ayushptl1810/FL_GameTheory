@@ -1078,6 +1078,16 @@ def _split_equation_clauses(s: str) -> list[str]:
 _SIGMA_OTHERS_PREFIX = "\\Xi"
 
 
+def _as_str(v: Any) -> str:
+    """Fail-closed coercion for LLM-populated meta fields the string-consuming
+    Stackelberg readers expect as LaTeX. The formalizer has emitted a dict (not
+    a string) under e.g. ``follower_decision`` for at least one corpus entry;
+    a non-``str`` value is treated as absent so the entry degrades to
+    UNKNOWN/generic-template instead of raising ``TypeError`` mid-sweep.
+    """
+    return v if isinstance(v, str) else ""
+
+
 def _follower_decision_latex(entry: dict) -> "str | None":
     """Raw LaTeX of the follower's own decision symbol, e.g. ``s_i^d``.
 
@@ -1087,7 +1097,7 @@ def _follower_decision_latex(entry: dict) -> "str | None":
     exactly as before this widening).
     """
     mech = entry.get("mechanism") or {}
-    fd = mech.get("follower_decision") or ""
+    fd = _as_str(mech.get("follower_decision"))
     best: "str | None" = None
     for cand in _STACK_INLINE_MATH_RE.findall(fd):
         cand = cand.strip()
@@ -1374,7 +1384,7 @@ def _extract_follower_symbol(entry: dict, expr_free_symbols: Any) -> "Any | None
     falls through to the generic template instead of guessing.
     """
     mech = entry.get("mechanism") or {}
-    follower_decision = mech.get("follower_decision") or ""
+    follower_decision = _as_str(mech.get("follower_decision"))
 
     def _match_candidate(sp_candidate: Any) -> "Any | None":
         """Try an exact symbol match first -- critical when an entry has
@@ -1397,7 +1407,7 @@ def _extract_follower_symbol(entry: dict, expr_free_symbols: Any) -> "Any | None
     # Pass -1: follower_foc_latex's own differentiation variable, e.g.
     # "\partial U_i / \partial q_{ti} = ..." names the decision variable
     # directly -- the strongest possible signal when present.
-    foc_raw = mech.get("follower_foc_latex") or ""
+    foc_raw = _as_str(mech.get("follower_foc_latex"))
     # \frac{\partial U}{\partial q_{ti}} form -- try first, since it
     # unambiguously captures the denominator (the differentiation
     # variable), unlike a bare search for "\partial X" which would match
@@ -1416,7 +1426,7 @@ def _extract_follower_symbol(entry: dict, expr_free_symbols: Any) -> "Any | None
     # Pass 0: best_response_latex directly names the follower's own
     # decision variable as the thing being solved for, e.g.
     # "P_i^*(q_i) = ..." or "\arg\max_{q_n} U_n(q_n, P_n)".
-    br_raw = mech.get("best_response_latex") or ""
+    br_raw = _as_str(mech.get("best_response_latex"))
     for pat in (
         r"^\(?([A-Za-z][A-Za-z0-9_{}\^]*?)\)?\^\*",
         r"\\arg\s*\\max_\{?([A-Za-z][A-Za-z0-9_{}]*)",
@@ -1459,7 +1469,7 @@ def _extract_follower_symbol(entry: dict, expr_free_symbols: Any) -> "Any | None
     if len(word_matches) == 1:
         return word_matches[0]
 
-    leader_raw = mech.get("leader_objective_latex") or ""
+    leader_raw = _as_str(mech.get("leader_objective_latex"))
     leader_bases: set = set()
     if leader_raw:
         # Reuse the multi-clause resolver: leader_objective_latex commonly
@@ -1606,7 +1616,7 @@ def _stackelberg_check_core(
     # than the paper being wrong. Reject rather than certify against a
     # formula the paper doesn't actually state.
     best_response_note = ""
-    br_raw = mech.get("best_response_latex") or ""
+    br_raw = _as_str(mech.get("best_response_latex"))
     if br_raw and not _OPAQUE_FUNCTION_RE.search(br_raw):
         try:
             br_expr = _demote_stray_function_calls(_lx_parse(_clean_stackelberg_latex(br_raw)))
