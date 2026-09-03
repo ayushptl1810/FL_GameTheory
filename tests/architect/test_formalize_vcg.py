@@ -73,6 +73,17 @@ def test_formalize_vcg_entry_null_alloc_falls_back():
     assert res.verdict in ("VERIFIED_SHAPE", "UNKNOWN")
 
 
+def test_formalize_vcg_entry_null_alloc_but_clean_latex_still_verifies():
+    # Classifier is a bonus, not a gate: when the corpus allocation/payment LaTeX
+    # is already parse_allocation-clean, a {"t":null} classification still yields
+    # a real entry-specific VERIFIED via verify_from_ast's meta fallback.
+    # (FormalizeResult has no entry_specific field; entry_specific=True rides on
+    # the VerificationResult inside verify_from_ast — see test_ast_verify.py
+    # test_verify_from_ast_vcg_clarke_is_real_verified.)
+    res = formalize_vcg_entry(_entry(), complete=_fake('{"t":null}'))
+    assert res.verdict == "VERIFIED"
+
+
 def test_formalize_with_retry_dispatches_vcg():
     res = formalize_with_retry(_entry(), None,
                                complete=_fake('{"t":"AllocHighest"}'))
