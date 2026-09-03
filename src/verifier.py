@@ -206,8 +206,26 @@ def _reconcile(llm: VerificationResult,
     return latex, False
 
 
+def _manual_note(entry: dict) -> str:
+    d = entry.get("manual_diagnosis") or {}
+    if not d:
+        return "MANUAL: no diagnosis recorded"
+    return (f"MANUAL ({d.get('round', '?')}): {d.get('obstruction', '')} "
+            f"[Track {d.get('track', 0)}: {d.get('limit', '')}]")
+
+
 def verify(entry: dict) -> VerificationResult:
     """Prefer a stored formalized_ast; reconcile with the LaTeX path."""
+    if entry.get("verdict_override") == "MANUAL":
+        d = entry.get("manual_diagnosis") or {}
+        return VerificationResult(
+            verdict="MANUAL",
+            category=entry.get("category", ""),
+            paper_id=entry.get("paper_id", ""),
+            track=int(d.get("track", 0) or 0),
+            notes=_manual_note(entry),
+            entry_specific=False,
+        )
     latex_res = _verify_latex(entry)
     fa = entry.get("formalized_ast")
     if not fa:
@@ -237,7 +255,10 @@ def verify_corpus(entries_dir: Path, gold_only: bool = False) -> list[Verificati
 
 # ── Summary printer ───────────────────────────────────────────────────────────
 
-def print_summary(results: list[VerificationResult]) -> None:
+def print_summary(
+    results: list[VerificationResult],
+    backlog_path: str = "docs/superpowers/notes/MANUAL-backlog.md",
+) -> None:
     counts: Counter[str] = Counter(r.verdict for r in results)
     total = len(results)
 
@@ -332,6 +353,23 @@ def print_summary(results: list[VerificationResult]) -> None:
         if r.verdict not in ("VERIFIED", "VERIFIED_TEMPLATE", "VERIFIED_SHAPE", "UNSUPPORTED"):
             print(r)
             print()
+
+    manual = [r for r in results if r.verdict == "MANUAL"]
+    if manual:
+        bar = "█" * min(len(manual), 40)
+        print(f"  MANUAL            {bar}  ({len(manual)})")
+        print("\n  ## Diagnosed (MANUAL)")
+        for r in manual:
+            print(f"  - {r.paper_id}: {r.notes}")
+        try:
+            with open(backlog_path) as fh:
+                blob = fh.read()
+        except OSError:
+            blob = ""
+        missing = [r.paper_id for r in manual if r.paper_id not in blob]
+        if missing:
+            print(f"  ⚠️  MANUAL entries missing from MANUAL-backlog.md: "
+                  f"{', '.join(missing)}")
 
     flagged = [r for r in results if "RECONCILE-FLAG" in (r.notes or "")]
     if flagged:

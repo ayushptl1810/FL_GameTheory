@@ -969,7 +969,17 @@
       ],
       "mechanism_modification": "the proposed max-min fair auction mechanism"
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Budget-split proportional payment B/(S(k-1)) to a threshold-index winning set; allocation LaTeX is an alpha-fairness share, not a selection rule.",
+      "obstruction": "Winner set is a budget-threshold cutoff k=min{k: b_k > B/(Sk)}; not argmax/top-k with fixed k, and the recorded allocation LaTeX is a share formula, so no grid-decidable allocation node exists.",
+      "human_task": "Extract the true winner-selection rule from the paper and decide whether the budget-threshold cutoff admits a finite-grid encoding.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2405_07415",
@@ -1595,7 +1605,48 @@
       ],
       "mechanism_modification": "adaptation of Myerson and VCG payment rules to the data market setting"
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "unspecified",
+        "allocation_rule_latex": "W⋆(cˆ) ∈ argmax[SW := v (W)− cˆ f (W)]",
+        "payment_rule_latex": "p_i = v_i(W) - \\sum_{k \\neq i} c_k f_k(W⋆(cˆ))",
+        "client_utility_latex": "u_i = v_i(W) - p_i",
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2505_02462",
@@ -2427,7 +2478,48 @@
         "valuation v_i in [0,V_max]"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "x_i(b) = \\arg\\max_{x_i} \\sum_{i} v_i(x_i) - c_i(x_i)",
+        "payment_rule_latex": "p_i(b) = r(x^*) - \\sum_{k \\neq i} c(x_k^*, \\hat{\\gamma}_k)",
+        "client_utility_latex": "u_i = v_i - p_i",
+        "auction_type": "multi-unit"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Ahmed2023frimfl",
@@ -2460,7 +2552,17 @@
         "private cost parameters"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Per-client indicator x_i=1 iff posted price p_i=B/r_i is under budget B; payment is a fixed posted price.",
+      "obstruction": "Allocation is a per-client budget-feasibility cases-threshold, not a welfare argmax, and the payment B/r_i is a posted price independent of others' reports, so no Groves pivot exists to prove.",
+      "human_task": "Decide whether the budget-feasibility threshold is monotone in the report and, if so, re-encode as a threshold mechanism outside the VCG family.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Batool2022fl_mab",
@@ -2718,7 +2820,48 @@
         "Smoothness and Monotonicity"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "VCG",
+      "utility": {
+        "t": "Sym",
+        "name": "u"
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ic": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "ir": {
+        "t": "Sym",
+        "name": "v"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": {
+        "t": "AllocHighest"
+      },
+      "meta": {
+        "num_clients": "finite-large",
+        "allocation_rule_latex": "x^* = \\arg\\max S(x, \\gamma^\\hat)",
+        "payment_rule_latex": "p_i = S(x^*, \\gamma^\\hat) - S(z^*, \\gamma^\\hat)",
+        "client_utility_latex": "u_i = v_i - p_i",
+        "auction_type": "reverse"
+      }
+    },
+    "formalization_meta": {
+      "model": "openai/gpt-oss-120b",
+      "verdict": "VERIFIED",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Cui2024auction_market",
@@ -2751,7 +2894,17 @@
         "Unified Bidding Strategy"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "continuous bid space with no valid discretization",
+      "mechanism": "Allocation argmax_i b_{t,i} over reported bids; payment p_{i,j} = b_{t,j} * Delta G_{t,i}, a bid times a marginal model-gain term.",
+      "obstruction": "The payment multiplies another agent's bid by a continuous marginal-gain quantity Delta G_{t,i} produced by model training; it is a first-price-style product, not a Clarke pivot, and Delta G has no valid finite discretization tied to the reports.",
+      "human_task": "Determine whether Delta G_{t,i} is the second-price critical value in disguise; if not, the mechanism is not Groves and needs its own truthfulness proof.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Deng2020fmore_auction",
@@ -2939,7 +3092,17 @@
         "federations have limited budget"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Selects participants 'among the lowest bids' (a reverse top-k with unspecified k) and pays p_i = b_i - C_i(t), which equals the stated client utility.",
+      "obstruction": "The winner count is not specified so the rule is not a fixed top-k, and the payment pays the bid minus own cost — a first-price form, not a Clarke pivot; the payment and utility LaTeX are literally identical, so the recorded model is degenerate.",
+      "human_task": "Recover k and the true payment from the paper; a first-price reverse auction is not DSIC and may warrant a counterexample search instead.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Guo2023stackelberg_industrial",
@@ -3042,7 +3205,17 @@
         "Datasets used by clients are drawn from the same distribution"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "non-polynomial gap Z3 cannot linearize",
+      "mechanism": "Score-comparison allocation w_i chosen by pairwise comparison b_i(s-hat - s_i) against a permuted rival, with a Punish() term in the payment.",
+      "obstruction": "The payment contains an opaque Punish(s_j - s_i) aggregate and the allocation is a pairwise-comparison cases rule over a permutation pi(i), which is neither argmax nor top-k and not linearizable on a finite grid.",
+      "human_task": "Define Punish() concretely and determine whether the pairwise-comparison allocation reduces to an argmax over a scoring function.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Hu2020trading",
@@ -3267,7 +3440,17 @@
       ],
       "mechanism_modification": "auction mechanism based on deep reinforcement learning and graph neural networks"
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Budget-constrained greedy: n_t = argmax n s.t. cumulative proportional cost sum_{i<=n} (b_{n+1}/q_{n+1}) q_i <= B_t, with proportional-share payment r_{t,i}.",
+      "obstruction": "The allocation maximizes a COUNT subject to a budget constraint (a knapsack-style greedy), not a welfare argmax, and the payment is a proportional share of the critical unit price rather than a Clarke pivot.",
+      "human_task": "Encode the budget-greedy cutoff as a monotone-threshold mechanism and prove critical-payment truthfulness outside the VCG grid path.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Jin2023bara_budget",
@@ -3300,7 +3483,17 @@
         "parameter server has a fixed reward budget"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Identical budget-constrained greedy to Jiao2019: n_t = argmax n s.t. sum (b_{n+1}/q_{n+1}) q_i <= B_t with proportional critical-price payment; client_utility_latex is null.",
+      "obstruction": "Budget-knapsack allocation is out of the {argmax, top-k, weighted-welfare} family and the proportional-share payment is not a Clarke pivot; with no utility LaTeX the grid proof has no objective to check.",
+      "human_task": "Supply the client utility and re-encode as a monotone threshold mechanism; prove truthfulness via critical-value payment, not Groves.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Kang2019contract_mobile",
@@ -3944,7 +4137,17 @@
       ],
       "mechanism_modification": "auction design using Deep Learning approach"
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "RL-policy or opaque-algorithm allocation, not a closed-form rule",
+      "mechanism": "No allocation or payment rule recorded in the corpus entry; the paper's edge-collaboration mechanism is described only in prose.",
+      "obstruction": "Both allocation_rule_latex and payment_rule_latex are null, so there is no closed-form rule to classify or discharge on a grid.",
+      "human_task": "Re-extract the allocation and payment rules from the paper PDF before any solver attempt.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Liu2020hypothesis",
@@ -4068,7 +4271,17 @@
         "imbalance of local data"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Select the K_j lowest bidders among clients passing a data-size filter s_min; payment is an affine 1/(N-K+1) + ((N-K)/(N-K+1)) c_i formula.",
+      "obstruction": "The eligible set JL is itself defined by a min over a previously-selected set (a fixed-point/filter dependency), so the allocation is not a plain top-k over reports, and the affine payment is not a Clarke pivot.",
+      "human_task": "Resolve the s_min fixed point and determine whether the filtered top-K selection is monotone in each client's bid.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Luo2023unbiased",
@@ -4255,7 +4468,17 @@
         "Unified Bidding Strategy"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "RL-policy or opaque-algorithm allocation, not a closed-form rule",
+      "mechanism": "Allocation a_t = b_t * pi(s_t; theta) is the output of a learned RL policy pi; payment p_t = Delta G_t * b_t / k_{i+1}.",
+      "obstruction": "The allocation is a neural RL policy with no closed form, so it cannot be classified as argmax/top-k/weighted-welfare and admits no finite-grid encoding.",
+      "human_task": "Determine whether the trained policy's induced allocation is provably monotone, or bound truthfulness empirically; formal Track-1 proof is out of reach.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "MultiBOS2023afl_budget",
@@ -4496,7 +4719,17 @@
       ],
       "mechanism_modification": "tailored incentive structures to overcome data silos and privacy regulations"
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "RL-policy or opaque-algorithm allocation, not a closed-form rule",
+      "mechanism": "No allocation or payment rule recorded in the corpus entry.",
+      "obstruction": "Both allocation_rule_latex and payment_rule_latex are null, so there is no rule to classify.",
+      "human_task": "Re-extract the allocation and payment rules from the paper PDF before any solver attempt.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Qi2024pitfalls",
@@ -4698,7 +4931,17 @@
       ],
       "mechanism_modification": "introduction of a two-tier model quality function to predict computation resource use subject to ML model quality criteria"
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "non-polynomial gap Z3 cannot linearize",
+      "mechanism": "Winner score R_win = sum alpha_i e_ni - p_n with an exponential payment zeta * e^{-(1-Q_m(m))} for winners.",
+      "obstruction": "The payment is an exponential of the quality score; Z3 cannot linearize e^{-(1-Q)} over a real grid, and the exponential payment is not a Clarke pivot in any case.",
+      "human_task": "Discretize Q_m to a fixed lookup table of rational payment values, or prove truthfulness analytically via monotonicity of the score.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Seo2022noniid_auction",
@@ -4740,7 +4983,17 @@
       ],
       "mechanism_modification": "data sharing"
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "non-polynomial gap Z3 cannot linearize",
+      "mechanism": "Winner score beta_1 U_D(e_n) - p_n with exponential winner payment zeta * e^{-(1-U_{D_k})}.",
+      "obstruction": "Same exponential-payment obstruction as Seo2021: the payment is a transcendental function of the data-utility score, which Z3 cannot linearize, and it is not a Groves pivot.",
+      "human_task": "Tabulate the exponential payment over a finite quality grid, or prove monotonicity analytically.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Sim2020model_reward",
@@ -4831,7 +5084,17 @@
         "federations can gain knowledge about DOs through repeated interactions"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "RL-policy or opaque-algorithm allocation, not a closed-form rule",
+      "mechanism": "Mode-switching selection: lowest-bid participants when a queue Q_f(t) <= 0, highest-reputation participants when Q_f(t) > 0; payment is first-price sum b_n P(n,t).",
+      "obstruction": "The allocation switches objective based on a time-varying queue state external to the report profile, so it is not a fixed argmax; and the payment is first-price (pays the bid), which is not a Clarke pivot.",
+      "human_task": "Fix the queue state and check whether each branch is separately monotone; a first-price payment cannot be DSIC, so a counterexample search may be the right target.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Tan2025longterm",
@@ -5060,7 +5323,17 @@
         "clients know their participation costs"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "non-polynomial gap Z3 cannot linearize",
+      "mechanism": "Combinatorial subset selection S_t = argmax over 2^S of g_t(S) = log det(V_g,t(S)); payment is the critical cost c_{i,t}(M, D_{-i,t}).",
+      "obstruction": "The objective is a log-determinant over subsets: both the exponential subset space and the non-polynomial log-det make it impossible to encode as a grid-decidable argmax over per-client scores.",
+      "human_task": "Prove submodularity of log-det and use the greedy-approximation truthfulness argument analytically; the exact combinatorial argmax is out of solver reach.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Wen2025diffusion_contract",
@@ -5162,7 +5435,17 @@
         "no client collusion"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "payment budget cap min(B/k, ·) breaks the Clarke-pivot form; top-k allocation is fine but the payment is not Groves",
+      "mechanism": "Top-k indicator q_i=1 iff i<=k, with payment min(B/k, c(v_{k+1}, 1/(n-k))) capped by a per-winner budget share.",
+      "obstruction": "The payment is a min of a budget-share cap and a critical value; the budget cap makes it neither a Clarke pivot nor a pure critical-value payment, so the top-k allocation alone is not enough for a grid DSIC proof.",
+      "human_task": "Determine whether the budget cap ever binds under the paper's assumptions; if it does not, the mechanism reduces to a critical-value top-k.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Xiang2025esr_mhfl",
@@ -5405,7 +5688,17 @@
         "uniform distribution of efficiency levels"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "continuous bid space with no valid discretization",
+      "mechanism": "Continuous quantity contract q_i* = lambda/(2(1+delta theta_i)) with reward R_i* = lambda^2/(2(1+delta theta_i)^2) as a function of reported efficiency theta_i.",
+      "obstruction": "This is a continuous screening/contract menu over theta_i in [0,1], not an auction allocation; the reward is a nonlinear rational function of the report with no finite grid that preserves the incentive constraints.",
+      "human_task": "Verify the contract's incentive compatibility by the first-order/envelope condition analytically rather than on a grid.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Yu2022multi_leader_fl",
@@ -5599,7 +5892,17 @@
         "workers will not claim an arrival time earlier than the true arrival time"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "continuous bid space with no valid discretization",
+      "mechanism": "Threshold acceptance x_i = 1 iff b_i <= rho*, payment min(rho*, b_i); utility is time-discounted p_i - c_i (T-t+1).",
+      "obstruction": "The threshold rho* is set online from an unbounded arrival stream and the utility scales with the remaining horizon (T-t+1), so a single-round finite grid cannot represent the mechanism's incentive structure.",
+      "human_task": "Fix the horizon and threshold to prove per-round truthfulness, then argue the online composition separately.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Zhang2022proportional",
@@ -5657,7 +5960,17 @@
         "clients have private cost functions"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "payment subtracts the agent's own reported cost (sum_{j!=i} c_j - c_i); not a Clarke pivot",
+      "mechanism": "Allocation X = argmax_{i in K} S(s_i, p_i) over an unspecified score S; payment p_i = sum_{j != i} c_j - c_i.",
+      "obstruction": "The payment subtracts the agent's OWN cost c_i from the sum of others' costs, so it is not a welfare-with-vs-without-i pivot and is directly decreasing in i's own report; the score S is also left undefined, so the argmax has no encodable objective.",
+      "human_task": "Define S and recheck the payment against the paper — as recorded it is not a Groves pivot and is likely a transcription error.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Zhao2023truthful",
@@ -5724,6 +6037,16 @@
         "model buyers have a budget"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R2",
+      "track": 1,
+      "limit": "budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family",
+      "mechanism": "Sort by unit value v_i^unit ascending and include i while v_i^unit <= B / sum of included d_j eps_j; payment is a proportional share d_i eps_i p^unit of the budget.",
+      "obstruction": "The winner set is defined by a self-referential budget-density condition (the threshold depends on the set being built), a budget-greedy rather than argmax/top-k, and the payment is a proportional budget share rather than a Clarke pivot.",
+      "human_task": "Prove the greedy is monotone and identify the true critical unit price per client to get a critical-value truthfulness argument.",
+      "date": "2026-09-03"
+    }
   }
 ]

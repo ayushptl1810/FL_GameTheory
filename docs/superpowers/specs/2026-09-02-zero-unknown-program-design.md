@@ -102,6 +102,19 @@ out-of-family, `MANUAL` or `UNSUPPORTED` as appropriate.
 - Depends on: R1
 - Plan authored at round start.
 
+**Landed 2026-09-03:** 3 real entry-specific `VERIFIED` (welfare-difference Clarke
+pivots on single-item welfare-max allocations, hand-checked vs Groves/Clarke),
+20 `MANUAL` (catalogued ceilings: budget-knapsack, log-det/exponential payments,
+RL policies), 10 `VERIFIED_SHAPE` R6 formalization-miss candidates, 0 `UNKNOWN` in
+the VCG slice. The R1 full-AST formalizer produced 0 valid ASTs for the VCG
+corpus; R2 built a VCG-specific allocation-classifier path (LLM classifies the
+allocation node, corpus LaTeX passes through `meta`, `verify_from_ast` runs the
+grid proof) + `parse_payment` extension for welfare-difference pivots. Also added
+the shared `MANUAL` verdict + `verdict_override` short-circuit + `round_gate`
+monotone gate + `MANUAL-backlog.md` tooling reused by R3. Plan:
+`docs/superpowers/plans/2026-09-02-zero-unknown-r2-r3-corpus-sweep.md`. Delta:
+`docs/superpowers/notes/round-R2-delta.md`.
+
 ### R3 — Contract + Stackelberg sweep
 
 Same pipeline on 68 Contract + Stackelberg entries with Tracks 1/2/3 as-is. Expect

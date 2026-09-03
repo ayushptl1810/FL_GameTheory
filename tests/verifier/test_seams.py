@@ -7,20 +7,42 @@ VCG = [e for e in CORPUS if e.get("category") == "VCG"][:8]
 
 
 def test_vcg_verdicts_unchanged_after_seam_extraction():
-    # Phase 2 Task 5: verify_vcg now dispatches to the real finite-grid DSIC
-    # check first; every one of these 8 entries fails that check closed
-    # (UNKNOWN/UNSUPPORTED) and falls through to the regex path, whose success
-    # is now VERIFIED_SHAPE (a structural match, not a proof) with
-    # entry_specific=False. Was VERIFIED/True (5) or VERIFIED_TEMPLATE/False (3).
+    # Phase 2 Task 5 established VERIFIED_SHAPE/False for all 8 (grid check failed
+    # closed, regex fallback = structural match, not a proof).
+    # R2 (2026-09-03) VCG sweep: the allocation-classifier formalization path
+    # (architect.formalize.formalize_vcg_entry) built a typed allocation node for
+    # 4 of these 8, so verify_from_ast's finite-grid DSIC proof now succeeds
+    # entry-specifically -> VERIFIED/True. The other 4 keep the regex fallback
+    # (classifier returned null / rule not grid-encodable) -> VERIFIED_SHAPE/False.
+    # R2 Task 9 (hand-check, 2026-09-03): Cui2024auction_market's flip was REVERTED
+    # -- its payment b_{t,j}*DeltaG_{t,i} is a first-price product, not a Clarke
+    # pivot -- then diagnosed MANUAL. 2404_13841 and Ahmed2023frimfl were also
+    # diagnosed MANUAL (budget-constrained greedy, out of the grid-decidable
+    # family). Batool2022fl_mab stays VERIFIED_SHAPE as an R6 formalization-miss
+    # candidate. The remaining 4 VERIFIED flips were each cross-checked against
+    # Groves 1973 / Clarke 1971 by hand.
+    # R2 Task 10 (Critical #1 fix + clean re-sweep): a typed allocation node made
+    # render() swap the paper's payment for a canonical Clarke pivot, so the grid
+    # proved a textbook mechanism rather than the entry's own math. The paper's
+    # real payment now wins, and parse_payment reads welfare-difference Clarke
+    # pivots (S(x*)-S(z*), r(x*)-sum_{k!=i}) on single-item welfare-max
+    # allocations. Corpus re-swept clean under the fix, Task 9 adjudication kept:
+    # 3 real entry-specific VERIFIED (2504_05563, 3626307_3626311, Cong2020vcg);
+    # 2404_13841 / Ahmed2023frimfl / Cui2024auction_market diagnosed MANUAL
+    # (budget-knapsack / posted-price / first-price-product, none Groves);
+    # Cheng2022uav dropped VERIFIED->VERIFIED_SHAPE (welfare diff over a 3-index
+    # allocation, weights unresolvable -> fails closed, now an R6 candidate);
+    # Batool2022fl_mab stays VERIFIED_SHAPE (R6, score defined but argmax never
+    # stated).
     expected = {
-        "2404_13841": ("VERIFIED_SHAPE", False),
-        "2504_05563": ("VERIFIED_SHAPE", False),
-        "3626307_3626311": ("VERIFIED_SHAPE", False),
-        "Ahmed2023frimfl": ("VERIFIED_SHAPE", False),
+        "2404_13841": ("MANUAL", False),
+        "2504_05563": ("VERIFIED", True),
+        "3626307_3626311": ("VERIFIED", True),
+        "Ahmed2023frimfl": ("MANUAL", False),
         "Batool2022fl_mab": ("VERIFIED_SHAPE", False),
         "Cheng2022uav": ("VERIFIED_SHAPE", False),
-        "Cong2020vcg": ("VERIFIED_SHAPE", False),
-        "Cui2024auction_market": ("VERIFIED_SHAPE", False),
+        "Cong2020vcg": ("VERIFIED", True),
+        "Cui2024auction_market": ("MANUAL", False),
     }
     for e in VCG:
         r = verify(e)

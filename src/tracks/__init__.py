@@ -28,7 +28,7 @@ from typing import Literal
 #                      entry).
 Verdict = Literal[
     "VERIFIED", "VERIFIED_TEMPLATE", "VERIFIED_SHAPE",
-    "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED"
+    "COUNTEREXAMPLE", "UNKNOWN", "UNSUPPORTED", "MANUAL"
 ]
 
 

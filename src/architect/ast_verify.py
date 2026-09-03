@@ -168,13 +168,15 @@ def _vcg_from_ast(m: Mechanism, meta: dict, pid: str) -> VerificationResult:
     # Typed allocation node (Task 9): render(m) put allocation_rule_latex + its
     # Clarke-pivot payment_rule_latex into mech_dict. meta is only a fallback for
     # m.allocation is None; if meta also lacks the allocation -> UNKNOWN below.
+    # The PAPER's payment always wins: render() substitutes a canonical Clarke
+    # pivot for a typed allocation node, and proving that template would prove a
+    # textbook mechanism rather than this entry's own math.
     if m.allocation is not None:
         alloc_tex = mech_dict.get("allocation_rule_latex")
-        pay_tex = mech_dict.get("payment_rule_latex", "")
     else:
         alloc_tex = meta.get("allocation_rule_latex")
-        pay_tex = meta.get("payment_rule_latex") or mech_dict.get("payment_rule_latex", "")
-    util_tex = mech_dict.get("client_utility_latex", "")
+    pay_tex = meta.get("payment_rule_latex") or mech_dict.get("payment_rule_latex", "")
+    util_tex = meta.get("client_utility_latex") or mech_dict.get("client_utility_latex", "")
     n = meta.get("num_clients") or (len(m.type_space) or 2)
 
     entry = {
