@@ -31,21 +31,6 @@ becomes `v_i - r(x*) + Σ_{k≠i} c(x_k*,γ̂_k)`, which is maximized exactly at
 welfare-maximizing `x*`, i.e. at truthful `γ̂_i = γ_i`.
 **Verified:** 2026-09-03
 
-## Cheng2022uav
-
-**What Track-1 now handles:** Allocation `X* = argmax_X F(x_{l,m,n})` over binary
-assignment variables; payment `P^f_{i,k} = F(X*) - F_{\(i,k)}(y*) + J_{l,(i,k)}`.
-**Cross-check (theorem):** Groves/Clarke pivot => DSIC [Groves 1973]. The AST node
-AllocHighest matches `argmax_X F(·)`. The payment is literally the Clarke pivot:
-`F(X*)` is the objective at the chosen allocation and `F_{\(i,k)}(y*)` is the same
-objective re-optimized with the (i,k) pair excluded, so the difference is exactly
-the externality i imposes; `+ J_{l,(i,k)}` is a constant offset that cancels against
-the `- J_{l,(i,k)}` inside the client utility
-`U_{(i,k)} = Σ_l x_{l,i,k}(P^f_{i,k} - J_{l,(i,k)})`. Sign check: after cancellation
-i's utility is `F(X*) - F_{\(i,k)}(y*)`, whose only report-dependence is through
-`X*`, so truthful reporting maximizes it.
-**Verified:** 2026-09-03
-
 ## Cong2020vcg
 
 **What Track-1 now handles:** Allocation `x* = argmax S(x, γ̂)` (welfare argmax over
@@ -114,13 +99,21 @@ rewritten `VERIFIED_SHAPE` -> `UNKNOWN`.
 | Zhang2024auction_comm | non-polynomial gap Z3 cannot linearize |
 | Zheng2023fl_market | budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family |
 
-## R6 candidates (formalization miss) — 9 entries
+## R6 candidates (formalization miss) — 10 entries
 
 These stay `VERIFIED_SHAPE`. Their allocation genuinely IS (or plausibly reduces
 to) a grid-decidable argmax with a Groves-shaped payment; the sweep's parser or
 classifier failed on surface syntax, not on substance. **Do not diagnose MANUAL —
 these are the R6 work queue.**
 
+- **Cheng2022uav** — `X* = argmax_X F(x_{l,m,n})` over binary assignment vars,
+  payment `F(X*) - F_{\(i,k)}(y*) + J_{l,(i,k)}` is a Clarke pivot with a constant
+  offset that cancels against the `-J` in the client utility. Gap: the objective
+  `F(·)` is over a 3-index `x_{l,m,n}` assignment whose per-client weights are
+  unresolvable, so `parse_payment`'s welfare-difference->ClarkePivot rule (which
+  needs a single-item welfare-max allocation) fails closed. Was a false VERIFIED
+  under the Task-10 payment-substitution bug; correctly SHAPE after the fix. R6:
+  needs a multi-index / combinatorial allocation encoding.
 - **Le2021cellular_auction** — `x_i = argmax Σ b_i x_i` with payment
   `Σ_{j≠i} b_j x_j(b_{-i}) - Σ_{j≠i} b_j x_j(b)`. This is a *textbook* Clarke pivot
   written explicitly. Gap: the parser did not accept the two-summation payment form.
