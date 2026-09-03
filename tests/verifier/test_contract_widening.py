@@ -27,6 +27,15 @@ So Task 11 lands as "widening investigation + regression pins, 0 clean flips"
 behavior on one representative entry per class, with real IC/IR verdict
 assertions, so Tasks 12/13 (which also touch track1_z3.py) cannot silently
 regress them into a guessed VERIFIED / COUNTEREXAMPLE.
+
+Task 11-pre UPDATE: one of the three class-(a) pins -- Wen2025diffusion_contract
+-- was re-examined and found NOT to be a genuine ambiguity. Its sole blocker was
+the `(\theta_k^1)` menu-item indexation tag, identical on every term and
+carrying no functional dependence. Stripping it (`_strip_call_args_on_powers`)
+yields the textbook screening shape, and the entry is now a legitimate
+entry-specific VERIFIED; its test asserts that structure instead of a
+fail-closed pin. The expectation-notation and `n-1`-arithmetic pins stand
+unchanged, and both remain genuine fail-closed cases.
 """
 import json
 import pathlib
@@ -74,16 +83,39 @@ def test_two_subscript_ir_with_expectation_notation_fails_closed():
     assert res.verdict in _ACCEPTED_FALLBACK, res.verdict
 
 
-def test_two_subscript_ir_with_superscript_label_fails_closed():
-    """(a) Wen2025: IR LHS `\\theta_i^2 R_i^2(\\theta_k^1) - cT_i^2(...) - E`
-    -> {i, k} subscripts, plus `^2` stage-index / power ambiguity and
-    spurious function-call args. Must fail closed."""
+def test_superscript_label_ir_parses_after_arg_stripping():
+    """(a) Wen2025: IR LHS `\\theta_i^2 R_i^2(\\theta_k^1) - cT_i^2(...) - E`.
+
+    Task 11 pinned this fail-closed because of an apparent `^2`
+    stage-index / power ambiguity. Task 11-pre resolved it: the only real
+    blocker was the `(\\theta_k^1)` menu-item indexation tag, which appears
+    IDENTICALLY on every second-stage term and is not a functional
+    dependence (`_strip_call_args_on_powers`). With it removed the entry
+    parses to the textbook screening shape -- type `i` held fixed on both
+    sides, contract index varying `i` -> `j`:
+
+        IR  : theta_i^2 R_i^2 - c T_i^2 - E
+        RHS : theta_i^2 R_j^2 - c T_j^2 - E
+
+    The `^2` is a genuine squaring, applied uniformly to both sides, so the
+    IC gap is preserved under either reading. The soundness gate still
+    applies: the RHS must carry the deviating type's subscript.
+    """
+    from tracks.track1_z3 import _parse_contract_entry
+
+    parsed = _parse_contract_entry(_entry("Wen2025diffusion_contract"))
+    assert parsed is not None, "expected the arg-stripped IR/IC to parse"
+    _U_ir, U_rhs, type_sub, contract_sub, _n, _from_lhs = parsed
+    assert type_sub != contract_sub, (type_sub, contract_sub)
+    # Soundness: the deviating-contract utility must still depend on the
+    # TRUE type, else the obligation says nothing about incentives.
+    assert any(
+        str(s).startswith("theta_") and type_sub in str(s)
+        for s in U_rhs.free_symbols
+    ), sorted(map(str, U_rhs.free_symbols))
+
     res = verify(_entry("Wen2025diffusion_contract"))
-    if res.entry_specific:
-        assert res.verdict not in _UNSOUND, (
-            f"superscript-label IR produced {res.verdict}; expected fail-closed"
-        )
-    assert res.verdict in _ACCEPTED_FALLBACK, res.verdict
+    assert res.verdict == "VERIFIED", res.verdict
 
 
 def test_sum_menu_aggregation_absent_from_contract_corpus():

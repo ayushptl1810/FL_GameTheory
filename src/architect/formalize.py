@@ -170,9 +170,131 @@ def formalize_vcg_entry(entry, *, complete=llm_complete):
                            notes=(getattr(res, "notes", "") or ""))
 
 
+_CONTRACT_IC_SYS = (
+    "You extract the screening incentive constraints of a Federated-Learning "
+    "CONTRACT mechanism from the paper text. Return ONLY JSON: "
+    '{"ic_screening_latex": "<LaTeX>", "ir_participation_latex": "<LaTeX>", '
+    '"client_utility_latex": "<LaTeX>", "num_types": <int or null>, '
+    '"confident": <bool>}. Rules: ic_screening_latex MUST be a two-sided '
+    'inequality "U_i(own contract) >= U_i(deviating contract)" with the '
+    "deviating-type utility on the RHS depending on the true type i "
+    "(single-letter symbol bases, subscript for the type index, e.g. "
+    "`\\theta_i R_i - c_i f_i \\geq \\theta_i R_j - c_i f_j`). "
+    'ir_participation_latex is "U_i(own) >= 0". client_utility_latex is the '
+    "inline algebraic utility (NOT a function-call reference). If the paper's "
+    "contract is Bayesian (expected utility over others' types), still give the "
+    "deterministic screening form and set confident=false. If you cannot find "
+    'an explicit screening IC in the text, set every latex field to "" and '
+    "confident=false. Do NOT invent constraint terms the paper does not state."
+)
+
+_EMPTY_EXTRACTION = {
+    "confident": False,
+    "ic_screening_latex": "",
+    "ir_participation_latex": "",
+    "client_utility_latex": "",
+    "num_types": None,
+}
+
+
+def extract_contract_constraints(entry, pdf_text, *, complete=llm_complete):
+    """Ask the model for a Contract entry's screening IC/IR from the paper.
+
+    Only for entries whose own `ic_screening_latex` is empty. Never raises:
+    any failure (LLMError, bad JSON, wrong shape) returns the all-empty,
+    `confident: False` dict so the caller fails closed.
+    """
+    user = (
+        f"mechanism dict:\n{json.dumps(entry.get('mechanism', {}), indent=1)}"
+        f"\n\npaper text (excerpt):\n{(pdf_text or '')[:20000]}"
+    )
+    try:
+        d = json.loads(complete(_CONTRACT_IC_SYS, user, json_mode=True))
+    except Exception:
+        return dict(_EMPTY_EXTRACTION)
+    if not isinstance(d, dict):
+        return dict(_EMPTY_EXTRACTION)
+    out = dict(_EMPTY_EXTRACTION)
+    for k in ("ic_screening_latex", "ir_participation_latex",
+              "client_utility_latex"):
+        v = d.get(k)
+        out[k] = v if isinstance(v, str) else ""
+    n = d.get("num_types")
+    out["num_types"] = n if isinstance(n, int) and not isinstance(n, bool) else None
+    # "confident" only means anything alongside an actual two-sided IC; a
+    # confident-but-empty answer is an incoherent state, so normalize it away
+    # here rather than relying on every caller to re-check.
+    out["confident"] = d.get("confident") is True and bool(out["ic_screening_latex"])
+    return out
+
+
+def formalize_contract_entry(entry, pdf_text, *, complete=llm_complete):
+    """LLM IC/IR extraction for a Contract entry with no usable IC latex.
+
+    The paper's own transcription always wins: if `_parse_contract_entry`
+    already succeeds there is nothing to extract and no model is called.
+    A successfully-verifying extraction is stashed on the entry under
+    `*_llm` mechanism keys (never overwriting the paper's fields) so
+    `run_batch` can persist it as the auditable artifact.
+    """
+    from tracks.track1_z3 import _parse_contract_entry, _try_contract_latex
+
+    if _parse_contract_entry(entry) is not None or not pdf_text:
+        return FormalizeResult(
+            "UNKNOWN", None, [], 0, bool(pdf_text),
+            "contract: existing IC latex parseable or no PDF; nothing to extract",
+        )
+
+    ext = extract_contract_constraints(entry, pdf_text, complete=complete)
+    if not ext["confident"] or not ext["ic_screening_latex"]:
+        return FormalizeResult(
+            "UNKNOWN", None, [], 0, True,
+            "contract: LLM could not confidently extract a screening IC",
+        )
+
+    mech = entry.get("mechanism") or {}
+    probe_mech = {
+        **mech,
+        "ic_screening_latex": ext["ic_screening_latex"],
+        "ir_participation_latex": ext["ir_participation_latex"],
+        "client_utility_latex": (
+            ext["client_utility_latex"] or mech.get("client_utility_latex", "")
+        ),
+    }
+    if not mech.get("num_types") and ext["num_types"]:
+        probe_mech["num_types"] = ext["num_types"]
+    res = _try_contract_latex({**entry, "mechanism": probe_mech})
+
+    verdict = getattr(res, "verdict", None) or "UNKNOWN"
+    if verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+        # Stash as FALLBACK keys only -- the paper's own latex is never
+        # overwritten. run_batch persists these into the corpus.
+        mech["ic_screening_latex_llm"] = ext["ic_screening_latex"]
+        mech["ir_participation_latex_llm"] = ext["ir_participation_latex"]
+        if ext["client_utility_latex"]:
+            mech["client_utility_latex_llm"] = ext["client_utility_latex"]
+        if not mech.get("num_types") and ext["num_types"]:
+            mech["num_types"] = ext["num_types"]
+        entry["mechanism"] = mech
+
+    return FormalizeResult(
+        verdict, None, [], 0, True,
+        (getattr(res, "notes", "") or "") or "LLM-extracted IC did not verify",
+    )
+
+
+_LLM_MECH_KEYS = (
+    "ic_screening_latex_llm",
+    "ir_participation_latex_llm",
+    "client_utility_latex_llm",
+)
+
+
 def formalize_with_retry(entry, pdf_text, *, complete=llm_complete):
     if entry.get("category") == "VCG":
         return formalize_vcg_entry(entry, complete=complete)
+    if entry.get("category") == "Contract":
+        return formalize_contract_entry(entry, pdf_text, complete=complete)
     used = pdf_text is not None
     m = formalize_entry(entry, pdf_text, complete=complete)
     if m is None:
@@ -269,6 +391,18 @@ def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
         pid = entry.get("paper_id", "")
         txt = pdf_text(pid)
         r = formalize_with_retry(entry, txt, complete=complete)
+        # Contract LLM-extraction path: the `_llm` mechanism keys are the
+        # auditable artifact (the analogue of `formalized_ast`). They are
+        # already stashed on entry["mechanism"] by formalize_contract_entry;
+        # record the provenance so a reviewer can tell paper-transcribed
+        # latex from model-extracted latex.
+        if r.verdict in ("VERIFIED", "COUNTEREXAMPLE") and any(
+            k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS
+        ):
+            entry["formalization_meta"] = {
+                "model": model, "verdict": r.verdict,
+                "source": "llm_ic_extraction", "date": today,
+            }
         if r.ast is not None and r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
             entry["formalized_ast"] = to_dict(r.ast)
             entry["formalization_meta"] = {
