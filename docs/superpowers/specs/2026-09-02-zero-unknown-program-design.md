@@ -156,7 +156,7 @@ analogous to the R2 VCG allocation-classifier). Stackelberg `UNKNOWN` = 0 (was 0
 `UNSUPPORTED` 1 → 0. Task 14-pre added a fail-closed `_as_str` guard in
 `src/tracks/track1_z3.py` (the sweep crashed on a non-string `follower_decision`
 the LLM emitted; 6 meta-field readers now coerce non-`str` → `""`). Merge commit
-`<R3b-merge>`. Delta: `docs/superpowers/notes/round-R2-R3-delta.md`
+`16a5d04`. Delta: `docs/superpowers/notes/round-R2-R3-delta.md`
 (`## Stackelberg (R3b)` + `## Combined counts + R4 handoff`).
 
 **R2 + R3 combined:** in-scope UNKNOWN (VCG + Contract + Stackelberg) 2 → **0**.
