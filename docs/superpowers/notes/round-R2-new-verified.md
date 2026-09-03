@@ -159,6 +159,13 @@ these are the R6 work queue.**
   the recorded LaTeX defines the score but never states that the winner is its
   argmax, so the classifier had no allocation to classify.
 
+### R6 note (Task 10 review, Important #2 — recorded, not fixed)
+
+>=4 of the 9 R6 formalization-miss candidates (Tan2025longterm, Xiang2025esr_mhfl,
+Le2021cellular_auction, Liu2023reverse_auction) are classifier flakiness on the
+canonical Groves form, not genuine ceilings — R6 should add a deterministic
+regex/sympy pre-pass for the canonical Groves form before the LLM call.
+
 ## RECONCILE-FLAG
 
 `print_summary` reported no `## Needs review` block for any VCG entry after this

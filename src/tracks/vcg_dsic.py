@@ -214,18 +214,50 @@ _SUM_EXTERNALITY_RE = re.compile(
     r"r\(x\^?\*?\)\s*-\s*\\sum|S\(x\^?\*?\)\s*-\s*S\(",     # r(x*) - sum / S(x*)-S(z*)
     re.I,
 )
+# Welfare-difference Groves/Clarke pivot: p_i = W_{-i}(x*_{-i}) - W_{-i}(x*).
+# For a SINGLE-ITEM allocation that goes to the welfare-maximising bidder this
+# is algebraically the second-highest bid (W_{-i}(x*) = 0 because i took the
+# item, and W_{-i}(x*_{-i}) = max of the others' values), which encode_utility
+# already prices as a ClarkePivot. Only accepted for HighestBidder / unit-weight
+# ArgmaxWelfare; any other allocation still fails closed via _SUM_EXTERNALITY_RE.
+_WELFARE_DIFF_PIVOT_RE = re.compile(
+    r"S\(\s*x\^?\*?[^)]*\)\s*-\s*S\(\s*z\^?\*?|"            # S(x*, g) - S(z*, g)
+    r"r\(\s*x\^?\*?[^)]*\)\s*-\s*\\sum_?\{?\s*[kj]\s*\\neq\s*i|"  # r(x*) - sum_{k!=i}
+    r"W_?\{?-i\}?[^-]*-\s*(?:\\sum_?\{?\s*[kj]\s*\\neq\s*i|W_?\{?-i\}?)|"
+    r"\\phi\(\s*W\s*\)\s*-\s*\\phi\(\s*W\s*\\setminus|"     # phi(W) - phi(W \ {i})
+    r"-\s*\\sum_?\{?\s*[kj]\s*\\neq\s*i\}?\s*c",            # ... - sum_{k!=i} c_k
+    re.I,
+)
 _UNKNOWN_FN_RE = re.compile(
     r"Punish|Algorithm|\\setminus\(|F_\{?\\setminus|_\{?\\setminus|\\det|\\log", re.I
 )
 
 
-def parse_payment(latex: str, alloc):
-    """LaTeX payment rule (+ parsed alloc) -> PaySpec instance, or None."""
+def parse_payment(latex: str, alloc, alloc_latex=None, n=None):
+    """LaTeX payment rule (+ parsed alloc) -> PaySpec instance, or None.
+
+    ``alloc_latex``/``n`` are only consulted to decide whether an ArgmaxWelfare
+    allocation is the unit-weight welfare max for which a welfare-difference
+    Groves pivot equals the second price; omitting them fails closed.
+    """
     if not latex or not isinstance(latex, str):
         return None
     s = latex.strip()
 
     if _ALGO_RE.search(s):
+        return None
+
+    # Welfare-difference Groves pivot. On a single-item welfare-max allocation
+    # this IS the second price, which encode_utility prices as ClarkePivot. On
+    # anything else (non-unit weights, top-k, opaque, unknown) the equivalence
+    # does not hold -> fall through / fail closed to UNKNOWN.
+    if _WELFARE_DIFF_PIVOT_RE.search(s):
+        if isinstance(alloc, HighestBidder) and not alloc.lowest:
+            return ClarkePivot()
+        if isinstance(alloc, ArgmaxWelfare) and alloc_latex and n:
+            w = _argmax_welfare_weights(alloc_latex, n)
+            if w and set(w.values()) == {1.0}:
+                return ClarkePivot()
         return None
 
     # sum-externality / W_{-i} - sum / r(x*) - sum: Groves but not the single
@@ -586,7 +618,7 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
             notes="fractional-share allocation -- not a single-winner VCG "
                   "mechanism; no dominant-strategy claim to check")
 
-    pay = parse_payment(pay_tex, alloc)
+    pay = parse_payment(pay_tex, alloc, alloc_latex=alloc_tex, n=n)
     if alloc is None or pay is None:
         return _result(entry, "UNKNOWN",
                        notes="allocation/payment LaTeX did not parse")

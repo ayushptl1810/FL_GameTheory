@@ -127,6 +127,35 @@ def test_sum_externality_payment_is_unknown():  # C1: not the 2nd-price form
     assert verify_vcg_dsic(e, k=3).verdict == "UNKNOWN"
 
 
+def test_welfare_diff_pivot_is_clarke_on_welfare_max_alloc():
+    # p_i = W_{-i}(x*_{-i}) - W_{-i}(x*). On a single-item welfare-max
+    # allocation W_{-i}(x*) = 0 and W_{-i}(x*_{-i}) = max of the others' bids,
+    # so this IS the second price -- encode_utility prices it as ClarkePivot.
+    h = HighestBidder()
+    assert isinstance(
+        parse_payment(r"p_i = S(x^*, \gamma) - S(z^*, \gamma)", h), ClarkePivot)
+    assert isinstance(
+        parse_payment(r"p_i = r(x^*) - \sum_{k \neq i} c(x_k^*, \gamma_k)", h),
+        ClarkePivot)
+    # unit-weight argmax welfare, weights resolved off the allocation LaTeX
+    aw_tex = r"x^* = \arg\max \sum v_i x_i"
+    assert isinstance(
+        parse_payment(r"p_i = S(x^*) - S(z^*)", parse_allocation(aw_tex),
+                      alloc_latex=aw_tex, n=3),
+        ClarkePivot)
+
+
+def test_welfare_diff_pivot_fails_closed_off_welfare_max():
+    # The second-price equivalence holds ONLY for a single-item welfare-max
+    # allocation. Anything else stays UNKNOWN.
+    from tracks.vcg_dsic import TopK
+    assert parse_payment(r"p_i = S(x^*) - S(z^*)", TopK(k=2)) is None
+    assert parse_payment(r"p_i = S(x^*) - S(z^*)", None) is None
+    # argmax welfare without the allocation LaTeX -> weights unresolvable
+    aw = parse_allocation(r"x^* = \arg\max \sum v_i x_i")
+    assert parse_payment(r"p_i = S(x^*) - S(z^*)", aw) is None
+
+
 def test_single_item_clarke_verified():
     r = verify_vcg_dsic(_SINGLE_ITEM_CLARKE, k=4)
     assert r.verdict == "VERIFIED" and r.entry_specific is True

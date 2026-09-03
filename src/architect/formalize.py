@@ -367,6 +367,8 @@ def append_backlog_paragraph(entry, *, backlog_path=MANUAL_BACKLOG_PATH):
     if not body.startswith("# MANUAL Backlog"):
         body = header + "\n" + body
     body = body.rstrip() + "\n\n" + section
-    os.makedirs(os.path.dirname(backlog_path), exist_ok=True)
+    d = os.path.dirname(backlog_path)
+    if d:
+        os.makedirs(d, exist_ok=True)
     with open(backlog_path, "w") as fh:
         fh.write(body.rstrip() + "\n")

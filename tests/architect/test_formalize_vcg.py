@@ -64,6 +64,30 @@ def test_formalize_vcg_entry_highest_is_entry_specific():
     assert res.verdict == "VERIFIED"
 
 
+def test_formalize_vcg_entry_bad_payment_is_never_verified():
+    # Critical #1 regression: a typed AllocHighest node makes render() substitute
+    # the canonical Clarke pivot for payment_rule_latex. If the grid proved THAT,
+    # this non-Groves payment would come back VERIFIED even though nobody ever
+    # checked it. The paper's real payment must win -> never VERIFIED.
+    m = dict(_VCG_MECH)
+    m["payment_rule_latex"] = r"p_i = 42 b_i + 7"
+    res = formalize_vcg_entry(_entry(mechanism=m),
+                              complete=_fake('{"t":"AllocHighest"}'))
+    assert res.verdict != "VERIFIED"
+    assert res.verdict in ("COUNTEREXAMPLE", "UNKNOWN", "VERIFIED_SHAPE")
+
+
+def test_formalize_vcg_entry_welfare_diff_payment_verifies_for_real():
+    # The paper's own welfare-difference Groves pivot on a unit-weight
+    # welfare-max allocation is the second price -> real entry-specific VERIFIED.
+    m = dict(_VCG_MECH)
+    m["allocation_rule_latex"] = r"x^* = \arg\max \sum v_i x_i"
+    m["payment_rule_latex"] = r"p_i = S(x^*) - S(z^*)"
+    res = formalize_vcg_entry(_entry(mechanism=m),
+                              complete=_fake('{"t":"AllocHighest"}'))
+    assert res.verdict == "VERIFIED"
+
+
 def test_formalize_vcg_entry_null_alloc_falls_back():
     # Opaque allocation LaTeX + null classification => no typed node and the meta
     # fallback in verify_from_ast cannot parse the rule => not a full VERIFIED.

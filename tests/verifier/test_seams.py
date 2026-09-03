@@ -21,13 +21,23 @@ def test_vcg_verdicts_unchanged_after_seam_extraction():
     # family). Batool2022fl_mab stays VERIFIED_SHAPE as an R6 formalization-miss
     # candidate. The remaining 4 VERIFIED flips were each cross-checked against
     # Groves 1973 / Clarke 1971 by hand.
+    # R2 Task 10 (Critical #1 fix): a typed allocation node made render() swap the
+    # paper's payment for a canonical Clarke pivot, so the grid proved a textbook
+    # mechanism rather than the entry's own math. The paper's real payment now
+    # wins. Cheng2022uav VERIFIED->VERIFIED_SHAPE: its payment is a welfare
+    # difference over a 3-index allocation X* = argmax F(x_{l,m,n}) whose weights
+    # are unresolvable, so it fails closed instead of riding the substituted
+    # pivot. The other 3 VERIFIED keep their proof honestly -- their real
+    # welfare-difference payments (S(x*)-S(z*), r(x*)-sum_{k!=i}) are now READ as
+    # Clarke pivots on a single-item welfare-max allocation, where the Groves
+    # externality is algebraically the second price.
     expected = {
         "2404_13841": ("MANUAL", False),
         "2504_05563": ("VERIFIED", True),
         "3626307_3626311": ("VERIFIED", True),
         "Ahmed2023frimfl": ("MANUAL", False),
         "Batool2022fl_mab": ("VERIFIED_SHAPE", False),
-        "Cheng2022uav": ("VERIFIED", True),
+        "Cheng2022uav": ("VERIFIED_SHAPE", False),
         "Cong2020vcg": ("VERIFIED", True),
         "Cui2024auction_market": ("MANUAL", False),
     }

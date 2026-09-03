@@ -33,6 +33,17 @@ def test_write_manual_diagnosis_rejects_empty_reason(bad):
         write_manual_diagnosis(_entry(), **kw)
 
 
+def test_append_backlog_accepts_bare_filename(tmp_path, monkeypatch):
+    # os.path.dirname("backlog.md") == "" -> makedirs("") raised FileNotFoundError
+    monkeypatch.chdir(tmp_path)
+    e = _entry()
+    write_manual_diagnosis(e, round_="R3b", track=1, limit="L",
+                           mechanism="M", obstruction="O", human_task="H",
+                           today="2026-09-12")
+    append_backlog_paragraph(e, backlog_path="backlog.md")
+    assert (tmp_path / "backlog.md").read_text().startswith("# MANUAL Backlog")
+
+
 def test_append_backlog_creates_and_is_idempotent(tmp_path):
     bp = str(tmp_path / "MANUAL-backlog.md")
     e = _entry()
