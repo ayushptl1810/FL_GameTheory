@@ -118,9 +118,17 @@ def test_wen2025_period_superscripts_stay_template():
     a menu-indexation tag, which made the entry parse and report VERIFIED --
     but on `theta_i^2 R_i^2 - c T_i^2 >= theta_i^2 R_j^2 - c T_j^2`, a
     different obligation from the paper's linear one. That widening was
-    reverted; the entry must stay on the template.
+    reverted; the entry must never parse to an entry-specific verdict.
+
+    R3a Task 12 then diagnosed the entry MANUAL: the recorded IC/IR is the
+    period-2 static myopic slice only, so even a correct parse would not
+    certify the paper's two-period intertemporal contract. MANUAL is the
+    fail-closed outcome the earlier VERIFIED_TEMPLATE was standing in for --
+    what this test guards is that the entry never becomes entry-specific.
     """
-    assert verify(_entry("Wen2025diffusion_contract")).verdict == "VERIFIED_TEMPLATE"
+    r = verify(_entry("Wen2025diffusion_contract"))
+    assert r.verdict == "MANUAL"
+    assert r.entry_specific is False
 
 
 def test_bayesian_expectation_bails_to_track4():

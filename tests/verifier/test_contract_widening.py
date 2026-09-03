@@ -55,7 +55,12 @@ def _entry(paper_id: str) -> dict:
 
 # A guessed positive verdict on any of these would be a soundness failure.
 _UNSOUND = {"VERIFIED", "COUNTEREXAMPLE"}
-_ACCEPTED_FALLBACK = {"VERIFIED_TEMPLATE", "UNKNOWN", "UNSUPPORTED"}
+# MANUAL is a fail-closed verdict by construction: it is set by an explicit
+# `verdict_override` recording a diagnosed obstruction, never by a solver
+# guessing. Several of these entries were diagnosed MANUAL in R3a (Task 12),
+# which is strictly stronger than the VERIFIED_TEMPLATE they fell back to
+# before -- the generic template no longer masks the real blocker.
+_ACCEPTED_FALLBACK = {"VERIFIED_TEMPLATE", "UNKNOWN", "UNSUPPORTED", "MANUAL"}
 
 
 def test_n_minus_1_arithmetic_ic_does_not_produce_guessed_verdict():

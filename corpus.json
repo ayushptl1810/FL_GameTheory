@@ -205,7 +205,17 @@
         "discrete finite type space"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "utility contains the undefined opaque function u_3(.) -- Z3 encoding rejects it ('unsupported SymPy node u_{3}'), so no grid obligation can be built",
+      "mechanism": "CAV data-quality contract menu {(P_m, R_m)}; utility theta_m R_m - u_3(kappa c phi^2 s-bar I + P_m t-hat).",
+      "obstruction": "The IC and IR parse cleanly (type subscript m, contract subscript hat-m, soundness gate passes), but the cost term is wrapped in u_3(.), a function the entry never defines algebraically. _sp_to_z3 raises 'unsupported SymPy node u_{3}' at the first index pair, so Track 1 produces no obligation and the reported verdict is the generic linear-cost template only.",
+      "human_task": "Supply the algebraic form of u_3(.) from the paper (or confirm it is affine and inline it), then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2102_07019",
@@ -730,7 +740,17 @@
         "federated learning and unlearning"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "population-coupled cost term (kappa_j sums over other agents' contracts) -- single-agent substitution cannot represent it; additionally r_j^L carries a symbolic superscript Z3 rejects as an exponent",
+      "mechanism": "Multidimensional-type (theta_j, xi_j) privacy/training contract menu {(d_j, r_j^L)}.",
+      "obstruction": "Two independent obstructions. (1) The entry's own notes record that kappa_j is itself a sum over OTHER agents' contract terms -- a population coupling the verifier's single-agent type-i-vs-type-j substitution cannot express. (2) Even ignoring that, r_j^L reads as r_j raised to a symbolic exponent L and _sp_to_z3 raises 'unsupported exponent L'; L is a layer label, not a power.",
+      "human_task": "Re-transcribe r_j^L with the layer label distinguished from an exponent, and decide whether a population-coupled cost admits any single-agent encoding; if not, this needs a multi-agent equilibrium track.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2310_20415",
@@ -1130,7 +1150,17 @@
         "risk neutral clients"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "log(theta_m R_m) argument sign not established -- Z3 encoding rejects the transcendental ('log argument sign not established')",
+      "mechanism": "FedPot defence-data-quality contract menu {pi_m = (V_m, R_m)}; utility ln(theta_m R_m) - C_m.",
+      "obstruction": "The IC/IR parse and the soundness gate passes, but the log-utility encoding requires the argument theta_m R_m to be provably positive before _sp_to_z3 will admit it. The entry declares no positivity domain for theta_m or R_m, so the encoding raises and Track 1 yields nothing; the recorded verdict is the generic template only.",
+      "human_task": "Record the paper's positivity domain for theta_m and R_m (or a general positivity precondition for log-utility Contract entries) so the transcendental can be admitted, then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2407_08462",
@@ -1226,7 +1256,17 @@
         "network effects"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- Nash action-choice equilibrium over {abstain, join, buy} with rewards assigned directly per platform-known type; template does not apply",
+      "mechanism": "Nash action-choice equilibrium over {abstain, join, buy} with rewards assigned directly per platform-known type.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2410_15093",
@@ -1677,7 +1717,17 @@
       "server_objective_latex": null,
       "key_assumptions": []
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- graph-based reciprocal model-sharing with a single self-reported-cost truthfulness property, no discrete type set and no (effort, reward) menu; template does not apply",
+      "mechanism": "Graph-based reciprocal model-sharing with a single self-reported-cost truthfulness property, no discrete type set and no (effort, reward) menu.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2505_05842",
@@ -1712,7 +1762,17 @@
         "private computation and communication resources"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- dynamic Bayesian persuasion (signal over the posterior plus a single uniform reward), governed by Bayesian Consistency/Plausibility/Benefit, not by a type-indexed menu; template does not apply",
+      "mechanism": "Dynamic Bayesian persuasion (signal over the posterior plus a single uniform reward), governed by Bayesian Consistency/Plausibility/Benefit, not by a type-indexed menu.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2505_21219",
@@ -2180,7 +2240,17 @@
         "discrete finite type space"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 4,
+      "limit": "expectation-form (Bayesian) IC integral -- SymPy Track 4 cannot evaluate the multi-agent posterior expectation to a posynomial-checkable closed form",
+      "mechanism": "Bayesian contract with an IC stated as an expectation E_{c_{-k}}[...] over the other agents' private costs.",
+      "obstruction": "The IC carries a multi-agent posterior expectation. Track 1 correctly bails out (stripping the expectation and grid-checking pointwise would prove something strictly stronger than the paper claims), and Track 4's symbolic integrator cannot reduce the E_{c_{-k}} expectation over the joint type distribution to a closed form it can check.",
+      "human_task": "Supply the closed-form (integrated) interim utility for the paper's type distribution, or extend Track 4 with a numeric-quadrature Bayesian-IC path with an explicit soundness argument.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2603_00666",
@@ -2349,7 +2419,17 @@
       "server_objective_latex": null,
       "key_assumptions": []
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- blockchain smart contracts with per-role strategy-proofness against a fixed deviation set; no type space, cost function, or contract menu; template does not apply",
+      "mechanism": "Blockchain smart contracts with per-role strategy-proofness against a fixed deviation set; no type space, cost function, or contract menu.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "2605_11889",
@@ -2631,7 +2711,17 @@
         "continuous and non-decreasing accuracy function"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- moral hazard over a continuously self-chosen contribution m_i (Nash equilibrium condition); the paper explicitly distinguishes itself from contract theory; template does not apply",
+      "mechanism": "Moral hazard over a continuously self-chosen contribution m_i (Nash equilibrium condition); the paper explicitly distinguishes itself from contract theory.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Cao2025service",
@@ -2973,7 +3063,17 @@
         "server knows the total number of users and the distribution of user types (in the strongly incomplete information scenario)"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "utility r_i - theta_i s_i has no dependence on the contract variable phi_i; substituting phi_i->phi_j yields an identical RHS -- degenerate IC (data-quality gap, unprovable as recorded)",
+      "mechanism": "Multidimensional-type contract with menu items phi_i = (s_i, r_i).",
+      "obstruction": "The recorded client utility r_i - \\theta_i s_i contains no occurrence of the contract variable \\phi_i, so the contract substitution \\phi_i -> \\phi_j leaves the RHS identical to the LHS. The IC gap is identically zero: a trivially-true obligation that certifies nothing about the paper's mechanism.",
+      "human_task": "Correct the transcription of client_utility_latex so it depends on the contract bundle \\phi_i (i.e. on s_i and r_i as menu items), then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "FLamma2025stackelberg",
@@ -3171,7 +3271,17 @@
         "weakly concave and increasing valuation function v(\\cdot)"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "utility contains the undefined opaque valuation function v(.) inside an expectation E[v(r_i)] -- Z3 encoding rejects it ('unsupported SymPy node v')",
+      "mechanism": "Paid-model contract with private per-unit collection cost c_i; utility E[v(r_i)] - c_i m_i.",
+      "obstruction": "The IC parses (type subscript i, contract subscript j, soundness gate passes) but E[v(r_i)] is an expectation of an undefined valuation function. _sp_to_z3 raises 'unsupported SymPy node v'. Track 4's Bayesian path cannot help either, because v has no algebraic form to integrate.",
+      "human_task": "Supply v(.)'s algebraic form and the distribution the expectation is over, then route to Track 4 (Bayesian) rather than Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Haupt2021auctions",
@@ -3310,7 +3420,17 @@
         "clients are rational"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- a single uniform unit-data price with post-hoc behavioural type regions; the paper never states incentive compatibility, screening, or a menu; template does not apply",
+      "mechanism": "A single uniform unit-data price with post-hoc behavioural type regions; the paper never states incentive compatibility, screening, or a menu.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A",
@@ -3345,7 +3465,17 @@
         "single contract to dual contract approach"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "IC is an equilibrium-utility ordering (both sides at own type), not U_i(contract_j); soundness gate correctly rejects -- no substitutable screening IC",
+      "mechanism": "Hierarchical two-layer incentive mechanism; recorded IC reduces after prose-stripping to \\varphi_m R_m - C V_m \\geq \\varphi_z R_z - C V_z.",
+      "obstruction": "Both sides of the recorded IC are evaluated at their own type, so the RHS carries no deviating-type dependence. The Task 11-pre soundness gate rejects it: certifying it would prove an ordering of equilibrium utilities, not incentive compatibility.",
+      "human_task": "Re-extract the paper's true self-selection constraint U_m(contract_z) from the PDF so the RHS is the type-m agent's utility from contract z, then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Javaherian2025stackelberg_ic",
@@ -3527,7 +3657,17 @@
         "discrete finite type space"
       ]
     },
-    "z3_verdict": "UNKNOWN"
+    "z3_verdict": "UNKNOWN",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 3,
+      "limit": "9 free variables in IC and 11 in IR -- interval box search is intractable at delta=0.001 over [0.001, 1.0]",
+      "mechanism": "Mobile-device contract; routed to Track 3 (mpmath.iv branch-and-bound, delta-sound).",
+      "obstruction": "Track 1 does not apply and Track 3's interval branch-and-bound cannot cover the box: the IC carries 9 free variables and the IR 11, so the branch count is beyond the search budget at the configured delta. The verifier reports UNKNOWN honestly rather than a partial-coverage result.",
+      "human_task": "Reduce the free-variable count by fixing paper-declared constants to their stated values (or narrowing their domains), then re-run Track 3; alternatively transcribe the IC/IR in a form Track 1 can encode symbolically.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Kang2019reliable_contract",
@@ -3562,7 +3702,17 @@
         "consortium blockchain for secure reputation management"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "Shannon-capacity term log(1 + rho h / N_0) in the denominator -- Z3 encoding rejects it ('log argument sign not established')",
+      "mechanism": "Reliable-worker contract menu {(R_n, f_n)} with data-quality type theta_n = psi/log(1/epsilon_n).",
+      "obstruction": "The IC/IR parse and the soundness gate passes. The communication-cost term divides by a Shannon capacity B ln(1 + rho_n h_n / N_0); _sp_to_z3 will not admit the log without an established argument sign, and the entry declares no positivity domain for rho_n, h_n or N_0. No Track 1 obligation is built.",
+      "human_task": "Declare the positivity domain for the channel parameters (rho, h, N_0 > 0) so the capacity log is admissible, then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Kang2020reliable_contract",
@@ -3621,7 +3771,17 @@
         "discrete finite type space"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "R_{n-1} parses as a single symbol, not an iterable index; needs adjacent-IC semantics in _contract_check_core -- out of scope",
+      "mechanism": "Blockchain-metaverse contract stated as an adjacent (local) incentive constraint between neighbouring types.",
+      "obstruction": "The deviation index is n-1, which the SymPy layer reads as a single symbol named R_{n - 1} rather than as index n offset by one. The verifier's substitution machinery enumerates concrete integer indices and has no notion of an offset index, so the adjacent-IC form cannot be instantiated.",
+      "human_task": "Add adjacent-IC (local downward/upward) semantics to _contract_check_core so an offset index n-1 instantiates to concrete neighbour pairs, or re-transcribe the paper's global IC if it states one.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Kang2023fairvalue",
@@ -3680,7 +3840,17 @@
         "discrete finite type space"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- moral hazard / continuous-action Nash with verifiable costs; the paper's own 'incentive compatibility' theorem is a no-distortion property, not self-selection; template does not apply",
+      "mechanism": "Moral hazard / continuous-action Nash with verifiable costs; the paper's own 'incentive compatibility' theorem is a no-distortion property, not self-selection.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Khan2019edge",
@@ -4027,7 +4197,17 @@
         "participation cost correlates with data size"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- per-type closed-form payment plus a 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening; template does not apply",
+      "mechanism": "Per-type closed-form payment plus a 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Lim2020contract",
@@ -4584,7 +4764,17 @@
         "risk neutral clients"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "utility contains the undefined opaque staleness function h(t_k) -- Z3 encoding rejects it ('unsupported SymPy node h')",
+      "mechanism": "Joint capability/joining-time contract phi_k = {e_k, t_k, r_k} with multidimensional type (theta_k, t_k).",
+      "obstruction": "The IC parses via utility-call expansion (type subscript k, contract subscript k-prime, soundness gate passes), but the staleness weight h(t_k) is an undefined function and _sp_to_z3 raises 'unsupported SymPy node h'. The type is also genuinely two-dimensional, which the single-type-subscript machinery does not model even once h is supplied.",
+      "human_task": "Supply h(.)'s algebraic form from the paper, and separately decide whether the joint (capability, joining-time) type needs a two-dimensional screening encoding.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Pandey2019crowd",
@@ -5193,7 +5383,17 @@
         "quadratic cost"
       ]
     },
-    "z3_verdict": "UNKNOWN"
+    "z3_verdict": "UNKNOWN",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "type-ordering unidentified -- verifier cannot fix the single-crossing direction, so IC counterexamples are suppressed and neither IC nor IR is decidable",
+      "mechanism": "Contract with a LaTeX-parsed entry-specific utility; n=2 types, IR binding at type-0 with adjacent upward IC.",
+      "obstruction": "_type_family() cannot match the entry's type_variable to any indexed symbol family in the parsed utility, so no type-ordering precondition is imposed. Without an ordering, Z3's counterexamples fall in parameter regions (reversed type order) the paper excludes, and the verifier correctly suppresses them to UNKNOWN rather than report an artifact. Both IC and IR come back UNKNOWN.",
+      "human_task": "Correct the entry's type_variable field so it names the indexed type family appearing in the utility, letting the verifier impose the single-crossing ordering; then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Wang2022blockchain",
@@ -5260,7 +5460,17 @@
         "discrete finite type space"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "IR indexed by `a`, IC by `n`/`i`; `type_sub` never appears in the IC RHS -- cannot equate indices without guessing",
+      "mechanism": "MotiLearn contract menu with per-type effort/reward pairs.",
+      "obstruction": "The recorded IR uses subscript `a` while the IC uses `n`/`i`. The parser can identify a single type subscript from the IR but that subscript never appears in the IC RHS, so no sound (type, contract) index pair can be formed. Equating `a` with `n` would be an unverified guess.",
+      "human_task": "Re-transcribe IC and IR from the PDF under one consistent index convention, then re-run Track 1.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Wang2023privacy_pricing",
@@ -5368,7 +5578,17 @@
         "ESs have different levels of WTP for federated AI agent construction"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "recorded IC/IR is PERIOD-2 static myopic only (^2/^1 are period indices, not exponents); the paper's true mechanism is a two-period intertemporal contract not represented in the entry",
+      "mechanism": "Diffusion-model-generated two-period intertemporal contract; the entry records only the period-2 static myopic IC/IR.",
+      "obstruction": "Every ^2 / ^1 in the recorded IC/IR is a period index, confirmed by contract_menu_latex's superscript-before-subscript ordering and by the entry's own notes. Reading them as exponents yields a different proof obligation than the paper's (linear) utility u_n = theta_n R_n - c T_n - E, and the intertemporal linkage between periods is absent from the entry entirely. Any verdict on the recorded fields would certify a mechanism the paper does not claim.",
+      "human_task": "Transcribe the paper's full two-period intertemporal contract (both periods plus the linking constraint) with period indices distinguished from exponents, then decide whether an intertemporal IC is expressible on the Track 1 grid.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Wu2021contract_DP",
@@ -5655,7 +5875,17 @@
         "clients can be divided into N levels based on their data quality"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "IR's E_{com} communication-energy term is indistinguishable from a Bayesian expectation E_{...}[.]; the Bayesian bail-out fires and Track 1 declines, while Track 4 has no distribution to integrate",
+      "mechanism": "Asynchronous FL contract menu {(R_n, e_n)} with data-quality type theta_n.",
+      "obstruction": "The IR reads theta R - xi e c f^2 - E_com >= 0, where E_com is a scalar communication-energy constant. The Task 11-pre Bayesian guard (_BAYESIAN_RE) matches the E_{subscript} form and correctly bails Track 1 out rather than risk stripping a real expectation. The entry has no type distribution, so Track 4 cannot pick it up either, and the entry falls through to the generic template.",
+      "human_task": "Rename or re-transcribe E_com so it is not shaped like an expectation operator (e.g. E^{com} or Ecom), then re-run Track 1; the IC itself already parses.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Yang2023buyers_market",
@@ -5826,7 +6056,17 @@
         "no authority enforcing model quality"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- Bayesian peer-prediction / Bayesian Truth Serum with BNE truthfulness, no discrete client type space and no self-selected menu; template does not apply",
+      "mechanism": "Bayesian peer-prediction / Bayesian Truth Serum with BNE truthfulness, no discrete client type space and no self-selected menu.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Zhang2022expost_auction",
@@ -6004,7 +6244,17 @@
         "risk neutral clients"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R3a",
+      "track": 1,
+      "limit": "no adverse-selection screening IC in the paper -- moral hazard (hidden action): one desired action assigned to every client, truthfulness proved as a Nash equilibrium over actions; template does not apply",
+      "mechanism": "Moral hazard (hidden action): one desired action assigned to every client, truthfulness proved as a Nash equilibrium over actions.",
+      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
+      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
+      "date": "2026-09-03"
+    }
   },
   {
     "paper_id": "Zheng2023fl_market",
