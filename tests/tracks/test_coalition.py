@@ -160,3 +160,13 @@ def test_verify_coalition_k_over_3_is_manual():
     r = verify_coalition(entry)
     assert r.verdict == "MANUAL"
     assert "k > 3" in r.notes or "coalition size" in r.notes
+
+
+def test_verify_shapley_delegates_to_coalition():
+    from tracks.track1_z3 import verify_shapley
+    entry = {
+        "paper_id": "x", "category": "Shapley",
+        "mechanism": {"shapley_formula_latex": None},
+    }
+    r = verify_shapley(entry)
+    assert r.verdict == "MANUAL"  # was UNSUPPORTED before R5

@@ -1489,7 +1489,7 @@
     "num_clients": "unspecified",
     "quality_tier": "silver",
     "z3_validated": false,
-    "notes": null,
+    "notes": "R5: no numeric v(S) instance in PDF — Fig 3(a) gives Shapley values (Sh1=Sh2=1/6) but not v(S) over all 8 subsets, and the max-flow topology is figure-only; stays MANUAL via Tier A.",
     "mechanism": {
       "valuation_metric": "max-flow value",
       "exact_or_approx": "exact",
@@ -2499,7 +2499,7 @@
     "num_clients": "unspecified",
     "quality_tier": "silver",
     "z3_validated": false,
-    "notes": null,
+    "notes": "R5: no numeric v(S) instance for the paper mechanism in PDF — Table 2 (App B.3) is an axiom-illustration table (monotonicity/desirability) with toy values, not a worked instance of the Bayesian log-likelihood characteristic function; stays MANUAL via Tier A.",
     "mechanism": {
       "valuation_metric": "log-likelihood of the validation set for Bayesian models",
       "exact_or_approx": "exact",
@@ -2537,7 +2537,7 @@
     "num_clients": "unspecified",
     "quality_tier": "bronze",
     "z3_validated": false,
-    "notes": "2606_18384: characteristic_function_latex = the paper's implicit coalition-value definition v(Sub)=U(M_Sub^(R)), where M_Sub^(R) is the one-round-reconstructed model built by aggregating only the updates of clients in subset Sub (Algorithm 1, lines 8-12) and U(.) is the model utility function (e.g. validation accuracy, per Table I notation). shapley_formula_latex = Algorithm 1 line 15, the paper's 'Scalable OR (One-Round Reconstruction)' approximation of the Shapley formula: a K-normalized sum of marginal utility contributions U(M_{Sub union j}) - U(M_Sub) over all subsets Sub of the other assigned clients, weighted by inverse binomial coefficients -- explicitly called 'the Shapley formula' by the paper (Sec IV-A) despite being a per-tier-2-server-scoped approximation rather than the exact combinatorial Shapley sum over the full client population.",
+    "notes": "2606_18384: characteristic_function_latex = the paper's implicit coalition-value definition v(Sub)=U(M_Sub^(R)), where M_Sub^(R) is the one-round-reconstructed model built by aggregating only the updates of clients in subset Sub (Algorithm 1, lines 8-12) and U(.) is the model utility function (e.g. validation accuracy, per Table I notation). shapley_formula_latex = Algorithm 1 line 15, the paper's 'Scalable OR (One-Round Reconstruction)' approximation of the Shapley formula: a K-normalized sum of marginal utility contributions U(M_{Sub union j}) - U(M_Sub) over all subsets Sub of the other assigned clients, weighted by inverse binomial coefficients -- explicitly called 'the Shapley formula' by the paper (Sec IV-A) despite being a per-tier-2-server-scoped approximation rather than the exact combinatorial Shapley sum over the full client population. | R5: no numeric v(S) instance in PDF, checked App A + results §; characteristic function v(Sub)=U(M_Sub^(R)) is opaque model-utility, only aggregate accuracy metrics reported — stays MANUAL via Tier A.",
     "mechanism": {
       "valuation_metric": "model accuracy improvement",
       "exact_or_approx": "other",
