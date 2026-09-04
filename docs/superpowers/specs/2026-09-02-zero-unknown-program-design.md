@@ -182,6 +182,31 @@ Each widening re-runs the affected `MANUAL` entries and reclaims what it can.
 - Depends on: R3
 - Plan authored *from* the R2/R3 `MANUAL` catalogue.
 
+**Landed 2026-09-04:** four widenings from the R2/R3 recurring-ceiling catalogue —
+Contract Track-1 positivity-domain + opaque-function-inline readers (+ an
+`_is_definitely_positive_sum` fix accepting `positive^int > 0`); a vector-decision
+stationarity-system branch in `_stackelberg_check_core`; a monotone-threshold /
+critical-value (Myerson) DSIC path `verify_monotone_threshold_dsic` in
+`vcg_dsic.py`; and Track 3 `_fix_declared_constants` box reduction. Each landed as
+fail-closed solver code + PDF-sourced corpus data + a targeted re-sweep.
+**Reclaimed 2 of ~20 attempted `MANUAL` entries** to cross-checked `VERIFIED`:
+`Tian2021contract` (Contract, Track 2 — after correcting an ambiguous
+`type_variable` field; effort is optimized out via its own FOC, so the reduced
+problem is single-dimensional θ-screening; degree-0 Positivstellensatz certificate)
+and `Zheng2023fl_market` (VCG — after transcribing the All-in Myerson cite plus a
+hand-proof, independently re-derived in review, that the self-referential
+acceptance threshold is a bid-independent prefix quantity). The other ~18
+obstructions proved deeper than the recurring-ceiling labels: a cross-paper
+provenance bug (`Jiao2019`'s fields belong to `Jin2023`), a wrong diagnosis
+(`2102_03401`'s `u_3` is a scalar, not a function), papers with no proof to cite,
+and a Stackelberg-vector checker unreachable behind an R3b fail-closed guard + a
+superscript-parse limitation. R4's value: the 2 reclaims, sharper R4-refreshed
+diagnoses across the `MANUAL` set, and reviewed fail-closed tooling (a
+vector-follower Stackelberg checker, a VCG Myerson eligibility gate, Contract
+log/opaque admissibility readers, Track-3 box reduction) staged for R6. In-scope
+`UNKNOWN` stays 0 (it was 0 entering R4). Cleared 4 deferred minors. Merge commit
+`<R4-merge>`. Delta: `docs/superpowers/notes/round-R4-delta.md`.
+
 ### R5 — Phase 4: coalition / Shapley track
 
 New `src/tracks/track_coalition.py` — `verify_coalition` for `k <= 3`: enumerate
