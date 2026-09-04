@@ -205,7 +205,7 @@ diagnoses across the `MANUAL` set, and reviewed fail-closed tooling (a
 vector-follower Stackelberg checker, a VCG Myerson eligibility gate, Contract
 log/opaque admissibility readers, Track-3 box reduction) staged for R6. In-scope
 `UNKNOWN` stays 0 (it was 0 entering R4). Cleared 4 deferred minors. Merge commit
-`<R4-merge>`. Delta: `docs/superpowers/notes/round-R4-delta.md`.
+`270a889`. Delta: `docs/superpowers/notes/round-R4-delta.md`.
 
 ### R5 — Phase 4: coalition / Shapley track
 
