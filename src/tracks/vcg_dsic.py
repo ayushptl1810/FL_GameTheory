@@ -333,9 +333,12 @@ _WEIGHT_BEFORE_V_RE = re.compile(
     r"|\b[a-zA-Z]_\{?[A-Za-z0-9]+\}?)"
     r"\s*\\?[a-zA-Z]*\s*v_?\{?[A-Za-z0-9]+\}?"
 )
-# clean unit-weight welfare sum: \sum (opt _{bound}) then v_i then opt x_i, end.
+# clean unit-weight welfare sum: \sum (opt _{i}, opt _{i=1}^N range) then v_i
+# (bare or called as v_i(b_i) -- same unit weight, just spelling out the bid
+# dependence) then opt x_i, end.
 _UNIT_WELFARE_RE = re.compile(
-    r"\\sum(?:_\{?i\}?)?\s*v_\{?i\}?\s*(?:x_\{?i\}?)?\s*$"
+    r"\\sum(?:_\{?i(?:\s*=\s*1)?\}?(?:\^\{?[A-Za-z0-9]+\}?)?)?"
+    r"\s*v_\{?i\}?(?:\([^)]*\))?\s*(?:x_\{?i\}?)?\s*$"
 )
 # one explicit term: <nonneg number><no gap>v_k<ws>x_k   (k filled in per index)
 _NUM_TERM = r"([0-9]+(?:\.[0-9]+)?)v_\{?%d\}?\s*x_\{?%d\}?"
