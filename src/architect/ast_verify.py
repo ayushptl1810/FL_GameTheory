@@ -58,6 +58,8 @@ def _classify_ast(m: Mechanism) -> int:
         return 3
     if any(_contains(s, Pow) for s in (m.utility, m.ic, m.ir)) and _is_continuous(m):
         return 2
+    if m.category == "Shapley":
+        return 5
     return 1
 
 
