@@ -209,14 +209,39 @@ log/opaque admissibility readers, Track-3 box reduction) staged for R6. In-scope
 
 ### R5 — Phase 4: coalition / Shapley track
 
-New `src/tracks/track_coalition.py` — `verify_coalition` for `k <= 3`: enumerate
-all coalitions, compute the characteristic function `v(S)` from the mechanism's
-allocation, check the stated Shapley payment against the marginal-contribution
-definition (symbolically or on a grid), check core / individual rationality
-(`sum_{i in S} p_i >= v(S)` for all `S`). `_classify_ast` routes `Shapley` category
-to it. Entries with `k > 3` or non-enumerable coalition value -> `MANUAL`.
+New `src/tracks/track_coalition.py` — `verify_coalition` for `k <= 3`, two tiers:
+**Tier A (symbolic)** parses `shapley_formula_latex` and checks via SymPy that the
+stated formula *is* the Shapley value — equals `sum_{S subseteq N\{i}}
+|S|!(n-|S|-1)!/n! * [v(S∪{i}) - v(S)]` as an identity in an abstract `v` (this is
+also the efficiency / symmetry / dummy / additivity check). **Tier B (numeric)**
+runs only when a concrete finite `v(S)` is transcribed into a new
+`mechanism.coalition_values` field (`S -> numeric v(S)` for every `S subseteq N`,
+`|N| <= 3`): enumerate all `2^k` coalitions, compute each `phi_i`, check the stated
+payment matches, check core (`sum_{i in S} phi_i >= v(S)` for all `S`) and IR
+(`phi_i >= v({i})`). `verify_shapley` delegates here (was an unconditional
+`UNSUPPORTED` stub); `_classify_ast` routes `Shapley` category; `verify_from_ast`
+gets a `Coalition` branch. **`VERIFIED` only on Tier B passing AND Tier A passing**,
+cross-checked (hand-computed Shapley values from the transcribed `v(S)`, or a cited
+theorem). Tier A alone -> `MANUAL` ("formula confirmed Shapley-shaped, but no
+numeric `v(S)` in the paper to verify IC/IR/core"). `k > 3`, non-enumerable /
+transcendental / opaque `v` -> `MANUAL` with the specific obstruction. Fail-closed
+default: not decidable.
 
-- Corpus effect: +2–4 (of the 4 Shapley entries)
+Realistic yield: the 4 Shapley entries are `2502_08248` (v = max-flow value,
+standard formula — the one Tier-B candidate if the PDF gives a concrete network),
+`2605_11889` (v = Bayesian log-likelihood — transcendental opaque value; Tier A
+likely passes, Tier B likely finds no numeric instance), `2606_18384` (v = opaque
+model-utility `U(M)`, formula is a documented `K`-normalized OR-*approximation* —
+Tier A will show it is not exact Shapley), and `2405_13879` (mis-categorized: a
+penalty-based free-riding truthfulness mechanism, no `v(S)` and no Shapley value
+anywhere in the paper — `MANUAL`, human task: re-categorize or confirm
+out-of-scope). Expected: **+0–1 real `VERIFIED`, 3–4 diagnosed `MANUAL`**; Shapley
+`UNSUPPORTED` 4 -> 0. Like R3a/R3b, R5 ships committed solver code + tests +
+PDF-grounded corpus data + a targeted sweep regardless of flip count — the
+coalition track is standalone infra R6 and the Architect loop reuse.
+
+- Corpus effect: +0–1 real `VERIFIED`; the rest -> diagnosed `MANUAL`;
+  Shapley `UNSUPPORTED` -> 0
 - Depends on: R3 (independent of R4)
 - Plan authored at round start.
 
