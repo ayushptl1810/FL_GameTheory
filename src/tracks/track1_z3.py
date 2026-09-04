@@ -345,7 +345,7 @@ def _preprocess_contract_latex(s: str) -> str:
     return s
 
 
-_BAYESIAN_RE = re.compile(r"\\mathbb\{E\}|(?<![A-Za-z])E_\{|(?<![A-Za-z])E\\left\[")
+_STACK_BAYESIAN_RE = re.compile(r"\\mathbb\{E\}|(?<![A-Za-z])E_\{|(?<![A-Za-z])E\\left\[")
 
 
 def _strip_contract_prose(s: str) -> str:
@@ -421,8 +421,20 @@ def _opaque_inline(mech: dict, latex: str) -> str:
     for name, form in forms.items():
         if not isinstance(name, str) or not isinstance(form, str):
             continue
-        repl = "(" + form + ")"
-        out = re.sub(re.escape(name) + r"\s*\([^()]*\)", lambda _m: repl, out)
+        form_ids = set(re.findall(r"[A-Za-z_]\w*", form))
+
+        def _repl(m: "re.Match") -> str:
+            # Guard: if the declared form references NO identifier that also
+            # appears inside the matched (args), substituting would silently
+            # drop the operand -- the symbol is a scalar, not a function
+            # (this bit 2102_03401, where "u_3" is a scalar). Skip that
+            # occurrence and let the normal _sp_to_z3 bail handle it.
+            arg_ids = set(re.findall(r"[A-Za-z_]\w*", m.group(1)))
+            if arg_ids and not (arg_ids & form_ids):
+                return m.group(0)
+            return "(" + form + ")"
+
+        out = re.sub(re.escape(name) + r"\s*\(([^()]*)\)", _repl, out)
     return out
 
 
@@ -511,7 +523,7 @@ def _parse_contract_entry(entry: dict) -> "tuple[Any, Any, str, str, int, bool] 
     # inside would prove something strictly stronger than the paper claims,
     # so fail closed and let verify() fall through to the Track 4 Bayesian
     # path, which handles the quantifier properly.
-    if _BAYESIAN_RE.search(ic_raw) or _BAYESIAN_RE.search(ir_raw):
+    if _STACK_BAYESIAN_RE.search(ic_raw) or _STACK_BAYESIAN_RE.search(ir_raw):
         return None
 
     ir_raw = _strip_contract_prose(ir_raw)
@@ -1575,7 +1587,7 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
         return None
 
     mech = entry.get("mechanism") or {}
-    util_raw = mech.get("follower_utility_latex") or ""
+    util_raw = _as_str(mech.get("follower_utility_latex"))
     if not util_raw:
         return None
 
@@ -1623,6 +1635,166 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     )
 
 
+def _solve_stationarity_system(mech: dict, decision_syms: list) -> "dict | None":
+    """Solve mech['follower_stationarity_system'] jointly for decision_syms.
+
+    Each entry is LaTeX of the form ``\\partial U / \\partial x_k = <rhs>``
+    (the derivative is set to 0) or a plain ``<lhs> = <rhs>``. Returns
+    ``{sym: solution_expr}`` on a unique real solution with no residual free
+    decision symbols; ``None`` on count mismatch, an unparseable equation,
+    no/multiple solutions, or a solution still containing a decision symbol.
+    Fail closed everywhere -- a guessed VERIFIED is worse than a template.
+    """
+    raw = mech.get("follower_stationarity_system")
+    if not isinstance(raw, list) or len(raw) != len(decision_syms):
+        return None
+    by_name = {str(s): s for s in decision_syms}
+
+    def _rebind(expr):
+        # parse_latex mints assumptionless symbols; rebind name-matching ones
+        # to the caller's decision symbols so solve() targets line up.
+        return expr.subs(
+            {s: by_name[str(s)] for s in expr.free_symbols if str(s) in by_name},
+            simultaneous=True,
+        )
+
+    eqs = []
+    for s in raw:
+        if not isinstance(s, str):
+            return None
+        try:
+            if "\\partial" in s.split("=", 1)[0]:
+                # "∂U/∂x = <expr> = 0"  ->  split on the LAST '=' so rhs is
+                # just "0" and lhs is the derivative expression to parse.
+                lhs, _rhs = s.rsplit("=", 1)
+                if "\\partial" in lhs.split("=", 1)[0]:
+                    lhs = lhs.split("=", 1)[1]
+                eqs.append(_sp.Eq(_rebind(_lx_parse(lhs)), 0))
+            else:
+                lhs, rhs = s.split("=", 1)
+                eqs.append(_sp.Eq(_rebind(_lx_parse(lhs)), _rebind(_lx_parse(rhs))))
+        except Exception:
+            return None
+    try:
+        sol = _sp.solve(eqs, list(decision_syms), dict=True)
+    except Exception:
+        return None
+    if len(sol) != 1:
+        return None
+    m = sol[0]
+    if any(sym not in m for sym in decision_syms):
+        return None
+    dset = set(decision_syms)
+    if any(m[sym].free_symbols & dset for sym in decision_syms):
+        return None
+    return {sym: m[sym] for sym in decision_syms}
+
+
+def _br_components_match(br_latex: str, opt: dict) -> bool:
+    """Parse 'x^* = ..., y^* = ...' clauses; every declared component must
+    equal opt[sym] symbolically. Missing a clause, or a mismatch -> False."""
+    try:
+        # Rebind parse-minted symbols to opt's own symbols (by name) so the
+        # symbolic difference below isn't defeated by assumption mismatches.
+        by_name = {}
+        for v in opt.values():
+            for s in v.free_symbols:
+                by_name[str(s)] = s
+        clauses = re.split(r"[,;]|\\;|\\quad", br_latex)
+        parsed: dict = {}
+        for c in clauses:
+            if "=" not in c:
+                continue
+            lhs, rhs = c.split("=", 1)
+            base = _base_symbol_name(
+                lhs.replace("^*", "").replace("^{*}", "").strip()
+            )
+            e = _lx_parse(_clean_stackelberg_latex(rhs))
+            parsed[base] = e.subs(
+                {s: by_name[str(s)] for s in e.free_symbols if str(s) in by_name},
+                simultaneous=True,
+            )
+        for sym, val in opt.items():
+            b = _base_symbol_name(str(sym))
+            if b not in parsed:
+                return False
+            if _sp.simplify(parsed[b] - val) != 0:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _check_follower_ir_at(meta, U, opt) -> "bool | None":
+    """Substitute the joint optimum into follower utility; check the default
+    IR inequality (U >= 0). True only if provably satisfied."""
+    try:
+        val = _sp.simplify(U.subs(opt))
+        rem = val.free_symbols
+        assumptions = (
+            _sp.And(*[_sp.Q.positive(s) for s in rem]) if rem else _sp.S.true
+        )
+        return _sp.ask(_sp.Q.nonnegative(val), assumptions) is True or (
+            val.is_nonnegative is True
+        )
+    except Exception:
+        return None
+
+
+def _stackelberg_vector_check(
+    util_expr: Any, syms: list, mech: dict, paper_id: str, require_br_match: bool
+) -> "VerificationResult | None":
+    """Vector follower-decision branch: solve the joint stationarity system,
+    require the Hessian negative-definite at the optimum, cross-check every
+    component against best_response_latex, and check follower IR at the joint
+    optimum. Any ambiguity -> None (fall through to the generic template)."""
+    opt = _solve_stationarity_system(mech, syms)
+    if opt is None:
+        return None
+    # Rebind parse-minted parameter symbols in the solution to the utility's
+    # own (assumption-carrying) symbols so downstream sign reasoning works.
+    u_by_name = {str(s): s for s in util_expr.free_symbols}
+    opt = {
+        k: v.subs(
+            {s: u_by_name[str(s)] for s in v.free_symbols if str(s) in u_by_name},
+            simultaneous=True,
+        )
+        for k, v in opt.items()
+    }
+    try:
+        H = _sp.hessian(util_expr, syms).subs(opt)
+        eigs = list(H.eigenvals().keys())
+    except Exception:
+        return None
+    # _sp.ask returns True/False/None and never raises -- unlike bool()-ing a
+    # `simplify(e) < 0` Relational SymPy can't decide (spec: unsignable
+    # eigenvalue -> fail closed). Matches the scalar path's Q.nonpositive check.
+    if not eigs or not all(_sp.ask(_sp.Q.negative(e)) is True for e in eigs):
+        return None  # not a provably strict interior maximum
+    br_raw = _as_str(mech.get("best_response_latex"))
+    if br_raw:
+        if not _br_components_match(br_raw, opt):
+            return None
+    elif require_br_match:
+        return None
+    if _check_follower_ir_at(mech, util_expr, opt) is not True:
+        return None
+    return VerificationResult(
+        verdict="VERIFIED", category="Stackelberg", paper_id=paper_id, track=1,
+        conditions=[
+            f"joint stationarity: {', '.join(f'{s}*={opt[s]}' for s in syms)}",
+            "Hessian negative-definite at the joint optimum",
+            "IR: U_follower(joint optimum) >= 0",
+        ],
+        notes=(
+            "Stackelberg vector-decision: joint stationarity solved, "
+            "Hessian negative-definite at the optimum, best_response cross-check "
+            f"{'MATCH' if br_raw else 'n/a'}, follower IR holds at the joint optimum."
+        ),
+        entry_specific=True,
+    )
+
+
 def _stackelberg_check_core(
     follower_utility_expr: Any,
     *,
@@ -1648,6 +1820,11 @@ def _stackelberg_check_core(
     util_expr = follower_utility_expr
     e_sym = follower_decision
     mech = meta or {}
+
+    if isinstance(follower_decision, (tuple, list)):
+        return _stackelberg_vector_check(
+            util_expr, list(follower_decision), mech, paper_id, require_br_match
+        )
 
     try:
         foc = _sp.diff(util_expr, e_sym)
