@@ -39,7 +39,8 @@ def test_vcg_verdicts_unchanged_after_seam_extraction():
         "2504_05563": ("VERIFIED", True),
         "3626307_3626311": ("VERIFIED", True),
         "Ahmed2023frimfl": ("MANUAL", False),
-        "Batool2022fl_mab": ("VERIFIED_SHAPE", False),
+        # R6-R7: flipped to MANUAL, second-pass reclaim attempted and failed (fail-closed)
+        "Batool2022fl_mab": ("MANUAL", False),
         "Cheng2022uav": ("VERIFIED_SHAPE", False),
         "Cong2020vcg": ("VERIFIED", True),
         "Cui2024auction_market": ("MANUAL", False),
@@ -84,7 +85,8 @@ def test_contract_verdicts_unchanged_after_seam_extraction():
         # contract index is a parser gap, not a semantic obstruction).
         "2102_03401": ("MANUAL", False),
         "2308_12502": ("MANUAL", False),
-        "2403_09153": ("VERIFIED_TEMPLATE", False),
+        # R6-R7: flipped to MANUAL, second-pass reclaim attempted and failed (fail-closed)
+        "2403_09153": ("MANUAL", False),
     }
     assert len(CONTRACT) == len(expected_contract)
     for e in CONTRACT:
@@ -112,14 +114,16 @@ def test_stackelberg_verdicts_unchanged_after_seam_extraction():
     # _try_stackelberg_latex.
     expected_stackelberg = {
         "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
-        "1811_12082": ("VERIFIED_TEMPLATE", False),
+        # R6-R7: flipped to MANUAL, second-pass reclaim attempted and failed (fail-closed)
+        "1811_12082": ("MANUAL", False),
         # R3b Task 15: adjudicated MANUAL (vector / multi-stage follower
         # decisions the single-variable FOC path cannot reduce). The seam
         # this test locks is unchanged; only the verdict_override is new.
         "2101_05628": ("MANUAL", False),
         "2101_12428": ("MANUAL", False),
         "2103_05866": ("MANUAL", False),
-        "2110_12876": ("VERIFIED_TEMPLATE", False),
+        # R6-R7: flipped to MANUAL, second-pass reclaim attempted and failed (fail-closed)
+        "2110_12876": ("MANUAL", False),
     }
     assert len(STACKELBERG) == len(expected_stackelberg)
     for e in STACKELBERG:
