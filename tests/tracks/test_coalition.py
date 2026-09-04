@@ -78,3 +78,85 @@ def test_tier_b_stated_payment_mismatch_fails_core():
     }
     core_ok, _, _ = _tier_b_numeric_core(values, n=2, stated_payments={1: 2.0, 2: 99.0})
     assert not core_ok
+
+
+from tracks.track_coalition import verify_coalition, _tier_a_symbolic_identity
+
+_STD_SHAPLEY_LATEX = (
+    r"\phi_i = \sum_{S \subseteq N \setminus \{i\}} "
+    r"\frac{|S|!(n-|S|-1)!}{n!} \left( v(S \cup \{i\}) - v(S) \right)"
+)
+
+
+def test_tier_a_accepts_standard_formula():
+    ok, _ = _tier_a_symbolic_identity(_STD_SHAPLEY_LATEX, n=3)
+    assert ok
+
+
+def test_tier_a_rejects_binom_normalized_approximation():
+    approx = r"\phi_j = K \sum_{S} \frac{U(S \cup \{j\}) - U(S)}{\binom{n-1}{|S|}}"
+    ok, detail = _tier_a_symbolic_identity(approx, n=3)
+    assert not ok
+    assert "binom" in detail.lower() or "not" in detail.lower()
+
+
+def test_verify_coalition_no_formula_is_manual():
+    entry = {"mechanism": {"shapley_formula_latex": None}, "paper_id": "x"}
+    r = verify_coalition(entry)
+    assert r.verdict == "MANUAL"
+    assert "no Shapley formula" in r.notes
+
+
+def test_verify_coalition_tier_a_only_is_manual():
+    entry = {
+        "paper_id": "x",
+        "mechanism": {"shapley_formula_latex": _STD_SHAPLEY_LATEX, "coalition_n": 3},
+    }
+    r = verify_coalition(entry)
+    assert r.verdict == "MANUAL"
+    assert "no numeric v(S)" in r.notes
+    assert r.entry_specific is False
+
+
+def test_verify_coalition_full_pass_is_verified():
+    entry = {
+        "paper_id": "x",
+        "mechanism": {
+            "shapley_formula_latex": _STD_SHAPLEY_LATEX,
+            "coalition_n": 3,
+            "coalition_values": {
+                "": 0.0, "1": 1.0, "2": 1.0, "3": 1.0,
+                "1,2": 4.0, "1,3": 4.0, "2,3": 4.0, "1,2,3": 10.0,
+            },
+        },
+    }
+    r = verify_coalition(entry)
+    assert r.verdict == "VERIFIED"
+    assert r.entry_specific is True
+    assert r.track == 5
+
+
+def test_verify_coalition_core_violation_is_counterexample():
+    entry = {
+        "paper_id": "x",
+        "mechanism": {
+            "shapley_formula_latex": _STD_SHAPLEY_LATEX,
+            "coalition_n": 3,
+            "coalition_values": {
+                "": 0.0, "1": 0.0, "2": 0.0, "3": 0.0,
+                "1,2": 1.0, "1,3": 1.0, "2,3": 1.0, "1,2,3": 1.0,
+            },
+        },
+    }
+    r = verify_coalition(entry)
+    assert r.verdict == "COUNTEREXAMPLE"
+
+
+def test_verify_coalition_k_over_3_is_manual():
+    entry = {
+        "paper_id": "x",
+        "mechanism": {"shapley_formula_latex": _STD_SHAPLEY_LATEX, "coalition_n": 5},
+    }
+    r = verify_coalition(entry)
+    assert r.verdict == "MANUAL"
+    assert "k > 3" in r.notes or "coalition size" in r.notes

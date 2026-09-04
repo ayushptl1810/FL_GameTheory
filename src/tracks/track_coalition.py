@@ -93,3 +93,100 @@ def _tier_b_numeric_core(
             )
 
     return core_ok, ir_ok, conds
+
+
+# --- Tier A: symbolic identity -------------------------------------------------
+# NOTE: sympy's parse_latex cannot handle `\sum_{...}` with `|S|!` factorial
+# notation (verified: LaTeXParsingError on the standard Shapley formula). So the
+# POSITIVE check below is STRUCTURAL, per the task-4 brief Step 4 fallback:
+#   - the marginal term  v(S \cup \{i\}) - v(S)   (whitespace-insensitive), AND
+#   - a Shapley weight    |S|!(n-|S|-1)!/n!  or  (|S|-1)!(n-|S|)!/n!
+# The fail-closed rejection guards (\binom / \hat / K-normalization / approx)
+# still run first, so a binom-normalized approximation returns (False, ...).
+import re
+
+_MARGINAL_RE = re.compile(
+    r"v\(S\\cup\\?\{[ij]\\?\}\)-v\(S\)"
+)
+_WEIGHT_RES = (
+    re.compile(r"\|S\|!\(n-\|S\|-1\)!\}?\{?n!"),          # |S|!(n-|S|-1)! / n!
+    re.compile(r"\(\|S\|-1\)!\(n-\|S\|\)!\}?\{?n!"),       # (|S|-1)!(n-|S|)! / n!
+)
+
+
+def _tier_a_symbolic_identity(shapley_latex: str, n: int) -> tuple[bool, str]:
+    if not shapley_latex or not str(shapley_latex).strip():
+        return False, "empty formula"
+    raw = str(shapley_latex)
+    low = raw.lower()
+    # Fail-closed structural guards: tokens the exact Shapley value never has.
+    for bad in ("\\binom", "\\hat", "approx", "k \\sum", r"k\sum"):
+        if bad in low:
+            return False, f"formula contains {bad.strip()!r} — not the exact Shapley value"
+    compact = re.sub(r"\s+", "", raw)
+    if not _MARGINAL_RE.search(compact):
+        return False, "no marginal-contribution term v(S ∪ {i}) − v(S) found"
+    if not any(rx.search(compact) for rx in _WEIGHT_RES):
+        return False, "no exact Shapley weight |S|!(n−|S|−1)!/n! found"
+    return True, "formula matches the exact Shapley value (structural: marginal term + Shapley weight)"
+
+
+def _manual(pid: str, note: str, *, entry_specific: bool = False) -> VerificationResult:
+    return VerificationResult(
+        verdict="MANUAL", category="Shapley", paper_id=pid, track=5,
+        notes=note, entry_specific=entry_specific,
+    )
+
+
+def verify_coalition(entry: dict) -> VerificationResult:
+    pid = entry.get("paper_id", "<unknown>")
+    m = entry.get("mechanism") or {}
+    formula = m.get("shapley_formula_latex")
+
+    if not formula or not str(formula).strip():
+        return _manual(pid, "no Shapley formula in the paper — cannot verify a "
+                            "coalition mechanism without a stated payment rule")
+
+    n = m.get("coalition_n")
+    if not isinstance(n, int) or n > _MAX_N or n < 1:
+        return _manual(pid, f"k > 3 or coalition size not stated (coalition_n={n!r}) "
+                            "— enumeration intractable")
+
+    is_shapley, detail = _tier_a_symbolic_identity(formula, n)
+    if not is_shapley:
+        return _manual(pid, f"formula is not the exact Shapley value: {detail}")
+
+    raw_values = m.get("coalition_values")
+    if not raw_values:
+        return _manual(
+            pid,
+            "Tier A passed — formula confirmed Shapley-shaped — but no numeric "
+            "v(S) in the paper to verify IC/IR/core",
+        )
+
+    try:
+        values = _parse_coalition_values(raw_values, n)
+    except ValueError as e:
+        return _manual(pid, f"coalition_values unusable: {e}")
+
+    stated = m.get("coalition_payments")
+    stated_payments = ({int(k): float(v) for k, v in stated.items()} if stated else None)
+
+    core_ok, ir_ok, conds = _tier_b_numeric_core(values, n, stated_payments)
+    tier_a_line = f"Tier A: {detail}"
+
+    if core_ok and ir_ok:
+        return VerificationResult(
+            verdict="VERIFIED", category="Shapley", paper_id=pid, track=5,
+            conditions=[tier_a_line, *conds], entry_specific=True,
+            notes="Tier A (Shapley identity) + Tier B (core, IR) both hold",
+        )
+    if not core_ok:
+        violated = [c for c in conds if "VIOLATED" in c or "MISMATCH" in c]
+        return VerificationResult(
+            verdict="COUNTEREXAMPLE", category="Shapley", paper_id=pid, track=5,
+            conditions=[tier_a_line, *conds], entry_specific=True,
+            notes="core / payment violated: " + "; ".join(violated),
+        )
+    return _manual(pid, "core holds but individual rationality is violated — "
+                        "check the paper's participation model")
