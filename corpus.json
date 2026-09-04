@@ -1539,7 +1539,12 @@
       "key_assumptions": [
         "quadratic cost",
         "unique interior optimum"
-      ]
+      ],
+      "follower_stationarity_system": [
+        "\\partial P_i / \\partial x_i^r = \\frac{\\mu\\alpha_i}{1+\\mu x_i^r} - p_r = 0",
+        "\\partial P_i / \\partial x_i^w = \\frac{\\beta_i h_i p_i \\epsilon_i^2}{(B_0\\varphi x_i^w+\\epsilon_i^2)^2} - p_w = 0"
+      ],
+      "follower_stationarity_system_source": "2502_10765, Eqs. (5) and (38)-(39) with lambda_1=0 (KKT Case 4-1: x_i^r>0, x_i^w>0, budget (13) slack), Sec. 3.2"
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
@@ -4514,7 +4519,12 @@
       "ir_follower_latex": null,
       "key_assumptions": [
         "convex expenditure formulation"
-      ]
+      ],
+      "follower_stationarity_system": [
+        "\\partial f / \\partial B_k^t = 2(\\gamma_2\\alpha_k+Q_k^t)B_k^t - \\frac{R^t}{\\phi^t}\\frac{1}{B_k^t} = 0",
+        "\\partial f / \\partial \\varepsilon_k^t = 2(\\gamma_2\\beta_k+Z_k^t)\\varepsilon_k^t - \\frac{R^t}{\\phi^t}\\frac{1}{\\varepsilon_k^t} = 0"
+      ],
+      "follower_stationarity_system_source": "Liu2026fedbud, Eq. (35) (Appendix II, proof of Proposition 6; the epsilon_k^t component is stated 'analogous and thus omitted'), objective Eq. (17)"
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
@@ -6108,7 +6118,11 @@
         "federated optimization",
         "multi-leader-follower game",
         "heterogeneous data owners"
-      ]
+      ],
+      "follower_stationarity_system": [
+        "\\partial W_j / \\partial \\varepsilon_j^i = \\beta_j\\kappa_j^i - p_i - \\alpha_j^i + \\frac{\\beta_j\\kappa_j^i}{\\varepsilon_j^i} + \\beta_j\\kappa_j^i \\log(\\varepsilon_j^i) = 0"
+      ],
+      "follower_stationarity_system_source": "Yu2022multi_leader_fl, Eq. (19) (inactive-constraint branch: sum_i L_j^i(eps) <= tau_j^max), Sec. IV"
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
