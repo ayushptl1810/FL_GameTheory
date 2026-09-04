@@ -23,6 +23,14 @@ single seed cannot cleanly separate "the flag causes worse verification" from
 "single-seed LLM sampling noise flips outcomes regardless of the flag." Full
 evidence and tables: `docs/superpowers/notes/round-R8-run-eval-attempt.md`.
 
+## Verification
+
+Full suite: `PYTHONPATH=src:. pytest tests/ -q` → 467 passed, 1 skipped, 3
+xfailed, 0 failed. Keyless verifier check: `PYTHONPATH=src python -m verifier
+corpus.json` ran clean with no API key, 105-entry summary matching VERIFIED
+11 / VERIFIED_SHAPE 8 / MANUAL 86 — confirming the
+Formalizer-never-a-verify-time-dependency invariant held for R8 too.
+
 ## Corpus effect
 
 None (loop-side change only, no flip). Final in-scope state, unchanged from

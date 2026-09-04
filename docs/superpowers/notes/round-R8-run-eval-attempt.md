@@ -27,8 +27,9 @@ Both runs completed and each wrote `wrote docs/eval-results.md (12 base rows,
 0 ablation rows)` -- no exception, no traceback, both produced
 `docs/eval-results.md` + `docs/eval-results.json`.
 
-**Un-flagged (baseline) result table** (saved verbatim at
-`docs/superpowers/notes/round-R8-run-eval-baseline-results.md`):
+**Un-flagged (baseline) result table** (reproduced verbatim below; the
+`round-R8-run-eval-baseline.log` file is a one-line completion marker only —
+the table itself is not saved anywhere else):
 
 | name | mode | status | iters | solver | wall_s | ic_regret | expected_family | family_match |
 |---|---|---|---|---|---|---|---|---|
@@ -50,8 +51,8 @@ vcg_redistribution, stackelberg_linear_pricing, vcg_cavallo_redistribution,
 contract_budget_balanced.
 
 **Flagged (`ARCHITECT_AST_VERIFY=1`) result table** (verbatim from
-`docs/eval-results.md` after the flagged run, also captured in
-`docs/superpowers/notes/round-R8-run-eval-flagged.log`):
+`docs/eval-results.md` after the flagged run; `round-R8-run-eval-flagged.log`
+is a one-line completion marker only, not a source of this table):
 
 | name | mode | status | iters | solver | wall_s | ic_regret | expected_family | family_match |
 |---|---|---|---|---|---|---|---|---|
@@ -104,9 +105,13 @@ verified.
 
 Caveat for Task 2's judgment call: both invocations used `--seeds 1` (a single
 non-deterministic LLM seed per benchmark, no repeated-seed averaging), and the
-result itself already shows run-to-run variance independent of the flag (mode
-flips between `Synthesis`/`Hybrid`, iteration counts differ) for benchmarks
-that are identical between the two arms in every other respect. A single seed
+two inline result tables above already show run-to-run variance independent
+of the flag (mode flips between `Synthesis`/`Hybrid`, iteration counts differ)
+for benchmarks that are identical between the two arms in every other respect
+(e.g. `hierarchical_edge` and `stackelberg_linear_pricing`). Note: the raw log
+files (`round-R8-run-eval-baseline.log`, `round-R8-run-eval-flagged.log`) are
+each just a single completion line and are byte-identical to each other — the
+variance is visible only in the inline tables above, not in the logs. A single seed
 cannot cleanly separate "the flag causes worse verification" from "single-seed
 LLM sampling noise is large enough to flip outcomes regardless of the flag."
 Task 2 should treat this as inconclusive-but-literally-a-regression: either
