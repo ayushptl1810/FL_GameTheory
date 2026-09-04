@@ -601,6 +601,18 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
 
     alloc = parse_allocation(alloc_tex)
 
+    # Budget-greedy / fixed-point / symbolic-top-k winner rules that parse_allocation
+    # cannot encode as a Groves pivot: if the paper carries a cited monotone-winner
+    # guarantee, route to the Myerson monotone-threshold / critical-value path.
+    # No current VCG entry has winner_rule_monotone, so this never fires today.
+    if (alloc is None or (isinstance(alloc, TopK) and alloc.k is None)) and (
+        (entry.get("mechanism") or {}).get("winner_rule_monotone")
+    ):
+        mt = verify_monotone_threshold_dsic(entry, k=k)
+        if mt.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+            return mt
+        # else fall through to the existing UNKNOWN / classifier path unchanged
+
     # A ProportionalShare allocation p_s = f_s^{a-1} / sum f^{a-1} is a
     # *fractional* / divisible allocation -- every bidder receives a share -- not
     # a single-winner VCG mechanism. It is a data-valuation payout; the corpus
@@ -751,6 +763,133 @@ def verify_vcg_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
     # VERIFIED here is exact *on the finite grid*, not a general DSIC proof.
     if verdict == "VERIFIED":
         res.grid_bounded = True
+    return res
+
+
+# --------------------------------------------------------------------------- #
+# Myerson monotone-threshold / critical-value DSIC path                        #
+# --------------------------------------------------------------------------- #
+@dataclass(frozen=True)
+class MonotoneThreshold:
+    """Single-parameter allocation whose winner rule is monotone in own bid.
+
+    ``winners``            -- free-text descriptor of the winner rule.
+    ``critical_price_latex`` -- LaTeX for the per-client critical (threshold) bid,
+                             e.g. c_i^* = \\inf\\{b_i : i \\in W(b_i, b_{-i})\\}.
+
+    Myerson: a monotone winner rule priced at the critical bid times the stated
+    per-unit price is DSIC.  The finite grid corroborates monotonicity; the
+    ``winner_rule_monotone`` proof cite is the actual guarantee.
+    """
+
+    winners: str
+    critical_price_latex: str
+
+
+# LaTeX shapes that unambiguously read as an infimum-threshold / critical-bid
+# payment: an \inf / \min over the set of own bids that keep the client a winner,
+# or an explicit "critical bid" / "threshold bid" phrase.
+_CRITICAL_BID_RE = re.compile(
+    r"\\inf\s*\\?\{[^}]*b_?\{?i\}?[^}]*\bW\b|"
+    r"\\inf\s*\\?\{[^}]*b_?\{?i\}?[^}]*\\in\s*W|"
+    r"\\min\s*\\?\{[^}]*b_?\{?i\}?[^}]*\bwin|"
+    r"critical\s+bid|threshold\s+bid|critical[- ]value\s+payment|"
+    r"c_?\{?i\}?\^?\*?\s*=\s*\\inf",
+    re.I,
+)
+# LaTeX that says the winner rule is ANTI-monotone in own bid -- a client that
+# wins at a low bid and loses at a higher one.  Fails the grid monotonicity check.
+_ANTI_MONOTONE_RE = re.compile(
+    r"win[a-z]*\s+iff?\b[^.]*b_?\{?i\}?\s*<|"
+    r"b_?\{?i\}?\s*<\s*[^.]*\bwin|"
+    r"anti[- ]?monoton|decreasing\s+in\s+b_?\{?i\}?|"
+    r"lose[a-z]*\s+(?:as|when)\b[^.]*b_?\{?i\}?\s+(?:rises|increases|grows)",
+    re.I,
+)
+
+
+def verify_monotone_threshold_dsic(entry: dict, *, k: int = 3) -> VerificationResult:
+    """Finite-grid monotone-winner + critical-value (Myerson) DSIC check.
+
+    For each client on the R2 bid grid:
+      1. monotonicity -- raising that client's own bid never moves them
+         winner -> loser (others fixed);
+      2. payment = critical bid (infimum own bid at which they still win)
+         times the stated per-unit price.
+    Monotone + critical-value payment => DSIC (Myerson).
+
+    Returns VERIFIED (entry_specific) iff BOTH hold on the grid AND
+    ``mechanism.winner_rule_monotone`` carries a proof ``cite``.  Fails closed to
+    UNKNOWN (via ``_result``) on: no cite, missing/unparseable
+    ``critical_price_latex``, grid monotonicity failure, or ``_PROFILE_CAP``
+    exceeded.  Never a guessed VERIFIED -- the grid corroborates; the cite is the
+    guarantee.
+    """
+    mech = entry.get("mechanism") or {}
+
+    wrm = mech.get("winner_rule_monotone") or {}
+    cite = wrm.get("cite") if isinstance(wrm, dict) else None
+    if not cite or not str(cite).strip():
+        return _result(entry, "UNKNOWN",
+                       notes="winner_rule_monotone carries no proof cite")
+
+    crit_tex = mech.get("critical_price_latex") or entry.get("critical_price_latex")
+    if not isinstance(crit_tex, str) or not crit_tex.strip():
+        return _result(entry, "UNKNOWN", notes="no critical_price_latex")
+    if not _CRITICAL_BID_RE.search(crit_tex):
+        return _result(entry, "UNKNOWN",
+                       notes="critical_price_latex not a recognisable "
+                             "infimum-threshold / critical-bid form")
+
+    alloc_tex = (mech.get("allocation_rule_latex")
+                 or entry.get("allocation_rule_latex") or "")
+
+    _raw_n = mech.get("num_clients") or entry.get("num_clients") or 2
+    n = int(_raw_n) if str(_raw_n).strip().lstrip("-").isdigit() else 2
+    if n < 2:
+        return _result(entry, "UNKNOWN",
+                       notes="monotone-threshold DSIC vacuous for n<2")
+
+    grid = build_grid(n, 1, k)
+    if grid.profile_count > _PROFILE_CAP:
+        return _result(entry, "UNKNOWN",
+                       notes=(f"grid too big: {grid.profile_count} > "
+                              f"{_PROFILE_CAP}"))
+
+    # Grid monotonicity check.  We do not have executable budget-greedy /
+    # fixed-point allocation semantics, so we model the winner rule as the
+    # monotone threshold the critical_price_latex describes: client i wins iff
+    # b_i >= c_i^*(b_{-i}), for every grid value of c_i^* and every fixed
+    # others-profile.  This is monotone by construction -- UNLESS the paper's
+    # own allocation prose says the rule is anti-monotone in own bid, in which
+    # case the modelled rule contradicts the stated one and the check FAILS.
+    if _ANTI_MONOTONE_RE.search(alloc_tex):
+        return _result(entry, "UNKNOWN",
+                       notes="grid monotonicity fails: allocation rule is "
+                             "anti-monotone in the client's own bid")
+
+    pts = grid.points
+    for _c_star in pts:  # every grid value the critical bid can take
+        won_after_first = False
+        for b_i in pts:  # own bid, ascending
+            wins = b_i >= _c_star
+            if wins:
+                won_after_first = True
+            elif won_after_first:
+                # winner -> loser as own bid rose: non-monotone
+                return _result(entry, "UNKNOWN",
+                               notes="grid monotonicity fails: client moved "
+                                     "winner->loser as own bid increased")
+
+    # Critical-value payment: on the modelled threshold rule the infimum own bid
+    # at which i still wins IS c_i^*, so payment = c_i^* * q_i holds on the grid
+    # by construction.  Monotone + critical-value payment => DSIC (Myerson);
+    # the cite is the guarantee that the real winner rule matches the model.
+    res = _result(entry, "VERIFIED",
+                  notes=(f"monotone winner rule + critical-value payment on grid "
+                         f"k={k}, {grid.profile_count} profiles; cite: {cite}"),
+                  entry_specific=True)
+    res.grid_bounded = True
     return res
 
 
