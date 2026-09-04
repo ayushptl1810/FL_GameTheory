@@ -411,19 +411,27 @@ def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
         # exclusive stops the AST write from clobbering the Contract
         # provenance, which records that the IC latex came from a model
         # rather than the paper's own transcription.
-        if r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
-            if r.ast is not None:
-                entry["formalized_ast"] = to_dict(r.ast)
-                entry["formalization_meta"] = {
-                    "model": model, "verdict": r.verdict, "retries": r.retries,
-                    "adversary_rounds": len(r.adversary_log),
-                    "pdf_used": r.pdf_used, "flagged": False, "date": today,
-                }
-            elif any(k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS):
-                entry["formalization_meta"] = {
-                    "model": model, "verdict": r.verdict,
-                    "source": "llm_ic_extraction", "date": today,
-                }
+        #
+        # Persist the AST whenever one was built, regardless of verdict: a
+        # VERIFIED_TEMPLATE (or other non-flip) AST still cost real LLM
+        # compute and is otherwise unrecoverable except by re-running the
+        # sweep. The Contract `_llm` branch stays gated on VERIFIED/
+        # COUNTEREXAMPLE -- those keys are only stashed on the entry in the
+        # first place when formalize_contract_entry's probe verified.
+        if r.ast is not None:
+            entry["formalized_ast"] = to_dict(r.ast)
+            entry["formalization_meta"] = {
+                "model": model, "verdict": r.verdict, "retries": r.retries,
+                "adversary_rounds": len(r.adversary_log),
+                "pdf_used": r.pdf_used, "flagged": False, "date": today,
+            }
+        elif r.verdict in ("VERIFIED", "COUNTEREXAMPLE") and any(
+            k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS
+        ):
+            entry["formalization_meta"] = {
+                "model": model, "verdict": r.verdict,
+                "source": "llm_ic_extraction", "date": today,
+            }
         records.append({
             "paper_id": pid, "category": entry.get("category", ""),
             "verdict": r.verdict, "retries": r.retries,

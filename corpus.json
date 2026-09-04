@@ -29,7 +29,201 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Sum",
+            "terms": [
+              {
+                "t": "Sum",
+                "terms": [
+                  {
+                    "t": "Sym",
+                    "name": "a_i"
+                  },
+                  {
+                    "t": "Prod",
+                    "factors": [
+                      {
+                        "t": "Const",
+                        "value": -1
+                      },
+                      {
+                        "t": "Prod",
+                        "factors": [
+                          {
+                            "t": "Sym",
+                            "name": "b_i"
+                          },
+                          {
+                            "t": "Func",
+                            "name": "exp",
+                            "arg": {
+                              "t": "Prod",
+                              "factors": [
+                                {
+                                  "t": "Const",
+                                  "value": -1
+                                },
+                                {
+                                  "t": "Prod",
+                                  "factors": [
+                                    {
+                                      "t": "Sym",
+                                      "name": "c_i"
+                                    },
+                                    {
+                                      "t": "Sym",
+                                      "name": "s_i^d"
+                                    }
+                                  ]
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sum",
+                "terms": [
+                  {
+                    "t": "Prod",
+                    "factors": [
+                      {
+                        "t": "Sym",
+                        "name": "q_i"
+                      },
+                      {
+                        "t": "Sym",
+                        "name": "s_i^d"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "payment": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "q_i"
+              },
+              {
+                "t": "Sym",
+                "name": "s_i^d"
+              }
+            ]
+          }
+        ]
+      },
+      "ic": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "q_i"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Prod",
+                "factors": [
+                  {
+                    "t": "Sym",
+                    "name": "b_i"
+                  },
+                  {
+                    "t": "Func",
+                    "name": "exp",
+                    "arg": {
+                      "t": "Prod",
+                      "factors": [
+                        {
+                          "t": "Const",
+                          "value": -1
+                        },
+                        {
+                          "t": "Prod",
+                          "factors": [
+                            {
+                              "t": "Sym",
+                              "name": "c_i"
+                            },
+                            {
+                              "t": "Sym",
+                              "name": "s_i^d"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ir": {
+        "t": "Unknown",
+        "name": "IR_follower"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "equilibrium_existence": true,
+        "follower_decision": "s_i^d"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "1902_05622",
@@ -396,7 +590,194 @@
         "unique interior optimum"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "IndexedFamily",
+                "name": "rho",
+                "index": "j",
+                "over": [
+                  "J"
+                ]
+              },
+              {
+                "t": "Sym",
+                "name": "p_i^j"
+              },
+              {
+                "t": "Sym",
+                "name": "r^j"
+              },
+              {
+                "t": "Sym",
+                "name": "f_i^j"
+              },
+              {
+                "t": "Sym",
+                "name": "d_i"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "IndexedFamily",
+                "name": "rho",
+                "index": "j",
+                "over": [
+                  "J"
+                ]
+              },
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "kappa_i"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "f_i^j"
+                },
+                "exp": 2
+              },
+              {
+                "t": "Sym",
+                "name": "w^j"
+              }
+            ]
+          }
+        ]
+      },
+      "payment": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "IndexedFamily",
+                "name": "rho",
+                "index": "j",
+                "over": [
+                  "J"
+                ]
+              },
+              {
+                "t": "Sym",
+                "name": "p_i^j"
+              },
+              {
+                "t": "Sym",
+                "name": "r^j"
+              },
+              {
+                "t": "Sym",
+                "name": "f_i^j"
+              },
+              {
+                "t": "Sym",
+                "name": "d_i"
+              }
+            ]
+          }
+        ]
+      },
+      "ic": {
+        "t": "Prod",
+        "factors": [
+          {
+            "t": "IndexedFamily",
+            "name": "rho",
+            "index": "j",
+            "over": [
+              "J"
+            ]
+          },
+          {
+            "t": "Sum",
+            "terms": [
+              {
+                "t": "Prod",
+                "factors": [
+                  {
+                    "t": "Sym",
+                    "name": "p_i^j"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "r^j"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "d_i"
+                  }
+                ]
+              },
+              {
+                "t": "Prod",
+                "factors": [
+                  {
+                    "t": "Const",
+                    "value": -1
+                  },
+                  {
+                    "t": "Const",
+                    "value": 2
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "kappa_i"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "f_i^j"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "w^j"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "ir": {
+        "t": "Unknown",
+        "name": "IR_follower"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "equilibrium_existence": true,
+        "equilibrium_uniqueness": true,
+        "follower_decision": "computing resources shared with PLO j, f_i^j",
+        "leader_decision": "monetary rewards per unit computing resource and unit time"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "2201_02932",
@@ -490,7 +871,45 @@
         "inter-constraint decision-making"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Unknown",
+        "name": "U_N"
+      },
+      "payment": {
+        "t": "Unknown",
+        "name": "payment"
+      },
+      "ic": {
+        "t": "Unknown",
+        "name": "FOC"
+      },
+      "ir": {
+        "t": "Unknown",
+        "name": "IR"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "num_types": null,
+        "type_distribution": null,
+        "equilibrium_existence": true,
+        "follower_decision": "energy consumption"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "2203_03885",
@@ -3212,7 +3631,154 @@
         "bounded gradient"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "gamma"
+              },
+              {
+                "t": "Sym",
+                "name": "1_minus_norm"
+              },
+              {
+                "t": "Sym",
+                "name": "tau_i"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "tau_i"
+                },
+                "exp": 2
+              }
+            ]
+          }
+        ]
+      },
+      "payment": {
+        "t": "Const",
+        "value": 0
+      },
+      "ic": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "gamma"
+              },
+              {
+                "t": "Sym",
+                "name": "1_minus_norm"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -2
+              },
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Sym",
+                "name": "tau_i"
+              }
+            ]
+          }
+        ]
+      },
+      "ir": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "gamma"
+              },
+              {
+                "t": "Sym",
+                "name": "1_minus_norm"
+              },
+              {
+                "t": "Sym",
+                "name": "tau_i"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "tau_i"
+                },
+                "exp": 2
+              }
+            ]
+          }
+        ]
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "num_types": null,
+        "type_distribution": null,
+        "equilibrium_existence": true,
+        "follower_decision": "tau_i"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": false,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "Fei2025sbro_fl",
@@ -3500,7 +4066,143 @@
       "ir_follower_latex": null,
       "key_assumptions": []
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Prod",
+        "factors": [
+          {
+            "t": "Sym",
+            "name": "T"
+          },
+          {
+            "t": "Sum",
+            "terms": [
+              {
+                "t": "Prod",
+                "factors": [
+                  {
+                    "t": "Sym",
+                    "name": "r"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "s"
+                  }
+                ]
+              },
+              {
+                "t": "Prod",
+                "factors": [
+                  {
+                    "t": "Sym",
+                    "name": "A_d"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "\\Theta"
+                  },
+                  {
+                    "t": "Sym",
+                    "name": "s"
+                  }
+                ]
+              },
+              {
+                "t": "Sym",
+                "name": "B_d"
+              }
+            ]
+          }
+        ]
+      },
+      "payment": {
+        "t": "Prod",
+        "factors": [
+          {
+            "t": "Sym",
+            "name": "r"
+          },
+          {
+            "t": "Sym",
+            "name": "s"
+          }
+        ]
+      },
+      "ic": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Sym",
+            "name": "r"
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -0.5
+              },
+              {
+                "t": "Sym",
+                "name": "A_e"
+              },
+              {
+                "t": "Sym",
+                "name": "\\Theta"
+              },
+              {
+                "t": "Sym",
+                "name": "s"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "\\rho"
+                },
+                "exp": -1
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "A_d"
+              },
+              {
+                "t": "Sym",
+                "name": "\\Theta"
+              }
+            ]
+          }
+        ]
+      },
+      "ir": {
+        "t": "Unknown",
+        "name": "IR"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "equilibrium_existence": true,
+        "follower_decision": "submitted (reported) local data size s"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "Huang2024aigc",
@@ -3620,7 +4322,208 @@
       "ir_follower_latex": "U_i(\\gamma,\\tau_i,\\tau_{-i}) \\geq 0 \\quad \\forall i",
       "key_assumptions": []
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "gamma"
+              },
+              {
+                "t": "Sum",
+                "terms": [
+                  {
+                    "t": "Const",
+                    "value": 1
+                  },
+                  {
+                    "t": "Prod",
+                    "factors": [
+                      {
+                        "t": "Const",
+                        "value": -1
+                      },
+                      {
+                        "t": "Unknown",
+                        "name": "norm_ratio_i"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "t": "Sym",
+                "name": "tau_i"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "tau_i"
+                },
+                "exp": 2
+              }
+            ]
+          }
+        ]
+      },
+      "payment": {
+        "t": "Unknown",
+        "name": "payment"
+      },
+      "ic": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "gamma"
+              },
+              {
+                "t": "Sum",
+                "terms": [
+                  {
+                    "t": "Const",
+                    "value": 1
+                  },
+                  {
+                    "t": "Prod",
+                    "factors": [
+                      {
+                        "t": "Const",
+                        "value": -1
+                      },
+                      {
+                        "t": "Unknown",
+                        "name": "norm_ratio_i"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -2
+              },
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Sym",
+                "name": "tau_i"
+              }
+            ]
+          }
+        ]
+      },
+      "ir": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "gamma"
+              },
+              {
+                "t": "Sum",
+                "terms": [
+                  {
+                    "t": "Const",
+                    "value": 1
+                  },
+                  {
+                    "t": "Prod",
+                    "factors": [
+                      {
+                        "t": "Const",
+                        "value": -1
+                      },
+                      {
+                        "t": "Unknown",
+                        "name": "norm_ratio_i"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "t": "Sym",
+                "name": "tau_i"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "c_i"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "tau_i"
+                },
+                "exp": 2
+              }
+            ]
+          }
+        ]
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "equilibrium_existence": true,
+        "equilibrium_uniqueness": null,
+        "leader_decision": "decay factor",
+        "follower_decision": "number of local epochs \\tau_i"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "Ji2023core_selecting",
@@ -4162,7 +5065,149 @@
         "energy consumption and privacy concerns"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "\\psi_n"
+              },
+              {
+                "t": "Sym",
+                "name": "R"
+              },
+              {
+                "t": "Prod",
+                "factors": [
+                  {
+                    "t": "Sym",
+                    "name": "d_n"
+                  },
+                  {
+                    "t": "Pow",
+                    "base": {
+                      "t": "Sym",
+                      "name": "sum_d"
+                    },
+                    "exp": -1
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "d_n"
+              },
+              {
+                "t": "Sym",
+                "name": "H_n"
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "I_n"
+              }
+            ]
+          },
+          {
+            "t": "Const",
+            "value": 1000000
+          }
+        ]
+      },
+      "payment": {
+        "t": "Sym",
+        "name": "R"
+      },
+      "ic": {
+        "t": "Sum",
+        "terms": [
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Sym",
+                "name": "\\psi_n"
+              },
+              {
+                "t": "Sym",
+                "name": "R"
+              },
+              {
+                "t": "Sym",
+                "name": "sum_d_minus_dn"
+              },
+              {
+                "t": "Pow",
+                "base": {
+                  "t": "Sym",
+                  "name": "sum_d"
+                },
+                "exp": -2
+              }
+            ]
+          },
+          {
+            "t": "Prod",
+            "factors": [
+              {
+                "t": "Const",
+                "value": -1
+              },
+              {
+                "t": "Sym",
+                "name": "H_n"
+              }
+            ]
+          }
+        ]
+      },
+      "ir": {
+        "t": "Unknown",
+        "name": "IR_follower"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "equilibrium_existence": true,
+        "equilibrium_uniqueness": true,
+        "leader_decision": "cut layer and incentives",
+        "follower_decision": "data contribution"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "Li2024dualidentity_auction",
@@ -5944,7 +6989,51 @@
         "linear cost in accuracy improvement (C_i = xi_i * delta_theta_i)"
       ]
     },
-    "z3_verdict": "VERIFIED_TEMPLATE"
+    "z3_verdict": "VERIFIED_TEMPLATE",
+    "formalized_ast": {
+      "t": "Mechanism",
+      "category": "Stackelberg",
+      "utility": {
+        "t": "Unknown",
+        "name": "follower_utility"
+      },
+      "payment": {
+        "t": "Unknown",
+        "name": "payment_rule"
+      },
+      "ic": {
+        "t": "Unknown",
+        "name": "ic_constraint"
+      },
+      "ir": {
+        "t": "Unknown",
+        "name": "ir_constraint"
+      },
+      "params": {},
+      "type_space": [],
+      "allocation": null,
+      "meta": {
+        "num_types": {
+          "t": "Unknown",
+          "name": "num_types"
+        },
+        "type_distribution": {
+          "t": "Unknown",
+          "name": "type_distribution"
+        },
+        "equilibrium_existence": true,
+        "follower_decision": "local accuracy goal \\theta_i^{(t)}"
+      }
+    },
+    "formalization_meta": {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "verdict": "VERIFIED_TEMPLATE",
+      "retries": 0,
+      "adversary_rounds": 0,
+      "pdf_used": true,
+      "flagged": false,
+      "date": "2026-09-04"
+    }
   },
   {
     "paper_id": "Xiao2025incentives_hetero",
