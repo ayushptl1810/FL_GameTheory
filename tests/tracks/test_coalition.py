@@ -53,8 +53,8 @@ def test_tier_b_convex_game_core_nonempty():
         frozenset({3}): 1.0, frozenset({1, 2}): 4.0, frozenset({1, 3}): 4.0,
         frozenset({2, 3}): 4.0, frozenset({1, 2, 3}): 10.0,
     }
-    core_ok, ir_ok, conds = _tier_b_numeric_core(values, n=3, stated_payments=None)
-    assert core_ok and ir_ok
+    core_ok, ir_ok, payment_ok, conds = _tier_b_numeric_core(values, n=3, stated_payments=None)
+    assert core_ok and ir_ok and payment_ok
     assert any("core" in c.lower() for c in conds)
 
 
@@ -66,9 +66,10 @@ def test_tier_b_empty_core_fails():
         frozenset({3}): 0.0, frozenset({1, 2}): 1.0, frozenset({1, 3}): 1.0,
         frozenset({2, 3}): 1.0, frozenset({1, 2, 3}): 1.0,
     }
-    core_ok, ir_ok, _ = _tier_b_numeric_core(values, n=3, stated_payments=None)
+    core_ok, ir_ok, payment_ok, _ = _tier_b_numeric_core(values, n=3, stated_payments=None)
     assert not core_ok
     assert ir_ok  # phi_i = 1/3 >= v({i}) = 0
+    assert payment_ok  # no stated payments, so True
 
 
 def test_tier_b_stated_payment_mismatch_fails_core():
@@ -76,8 +77,22 @@ def test_tier_b_stated_payment_mismatch_fails_core():
         frozenset(): 0.0, frozenset({1}): 1.0, frozenset({2}): 1.0,
         frozenset({1, 2}): 4.0,
     }
-    core_ok, _, _ = _tier_b_numeric_core(values, n=2, stated_payments={1: 2.0, 2: 99.0})
-    assert not core_ok
+    core_ok, _, payment_ok, _ = _tier_b_numeric_core(values, n=2, stated_payments={1: 2.0, 2: 99.0})
+    assert not payment_ok
+    assert core_ok  # core still holds; only payment mismatches
+
+
+def test_tier_b_returns_payment_ok_separately():
+    # core + IR hold; stated payment is wrong -> core_ok stays True, payment_ok is False
+    values = {
+        frozenset(): 0.0, frozenset({1}): 1.0, frozenset({2}): 1.0,
+        frozenset({1, 2}): 4.0,
+    }
+    core_ok, ir_ok, payment_ok, _ = _tier_b_numeric_core(
+        values, n=2, stated_payments={1: 2.0, 2: 99.0})
+    assert core_ok is True
+    assert ir_ok is True
+    assert payment_ok is False
 
 
 from tracks.track_coalition import verify_coalition, _tier_a_symbolic_identity
@@ -98,6 +113,21 @@ def test_tier_a_rejects_binom_normalized_approximation():
     ok, detail = _tier_a_symbolic_identity(approx, n=3)
     assert not ok
     assert "binom" in detail.lower() or "not" in detail.lower()
+
+
+def test_verify_coalition_payment_mismatch_is_counterexample_not_core():
+    entry = {
+        "paper_id": "x",
+        "mechanism": {
+            "shapley_formula_latex": _STD_SHAPLEY_LATEX,
+            "coalition_n": 2,
+            "coalition_values": {"": 0.0, "1": 1.0, "2": 1.0, "1,2": 4.0},
+            "coalition_payments": {"1": 2.0, "2": 99.0},
+        },
+    }
+    r = verify_coalition(entry)
+    assert r.verdict == "COUNTEREXAMPLE"
+    assert "payment" in r.notes.lower()
 
 
 def test_verify_coalition_no_formula_is_manual():

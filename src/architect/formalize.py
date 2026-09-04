@@ -43,7 +43,15 @@ def _user_message(entry, pdf_text, concerns):
     return "\n\n".join(parts)
 
 
-def formalize_entry(entry, pdf_text, *, complete=llm_complete, concerns=None):
+def formalize_entry(entry, pdf_text, *, complete=llm_complete, concerns=None,
+                    prior_reason=None):
+    if prior_reason and not concerns:
+        concerns = [{
+            "field": "reformulation",
+            "issue": (f"{prior_reason} — try reframing around this: fine discrete "
+                      "grid for a continuous type / isolate the binding constraint / "
+                      "drop a provably-slack term"),
+        }]
     user = _user_message(entry, pdf_text, concerns)
     try:
         raw = complete(FORMALIZE_SYSTEM_PROMPT, user, json_mode=True)
@@ -290,13 +298,15 @@ _LLM_MECH_KEYS = (
 )
 
 
-def formalize_with_retry(entry, pdf_text, *, complete=llm_complete):
+def formalize_with_retry(entry, pdf_text, *, complete=llm_complete, prior_reason=None):
+    # VCG / Contract have dedicated paths that don't use the generic user
+    # message, so prior_reason does not apply to their early-returns.
     if entry.get("category") == "VCG":
         return formalize_vcg_entry(entry, complete=complete)
     if entry.get("category") == "Contract":
         return formalize_contract_entry(entry, pdf_text, complete=complete)
     used = pdf_text is not None
-    m = formalize_entry(entry, pdf_text, complete=complete)
+    m = formalize_entry(entry, pdf_text, complete=complete, prior_reason=prior_reason)
     if m is None:
         return FormalizeResult("UNKNOWN", None, [], 0, used,
                                "formalization returned no valid AST")
@@ -338,7 +348,7 @@ from architect.pdf_text import pdf_text
 
 def _select(corpus, ids, only):
     if ids:
-        want = set(ids)
+        want = {ids} if isinstance(ids, str) else set(ids)
         return [e for e in corpus if e.get("paper_id") in want]
     if only:
         return [e for e in corpus if e.get("category") == only]
@@ -376,7 +386,7 @@ def _report_md(records, today):
 
 def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
               complete=llm_complete, today=None, resume=False, limit=None,
-              report_dir="docs/superpowers/notes"):
+              second_pass=False, report_dir="docs/superpowers/notes"):
     today = today or date.today().isoformat()
     with open(corpus_path) as fh:
         corpus = json.load(fh)
@@ -390,7 +400,10 @@ def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
     for entry in selected:
         pid = entry.get("paper_id", "")
         txt = pdf_text(pid)
-        r = formalize_with_retry(entry, txt, complete=complete)
+        pr = None
+        if second_pass:
+            pr = (entry.get("manual_diagnosis") or {}).get("obstruction") or entry.get("notes") or None
+        r = formalize_with_retry(entry, txt, complete=complete, prior_reason=pr)
         # `formalization_meta` is written in exactly ONE place, on whichever
         # artifact this entry actually produced: an AST (the usual path) or
         # the Contract `_llm` mechanism keys stashed by
@@ -398,19 +411,27 @@ def run_batch(corpus_path, *, ids=None, only=None, dry_run=False,
         # exclusive stops the AST write from clobbering the Contract
         # provenance, which records that the IC latex came from a model
         # rather than the paper's own transcription.
-        if r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
-            if r.ast is not None:
-                entry["formalized_ast"] = to_dict(r.ast)
-                entry["formalization_meta"] = {
-                    "model": model, "verdict": r.verdict, "retries": r.retries,
-                    "adversary_rounds": len(r.adversary_log),
-                    "pdf_used": r.pdf_used, "flagged": False, "date": today,
-                }
-            elif any(k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS):
-                entry["formalization_meta"] = {
-                    "model": model, "verdict": r.verdict,
-                    "source": "llm_ic_extraction", "date": today,
-                }
+        #
+        # Persist the AST whenever one was built, regardless of verdict: a
+        # VERIFIED_TEMPLATE (or other non-flip) AST still cost real LLM
+        # compute and is otherwise unrecoverable except by re-running the
+        # sweep. The Contract `_llm` branch stays gated on VERIFIED/
+        # COUNTEREXAMPLE -- those keys are only stashed on the entry in the
+        # first place when formalize_contract_entry's probe verified.
+        if r.ast is not None:
+            entry["formalized_ast"] = to_dict(r.ast)
+            entry["formalization_meta"] = {
+                "model": model, "verdict": r.verdict, "retries": r.retries,
+                "adversary_rounds": len(r.adversary_log),
+                "pdf_used": r.pdf_used, "flagged": False, "date": today,
+            }
+        elif r.verdict in ("VERIFIED", "COUNTEREXAMPLE") and any(
+            k in (entry.get("mechanism") or {}) for k in _LLM_MECH_KEYS
+        ):
+            entry["formalization_meta"] = {
+                "model": model, "verdict": r.verdict,
+                "source": "llm_ic_extraction", "date": today,
+            }
         records.append({
             "paper_id": pid, "category": entry.get("category", ""),
             "verdict": r.verdict, "retries": r.retries,
@@ -442,11 +463,13 @@ def main(argv=None):
                     help="process at most N entries after selection/resume")
     ap.add_argument("--report-dir", default="docs/superpowers/notes",
                     help="directory for the run report markdown")
+    ap.add_argument("--second-pass", action="store_true",
+                    help="inject each entry's prior failure reason as a reformulation hint")
     args = ap.parse_args(argv)
     ids = args.ids.split(",") if args.ids else None
     out = run_batch(args.corpus_path, ids=ids, only=args.only,
                     dry_run=args.dry_run, resume=args.resume, limit=args.limit,
-                    report_dir=args.report_dir)
+                    second_pass=args.second_pass, report_dir=args.report_dir)
     print("summary:", out["summary"], "report:", out["report_path"])
 
 
