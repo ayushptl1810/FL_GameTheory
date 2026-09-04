@@ -3727,6 +3727,12 @@
       "ic_screening_latex": "R_n - \\mu \\theta_n \\zeta c_n s_n f_n^2 + \\frac{\\sigma \\rho_n}{B \\ln(1 + \\rho_n h_n)} \\geq R_m - \\mu \\theta_n \\zeta c_n s_n f_m^2 + \\frac{\\sigma \\rho_n}{B \\ln(1 + \\rho_n h_n)}",
       "ir_participation_latex": "U_{D_n} = R_n - \\mu \\theta_n \\zeta c_n s_n f_n^2 + \\frac{\\sigma \\rho_n}{B \\ln(1 + \\rho_n h_n)} \\geq 0",
       "server_objective_latex": "U_{TP} = \\omega \\ln(T_{\\max} - T_{t_n}) - l R_n",
+      "fixed_constants": {
+        "mu": 1,
+        "c_{n}": 5,
+        "s_{n}": 20
+      },
+      "fixed_constants_source": "Kang et al. 2019, 'Incentive Design for Efficient Federated Learning in Mobile Networks'. mu=1: Sec. III (Optimal Contract Designing), 'for simplicity, we consider mu=1'. c_n=5 (CPU cycles per data sample) and s_n=20 (data sample size): Sec. IV (Numerical Results), p.5, 'The CPU cycles of performing a data sample c_n is 5 and the size of data samples s_n is 20'. zeta and the transmission-energy term sigma*rho_n/(B ln(1+rho_n h_n)) are left free: the paper fixes the composite E^com to 20 but gives no individual values for sigma/rho_n/B/h_n.",
       "key_assumptions": [
         "quadratic cost",
         "discrete finite type space"
@@ -3735,13 +3741,14 @@
     "z3_verdict": "UNKNOWN",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
+      "round": "R4",
+      "prior_round": "R3a",
       "track": 3,
-      "limit": "9 free variables in IC and 11 in IR -- interval box search is intractable at delta=0.001 over [0.001, 1.0]",
+      "limit": "after pinning the 3 paper-declared constants (mu=1, c_n=5, s_n=20) the IC drops from 9 to 6 free vars but the interval search over the generic [0.001,100] parameter box is still inconclusive (unsupported op / budget); the IR drops from 11 to 8 free vars and remains > box-dim cap -- neither IC nor IR is decidable at delta=0.001",
       "mechanism": "Mobile-device contract; routed to Track 3 (mpmath.iv branch-and-bound, delta-sound).",
-      "obstruction": "Track 1 does not apply and Track 3's interval branch-and-bound cannot cover the box: the IC carries 9 free variables and the IR 11, so the branch count is beyond the search budget at the configured delta. The verifier reports UNKNOWN honestly rather than a partial-coverage result.",
-      "human_task": "Reduce the free-variable count by fixing paper-declared constants to their stated values (or narrowing their domains), then re-run Track 3; alternatively transcribe the IC/IR in a form Track 1 can encode symbolically.",
-      "date": "2026-09-03"
+      "obstruction": "Track 1 does not apply. The R4 fixed_constants field removes the three numerically-declared constants from the box (mu, c_n, s_n), but zeta (effective capacitance, never given a number) and the transmission-energy sub-symbols sigma/rho_n/B/h_n (paper only fixes the composite E^com=20, not the parts) stay free. IC is 6-dim but the branch-and-bound is inconclusive over the generic positive box; IR is still 8-dim, above the cap. The verifier reports UNKNOWN honestly rather than a partial-coverage result.",
+      "human_task": "Transcribe the transmission-energy term sigma*rho_n/(B ln(1+rho_n h_n)) as the single paper-declared composite constant E^com=20 (Sec. IV, p.5) so it collapses to a scalar, and narrow zeta to its chipset value if the paper's cited source [7]/[13] gives one; then re-run Track 3. Alternatively transcribe the IC/IR in a form Track 1 can encode symbolically.",
+      "date": "2026-09-04"
     }
   },
   {
@@ -5516,7 +5523,7 @@
     "notes": "DEDUPLICATED: merged from duplicate corpus entries. 2108_05568 (kept elsewhere) claimed num_types=10 with contract_menu_latex bound ^{10}; this and the other duplicate both said num_types=2 with generic bound ^I. The num_types=10 pattern recurred identically across several unrelated duplicate pairs this session, strongly suggesting a corpus-generation pipeline artifact/default rather than a genuine per-paper reading -- num_types=2 was kept as more likely correct, but not independently re-verified against the PDF. | key_assumptions sanitized 2026-07-18: original list matched the extraction-prompt example in tools/prompts.py verbatim (prompt-anchoring contamination). Kept only items corroborated by this entry's own formal fields. Removed as unverified (not re-checked against the PDF): ['single-crossing (Spence-Mirrlees)', 'risk neutral clients'].",
     "mechanism": {
       "num_types": 2,
-      "type_variable": "data coverage quality \\theta_i and training willingness e_i",
+      "type_variable": "data coverage quality \\( \\theta_i \\)",
       "type_distribution": "not-stated",
       "information_structure": "both",
       "cost_function_form": "quadratic",
@@ -5531,16 +5538,13 @@
         "quadratic cost"
       ]
     },
-    "z3_verdict": "UNKNOWN",
-    "verdict_override": "MANUAL",
-    "manual_diagnosis": {
-      "round": "R3a",
+    "z3_verdict": "VERIFIED",
+    "manual_diagnosis_resolved": {
+      "round": "R4",
       "track": 1,
-      "limit": "type-ordering unidentified -- verifier cannot fix the single-crossing direction, so IC counterexamples are suppressed and neither IC nor IR is decidable",
-      "mechanism": "Contract with a LaTeX-parsed entry-specific utility; n=2 types, IR binding at type-0 with adjacent upward IC.",
-      "obstruction": "_type_family() cannot match the entry's type_variable to any indexed symbol family in the parsed utility, so no type-ordering precondition is imposed. Without an ordering, Z3's counterexamples fall in parameter regions (reversed type order) the paper excludes, and the verifier correctly suppresses them to UNKNOWN rather than report an artifact. Both IC and IR come back UNKNOWN.",
-      "human_task": "Correct the entry's type_variable field so it names the indexed type family appearing in the utility, letting the verifier impose the single-crossing ordering; then re-run Track 1.",
-      "date": "2026-09-03"
+      "prior_round": "R3a",
+      "fix": "type_variable corrected from the prose 'data coverage quality \\theta_i and training willingness e_i' (which made _type_family() match both 'theta' and 'e' -> ambiguous -> no ordering) to '\\( \\theta_i \\)', the single screening type. Paper Sec. 2.2: data coverage quality types sorted ascending \\theta_1 \\le \\cdots \\le \\theta_I; e_i is the moral-hazard effort action, not the screening type. Track 1 now imposes the single-crossing ordering and returns VERIFIED (degree-0 Positivstellensatz over ordered-increment coordinates).",
+      "date": "2026-09-04"
     }
   },
   {
