@@ -126,6 +126,34 @@ Adversarial soundness suite (`tests/verifier/`): 22 known-unsound mechanisms, 0 
 > - **`ARCHITECT_AST_VERIFY` stays default OFF.** The flip is code-ready — Tasks 5–9 made the AST path strictly ≥ the LaTeX path on every existing test (`verify_from_ast` verdict `==` `inspect_mechanism` verdict on every parity fixture; AST-only additionally reaches Track 3 where the Track-1 core returns `UNKNOWN`) — and gated only on a clean full flagged `run_eval` with no verified-rate regression, currently API-blocked. See `docs/superpowers/specs/2026-08-29-verifier-proper-checks.md`.
 > - **NOT this round (explicit decision):** the `VERIFIED_TEMPLATE` → `UNKNOWN` fail-close pass (~61 entries would drop — the honesty pass, separate round) and Phase 4 (coalition / small-Shapley).
 > - Suite: 204 → **262 passed / 3 xfailed / 0 failed** (~58 tests added — widening pins, regression locks, fail-closed characterization).
+>
+> **R8 — `ARCHITECT_AST_VERIFY` flip decision (2026-09-06).** BLOCKED/REGRESSION,
+> still default-off. Task 1 ran the flagged `run_eval` for real (NVIDIA provider,
+> `--seeds 1`, both arms, 12/12 benchmarks completed — no infra block this time)
+> and got a REGRESSION by the brief's own literal criterion: 4 of the 7
+> baseline-`VERIFIED` benchmarks (`cross_device_quadratic`, `myerson_single_item`,
+> `vcg_cavallo_redistribution`, `contract_budget_balanced`) flipped to `FAILED`
+> under `ARCHITECT_AST_VERIFY=1`, against 2 newly-verified (`vcg_clarke_pivot`,
+> `contract_linear_quadratic_effort`) — net 7/12 → 5/12 verified. Full evidence:
+> `docs/superpowers/notes/round-R8-run-eval-attempt.md`. Single-seed caveat: both
+> arms used `--seeds 1` with no repeated-seed averaging, and the raw logs already
+> show run-to-run mode/iteration variance independent of the flag, so this is
+> inconclusive-but-literally-a-regression rather than a clean disproof — held per
+> every prior round's fail-closed invariant applied to this round's own decision;
+> no code change. Program final in-scope state (105 verifiable-tier entries):
+> `VERIFIED` 11, `VERIFIED_SHAPE` 8, `MANUAL` 86, `VERIFIED_TEMPLATE` 0,
+> `UNKNOWN` 0. This closes the zero-UNKNOWN program (R1–R8):
+> `UNKNOWN = 0` was reached in R6–R7 and holds. `VERIFIED` landed at 11
+> against the R1-era projection of ~70–85 — the automation-ceiling table in
+> `docs/superpowers/specs/2026-09-02-zero-unknown-program-design.md` was
+> right about *why*: the corpus's mechanisms are overwhelmingly outside every
+> Track's decidable fragment (no follower IR stated, transcendental FOCs, RL/
+> opaque allocations, vector follower decisions), not merely unformalized —
+> R6's second-pass sweep with a ~6x larger model independently confirmed this
+> by reclaiming 0 of the 25 remaining `VERIFIED_TEMPLATE` candidates. The
+> `MANUAL` floor (86, not the projected ~15–25) is therefore the honest
+> result, not a shortfall: `MANUAL-backlog.md` is the real deliverable — 86
+> catalogued obstructions in 10 families, each with a concrete human task.
 
 **Stackelberg now has a real entry-specific path** (`_try_stackelberg_latex` in `src/tracks/track1_z3.py`): parses `follower_utility_latex` (resolving multi-clause "U = R - C, R = ..., C = ..." definitions), symbolically derives the follower's FOC and best response, and checks IR at that optimum — instead of the old placeholder. It fails closed by design (12 unit tests in `tests/test_stackelberg.py` cover the happy path, IR counterexamples, ambiguous-decision-variable cases, and a best-response cross-check that rejects rather than certifies when its own derived optimum disagrees with the paper's stated `best_response_latex`).
 

@@ -1,6 +1,6 @@
 # Zero-UNKNOWN Program — Design
 
-**Status:** Program design approved 2026-09-02. Umbrella spec for Rounds R1–R8
+**Status:** complete 2026-09-06. Umbrella spec for Rounds R1–R8
 (R6 and R7 combined into one round R6–R7 at plan time).
 Individual round plans are authored at the start of each round (R1's is written;
 R4's is authored *from* R2/R3 diagnostics by construction).
@@ -358,6 +358,19 @@ roadmap spec with the final numbers.
 - Depends on: R6–R7
 - Plan authored at round start.
 
+**Landed 2026-09-06.** BLOCKED/REGRESSION — flag stays default-off, no code
+change. Task 1 ran the real flagged `run_eval` (NVIDIA provider, `--seeds 1`,
+both arms completed, no API block) and found 4 of 7 baseline-`VERIFIED`
+Architect eval benchmarks flip to `FAILED` under `ARCHITECT_AST_VERIFY=1`
+(net 7/12 → 5/12 verified) — a literal REGRESSION by the brief's own
+CLEAN/REGRESSION rule, with a noted single-seed caveat. Full evidence:
+`docs/superpowers/notes/round-R8-run-eval-attempt.md`; decision detail in
+`Task.md` "Verdict Semantics" and `docs/superpowers/notes/round-R8-delta.md`.
+Program final in-scope state (105 verifiable-tier entries): `VERIFIED` 11,
+`VERIFIED_SHAPE` 8, `MANUAL` 86, `VERIFIED_TEMPLATE` 0, `UNKNOWN` 0 — the
+program's `UNKNOWN = 0` exit criterion is met and holds from R6–R7.
+Merge commit `fda20bb`.
+
 ### R9 — MANUAL root-cause audit + widening *(plan: `docs/superpowers/specs/2026-09-05-R9-manual-root-cause-audit.md`)*
 
 The program formally ends at R8 (`UNKNOWN = 0`, `VERIFIED_TEMPLATE = 0` met).
@@ -418,13 +431,13 @@ Every round, without exception:
 
 ## End state (after R8)
 
-| Verdict | Projected count | Note |
-|---|---|---|
-| `VERIFIED` (entry-specific) | ~70–85 | real, cross-checked; each in a `round-*-new-verified.md` |
-| `REFUTED` / `COUNTEREXAMPLE` | whatever the solvers actually find | a real research output |
-| `MANUAL` | ~15–25 | each with a `MANUAL-backlog.md` brief |
-| `UNKNOWN` | **0** | the program's success metric |
-| `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE` | **0** | all reclassified in R7 |
+| Verdict | Projected count | Actual count | Note |
+|---|---|---|---|
+| `VERIFIED` (entry-specific) | ~70–85 | **11** | real, cross-checked; each in a `round-*-new-verified.md`. 40-point miss vs projection — see R8 "Landed" and Task.md: the corpus is overwhelmingly outside every Track's decidable fragment, not merely unformalized |
+| `REFUTED` / `COUNTEREXAMPLE` | whatever the solvers actually find | 0 in-scope | a real research output; none of the 105 in-scope entries landed here |
+| `MANUAL` | ~15–25 | **86** | each with a `MANUAL-backlog.md` brief; the honest floor, not a shortfall |
+| `UNKNOWN` | **0** | **0** | the program's success metric — met |
+| `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE` | **0** | `VERIFIED_TEMPLATE` **0**, `VERIFIED_SHAPE` **8** | `VERIFIED_TEMPLATE` fully reclassified in R7; the 8 residual `VERIFIED_SHAPE` are non-Shapley VCG shape matches out of R6–R7's scope |
 
 The only remaining work after R8 is a human opening `MANUAL-backlog.md` and doing
 mathematics — reading a paper and writing a proof or a counterexample that no
