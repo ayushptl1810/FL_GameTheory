@@ -6457,7 +6457,13 @@
       "key_assumptions": [
         "data owners have private data",
         "model buyers have a budget"
-      ]
+      ],
+      "winner_rule_monotone": {
+        "value": true,
+        "cite": "Zheng2023, Appendix B, Proposition 2 (All-in satisfies truthfulness, IR, and BF): via Myerson's characterization -- All-in sorts owners ascending by unit valuation v_i^{unit} = V_i'/(d_i * eps_i'), so a winner who lowers V_i', raises d_i and/or raises eps_i' keeps or improves her position and still wins with others' bids fixed (monotone winner rule); winners are paid the critical unit payment."
+      },
+      "critical_price_latex": "p^{unit} = \\frac{B}{\\sum_{j \\in \\mathcal{W} \\cup \\{i\\}} d_j \\cdot \\bar{\\epsilon}_j'} \\quad \\text{(critical unit payment; } i \\in \\mathcal{W} \\iff v_i^{unit} \\le p^{unit}\\text{, so the critical bid for } i \\text{ is } V_i^{*} = d_i \\cdot \\bar{\\epsilon}_i' \\cdot p^{unit}\\text{)}",
+      "winner_rule_monotone_source": "Zheng2023, Appendix B, Algorithm 4 (All-in) lines 2-5 + Proposition 2"
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
