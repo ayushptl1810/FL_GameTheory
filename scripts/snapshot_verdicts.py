@@ -53,7 +53,8 @@ def main(argv=None):
     ap = argparse.ArgumentParser(prog="python -m scripts.snapshot_verdicts")
     ap.add_argument("corpus_path")
     ap.add_argument("--only", default=None)
-    ap.add_argument("--out", default="docs/superpowers/notes/round-R2-baseline.md")
+    ap.add_argument("--out", required=True,
+                    help="output markdown path (required — prevents clobbering a prior round's baseline)")
     args = ap.parse_args(argv)
     rows = snapshot_verdicts(args.corpus_path, only=args.only)
     md = render_table(rows)

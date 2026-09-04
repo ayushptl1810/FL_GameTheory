@@ -345,6 +345,26 @@ def _build_ir_expr(entry: dict) -> "tuple[Any | None, str]":
 _MAX_BOX_DIMS = 6
 
 
+def _fix_declared_constants(mech: dict, bounds: dict, subs: dict) -> "tuple[dict, dict]":
+    """Pin paper-declared constants so they drop out of the interval box.
+
+    For each ``name -> value`` in ``mech["fixed_constants"]`` (name a str,
+    value an int/float), remove ``name`` from ``bounds`` and record
+    ``name -> float(value)`` in ``subs``. Absent/malformed field → the
+    inputs are returned unchanged.
+    """
+    fc = mech.get("fixed_constants")
+    if not isinstance(fc, dict):
+        return bounds, subs
+    nb, ns = dict(bounds), dict(subs)
+    for name, val in fc.items():
+        if not isinstance(name, str) or isinstance(val, bool) or not isinstance(val, (int, float)):
+            continue
+        nb.pop(name, None)
+        ns[name] = float(val)
+    return nb, ns
+
+
 def _bounds_for(sp_expr: Any, theta_min: float, theta_max: float) -> "list[tuple[Any, float, float]]":
     """θ-like symbols get the entry's declared type domain; every other
     free symbol gets a generic positive box [0.001, 100]."""
@@ -408,7 +428,7 @@ def verify_track3(entry: dict) -> "VerificationResult | None":
         ic_expr, ir_expr, ic_bounds, ir_bounds, _DELTA,
         ic_err=ic_err, ir_err=ir_err,
         entry_specific=has_latex, paper_id=paper_id, category=category,
-        theta_min=theta_min, theta_max=theta_max,
+        theta_min=theta_min, theta_max=theta_max, mech=mech,
     )
 
 
@@ -426,6 +446,7 @@ def track3_check_from_sympy(
     category: str = "",
     theta_min: float = 0.001,
     theta_max: float = 1.0,
+    mech: "dict | None" = None,
 ) -> "VerificationResult":
     """SymPy-in seam: interval back-half of verify_track3.
 
@@ -457,6 +478,21 @@ def track3_check_from_sympy(
         if not bounds:
             verdicts.append("UNKNOWN")
             conditions.append(f"{kind}: constant expression — nothing to check")
+            return
+        # Pin paper-declared constants: they leave the box and are substituted
+        # into the expression, shrinking the branch-and-bound search.
+        bmap = {str(s): (s, lo, hi) for s, lo, hi in bounds}
+        nb, ns = _fix_declared_constants(mech or {}, bmap, {})
+        if ns:
+            expr = expr.subs({bmap[n][0]: v for n, v in ns.items() if n in bmap})
+            bounds = [bmap[n] for n in nb if n in bmap]
+            conditions.append(
+                f"{kind}: pinned declared constants "
+                + ", ".join(f"{n}={v}" for n, v in sorted(ns.items()))
+            )
+        if not bounds:
+            verdicts.append("UNKNOWN")
+            conditions.append(f"{kind}: all free variables pinned — nothing to check")
             return
         if len(bounds) > _MAX_BOX_DIMS:
             verdicts.append("UNKNOWN")

@@ -342,21 +342,45 @@ ceiling-row groupings — implement the obstructions recurring across ≥2 entri
 Highest-value R4 targets by entry count:
 
 1. **Budget-knapsack allocation encoding** (VCG ×7) — the single biggest reclaim.
+   → **done in R4:** landed `verify_monotone_threshold_dsic` (a Myerson
+   critical-value eligibility gate, not a full budget-greedy encoding — no
+   executable allocation semantics). Reclaimed 1 (`Zheng2023fl_market`); the
+   other 6 were a cross-paper provenance bug, no-proof papers, fixed-point
+   eviction, and a first-price payment. See `round-R4-delta.md`.
 2. **Vector / KKT follower-decision stationarity system** (Stackelberg ×8) — plus
    it unblocks the 14 R6 Stackelberg candidates once a Stackelberg formalize path
    exists.
+   → **done in R4:** landed the `_stackelberg_check_core` vector branch +
+   `_solve_stationarity_system` + 3 PDF-transcribed FOC systems. Reclaimed 0 —
+   the checker is unreachable behind the R3b sibling-name guard + a
+   superscript-parse limitation; code + data are R6 input.
 3. **Transcendental-payment / continuous-type auction seams** (VCG ×3 + ×4).
+   → **deferred to R6** — no current entry's refreshed `human_task` needed this
+   over the recurring obstructions R4 took.
 4. **"Supply one function's algebraic form"** (Contract ×3 + Stackelberg ×1) —
    cheapest per entry; each `human_task` already records the exact form.
+   → **done in R4:** landed `_positivity_domain` + `_opaque_inline` +
+   `_is_definitely_positive_sum` integer-power fix. Reclaimed 0 — `2102_03401`'s
+   `u_3` is a scalar (wrong diagnosis, re-diagnosed), `Nguyen2025right_reward`'s
+   `h(t_k)` is piecewise, `Han2025paid_models` has no PDF, and
+   `Kang2019reliable_contract`'s log admitted but Z3 still returns UNKNOWN.
 5. **Transcendental / implicit-FOC numeric-root seam** (Stackelberg ×3 + Contract
    ×2 log-term).
+   → **deferred to R6** (subsumed by items 2 and 4 above).
+
+Track 3 `_fix_declared_constants` box reduction also landed in R4 (reclaimed 1,
+`Tian2021contract`, via a bundled `type_variable` correction; `Kang2019contract_mobile`
+IR box still over `_MAX_BOX_DIMS` after fixing 3 constants).
 
 R6 (formalization second pass) input: 32 R6 candidates across the three slices,
 each with a named tooling gap. R6's biggest single lever is the
-Stackelberg-specific formalize path (unblocks 14).
+Stackelberg-specific formalize path (unblocks 14) — R4 built the checker; R6 must
+make it reachable.
 
 Deferred minors for R4 cleanup (from the round ledgers): `_BAYESIAN_RE` name
-collision (`verifier.py:59` vs `track1_z3.py:343`); `Yang2023async_contract`'s
-`E_{com}` spurious Bayesian bail-out; `scripts.snapshot_verdicts` writes
-`round-R2-baseline.md` ignoring `--only` (needs an `--out` requirement); `z3_verdict`
-corpus field is stale/disused; unused `pytest` imports in ~4 test files.
+collision (`verifier.py:59` vs `track1_z3.py:343`) → **done in R4** (renamed to
+`_STACK_BAYESIAN_RE` in `track1_z3.py`); `Yang2023async_contract`'s `E_{com}`
+spurious Bayesian bail-out → deferred to R6; `scripts.snapshot_verdicts` writes
+`round-R2-baseline.md` ignoring `--only` → **done in R4** (`--out` now required);
+`z3_verdict` corpus field is stale/disused → deferred to R6; unused `pytest`
+imports in ~4 test files → deferred to R6.

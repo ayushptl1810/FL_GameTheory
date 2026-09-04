@@ -137,6 +137,10 @@ _EXPECTED_T234 = {
     "Lim2020contract_healthcare": ("VERIFIED", True, 2),
     "Sun2022coded": ("VERIFIED", True, 2),
     "Tan2025renegotiable_contract": ("VERIFIED", True, 2),
+    # R4 Task 8: type_variable corrected to the single screening type \theta_i
+    # (was ambiguous prose naming both theta and e), so Track 1's single-crossing
+    # ordering now applies and the entry proves VERIFIED on Track 2 (SOS).
+    "Tian2021contract": ("VERIFIED", True, 2),
     # R3a Task 12 diagnosed the two remaining UNKNOWNs plus the Bayesian
     # 2602_21844 as MANUAL. Kang2019contract_mobile: Track 3's box search is
     # intractable at 9/11 free variables. 2602_21844: Track 4 cannot reduce the
@@ -169,6 +173,7 @@ _EXPECTED_TRACK2 = {
     "Lim2020contract_healthcare": ("VERIFIED", True),
     "Sun2022coded": ("VERIFIED", True),
     "Tan2025renegotiable_contract": ("VERIFIED", True),
+    "Tian2021contract": ("VERIFIED", True),   # R4 Task 8 type_variable fix
 }
 
 
