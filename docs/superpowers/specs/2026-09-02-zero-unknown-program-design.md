@@ -369,6 +369,7 @@ CLEAN/REGRESSION rule, with a noted single-seed caveat. Full evidence:
 Program final in-scope state (105 verifiable-tier entries): `VERIFIED` 11,
 `VERIFIED_SHAPE` 8, `MANUAL` 86, `VERIFIED_TEMPLATE` 0, `UNKNOWN` 0 — the
 program's `UNKNOWN = 0` exit criterion is met and holds from R6–R7.
+Merge commit `fda20bb`.
 
 ### R9 — MANUAL root-cause audit + widening *(plan: `docs/superpowers/specs/2026-09-05-R9-manual-root-cause-audit.md`)*
 

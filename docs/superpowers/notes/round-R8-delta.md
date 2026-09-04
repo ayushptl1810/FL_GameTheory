@@ -2,6 +2,7 @@
 
 **Landed 2026-09-06.** Branch `round-R8-ast-verify-flip`, off `main` @ `637d58d`.
 Plan: `docs/superpowers/plans/2026-09-06-R8-ast-verify-flip.md`.
+Merge commit `fda20bb`.
 
 ## Flip decision
 
