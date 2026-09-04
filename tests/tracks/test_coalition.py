@@ -1,7 +1,7 @@
 import math
 from itertools import combinations
 import pytest
-from tracks.track_coalition import _parse_coalition_values, _shapley_from_values
+from tracks.track_coalition import _parse_coalition_values, _shapley_from_values, _tier_b_numeric_core
 
 
 def _all_subsets(n):
@@ -44,3 +44,37 @@ def test_shapley_from_values_glove_game():
     assert math.isclose(phi[2], 1 / 6, abs_tol=1e-9)
     assert math.isclose(phi[3], 2 / 3, abs_tol=1e-9)
     assert math.isclose(sum(phi.values()), 1.0, abs_tol=1e-9)  # efficiency
+
+
+def test_tier_b_convex_game_core_nonempty():
+    # convex (supermodular) game -> Shapley value is in the core
+    values = {
+        frozenset(): 0.0, frozenset({1}): 1.0, frozenset({2}): 1.0,
+        frozenset({3}): 1.0, frozenset({1, 2}): 4.0, frozenset({1, 3}): 4.0,
+        frozenset({2, 3}): 4.0, frozenset({1, 2, 3}): 10.0,
+    }
+    core_ok, ir_ok, conds = _tier_b_numeric_core(values, n=3, stated_payments=None)
+    assert core_ok and ir_ok
+    assert any("core" in c.lower() for c in conds)
+
+
+def test_tier_b_empty_core_fails():
+    # 3-player majority game: v(S)=1 for any |S|>=2, v(N)=1, singletons 0.
+    # Shapley = (1/3,1/3,1/3); for S={1,2}: 2/3 < v(S)=1 -> core violated.
+    values = {
+        frozenset(): 0.0, frozenset({1}): 0.0, frozenset({2}): 0.0,
+        frozenset({3}): 0.0, frozenset({1, 2}): 1.0, frozenset({1, 3}): 1.0,
+        frozenset({2, 3}): 1.0, frozenset({1, 2, 3}): 1.0,
+    }
+    core_ok, ir_ok, _ = _tier_b_numeric_core(values, n=3, stated_payments=None)
+    assert not core_ok
+    assert ir_ok  # phi_i = 1/3 >= v({i}) = 0
+
+
+def test_tier_b_stated_payment_mismatch_fails_core():
+    values = {
+        frozenset(): 0.0, frozenset({1}): 1.0, frozenset({2}): 1.0,
+        frozenset({1, 2}): 4.0,
+    }
+    core_ok, _, _ = _tier_b_numeric_core(values, n=2, stated_payments={1: 2.0, 2: 99.0})
+    assert not core_ok

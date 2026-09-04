@@ -49,3 +49,47 @@ def _shapley_from_values(values: dict[frozenset[int], float], n: int) -> dict[in
             prefix.add(i)
     fact = math.factorial(n)
     return {i: phi[i] / fact for i in phi}
+
+
+def _tier_b_numeric_core(
+    values: dict[frozenset[int], float],
+    n: int,
+    stated_payments: dict[int, float] | None,
+) -> tuple[bool, bool, list[str]]:
+    phi = _shapley_from_values(values, n)
+    conds: list[str] = []
+    tol = 1e-9
+
+    core_ok = True
+    for s in _all_subsets(n):
+        if not s:
+            continue
+        payoff = sum(phi[i] for i in s)
+        vs = values[s]
+        ok = payoff >= vs - tol
+        core_ok &= ok
+        conds.append(
+            f"core S={sorted(s)}: sum phi={payoff:.6g} >= v(S)={vs:.6g} -> "
+            f"{'ok' if ok else 'VIOLATED'}"
+        )
+
+    ir_ok = True
+    for i in range(1, n + 1):
+        vi = values[frozenset({i})]
+        ok = phi[i] >= vi - tol
+        ir_ok &= ok
+        conds.append(
+            f"IR i={i}: phi={phi[i]:.6g} >= v({{{i}}})={vi:.6g} -> "
+            f"{'ok' if ok else 'VIOLATED'}"
+        )
+
+    if stated_payments is not None:
+        for i in range(1, n + 1):
+            match = math.isclose(phi[i], stated_payments.get(i, float("nan")), abs_tol=1e-6)
+            core_ok &= match
+            conds.append(
+                f"payment i={i}: stated={stated_payments.get(i)} vs Shapley={phi[i]:.6g} -> "
+                f"{'match' if match else 'MISMATCH'}"
+            )
+
+    return core_ok, ir_ok, conds
