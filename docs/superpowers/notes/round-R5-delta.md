@@ -6,7 +6,7 @@
 `acc5939` Task 5 fix: `_classify_ast` Shapley -> track 5, `35d6388` Task 6 sweep + 4 MANUAL
 diagnoses).
 Plan: `docs/superpowers/plans/2026-09-05-R5-coalition-track.md`.
-Merge commit `<merge-sha, filled by controller>`.
+Merge commit `bfb2e8f`.
 
 ## Shapley slice (4 entries) — before / after
 

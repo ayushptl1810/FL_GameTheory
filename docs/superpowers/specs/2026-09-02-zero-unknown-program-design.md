@@ -259,7 +259,7 @@ all — `2405_13879`; standard Shapley formula confirmed but no numeric max-flow
 `2502_08248`; transcendental Bayesian log-likelihood characteristic function, no numeric
 instance — `2605_11889`; `K`-normalized OR-approximation, not exact Shapley, over an opaque
 model-utility value — `2606_18384`). Shapley `UNSUPPORTED` 4 -> 0. Merge commit
-`<merge-sha>`. Delta: `docs/superpowers/notes/round-R5-delta.md`.
+`bfb2e8f`. Delta: `docs/superpowers/notes/round-R5-delta.md`.
 
 ### R6 — Second-formalizer pass on residual `MANUAL`
 
