@@ -3,8 +3,10 @@
 **Landed 2026-09-06.** Branch `round-R6R7-final-classification`, 7 commits off `main` @ `1c80b43`
 (`608be15` Task 2 payment_ok split, `1360c49` Task 3 `--second-pass` mechanism,
 `72914a2`+`cb93440` Task 4 second-pass sweep + formalized_ast persistence fix,
-`67a2dea` Task 5 Phase 7 diagnosis flip, `1e813a0` Task 6 MANUAL-backlog.md finalization).
+`67a2dea` Task 5 Phase 7 diagnosis flip, `1e813a0` Task 6 MANUAL-backlog.md finalization,
+`7104b89` final-review golden-test fix).
 Plan: `docs/superpowers/plans/2026-09-06-R6-R7-final-classification.md`.
+Merge commit `081f8db`.
 
 ## In-scope distribution — before / after (live `verify()`, via `scripts.snapshot_verdicts`)
 

@@ -344,7 +344,7 @@ this round's scope), `UNKNOWN` 0 -> 0 — **the program's hard exit criterion
 `MANUAL-backlog.md` regenerated from `corpus.json`
 (`scripts/build_manual_backlog.py`), 86 paragraphs in 10 obstruction families.
 Also folded in the two R5 carry-forward findings (`payment_ok` flag split; Tier A
-ceiling note). Merge commit `<sha>`. Delta: `docs/superpowers/notes/round-R6R7-delta.md`.
+ceiling note). Merge commit `081f8db`. Delta: `docs/superpowers/notes/round-R6R7-delta.md`.
 
 ### R8 — `ARCHITECT_AST_VERIFY` flip + docs
 
