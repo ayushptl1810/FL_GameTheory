@@ -42,12 +42,25 @@ class TraceResult:
     matches_stored: bool
 
 
-# Category -> ordered list of (function_name, callable) to try, mirroring
+# Category -> ordered list of (function_name, callable) to try, approximating
 # _verify_latex's own routing in src/verifier.py (Track 4 -> 3 -> 2 -> 1).
 # Each callable takes `entry: dict` and returns `VerificationResult | None`
 # except verify_vcg/verify_shapley/verify_coalition which never return None
 # (they fall back to VERIFIED_TEMPLATE/UNKNOWN internally) -- for those,
 # "bail" means the returned verdict is not VERIFIED/COUNTEREXAMPLE.
+#
+# KNOWN LIMITATION: this table calls _try_contract_latex and
+# _try_stackelberg_latex directly, but the real pipeline (verify_contract /
+# verify_stackelberg in src/tracks/track1_z3.py) guards each behind a
+# precondition gate that can reject an entry one frame earlier -- Contract
+# requires both ic_screening_latex and ir_participation_latex truthy before
+# ever calling _try_contract_latex; Stackelberg returns UNSUPPORTED
+# immediately when equilibrium_existence is False, without calling
+# _try_stackelberg_latex. For the 11 entries affected by these gates,
+# bail_function names a function the real pipeline never actually invokes --
+# the recorded bail_reason text is still accurate, only the function name is
+# one frame too deep. See the caveat near the top of the generated
+# docs/superpowers/notes/round-R9-root-cause-audit.md for the affected list.
 _ENTRY_POINTS = {
     "Contract": [
         ("verify_track4", verify_track4),

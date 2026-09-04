@@ -123,6 +123,18 @@ an R10+ candidate). Corpus effect: whatever Phase 3 actually reclaims — no
 number is promised, since Phase 1 is discovery, not a known quantity. The
 monotone gate (`VERIFIED` only rises) still applies throughout.
 
+**R9 scope note:** this round completed Phases 1-2 in full (86/86 MANUAL
+entries traced and root-caused; all real recurring clusters catalogued).
+Phase 2's analysis found 0 confirmed-fixable clusters among the 8 real
+≥2-entry clusters identified — every one classified as a genuine solver
+ceiling (one 4-entry VCG sub-group was flagged as worth a closer look but
+not confirmed fixable). Phases 3 (widen recurring causes) and 4 (re-sweep +
+regenerate `MANUAL-backlog.md`) are conditional on Phase 2 finding
+fixable-bug candidates; since it found none, Phases 3-4 had no work to do
+this round and were correctly not attempted — this is a negative result, not
+a shortfall. See `docs/superpowers/notes/round-R9-widening-candidates.md`
+for the full cluster-by-cluster classification.
+
 ## R10 — Nash-equilibrium / action-choice track (named, not planned)
 
 The `no-screening-IC` family (10 entries sampled: `2408_13223`,

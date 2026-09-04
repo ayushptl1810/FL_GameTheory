@@ -4,6 +4,27 @@ Traced 86 MANUAL entries through their real verifier code path.
 `matches_stored` is a heuristic triage signal, not a proof -- every `False` row
 needs a human read in Phase 2 to confirm the real obstruction.
 
+**Caveat on `bail_function` for 11 entries:** the trace script
+(`scripts/diagnose_manual_root_cause.py`) calls `_try_contract_latex` and
+`_try_stackelberg_latex` directly, but the real pipeline
+(`src/verifier.py`'s `_verify_latex`, dispatching to `verify_contract` /
+`verify_stackelberg` in `src/tracks/track1_z3.py`) gates each behind a
+precondition check one frame earlier. `verify_contract` only calls
+`_try_contract_latex` when both `ic_screening_latex` and
+`ir_participation_latex` are truthy; `verify_stackelberg` returns
+`UNSUPPORTED` immediately when `equilibrium_existence` is `False`, without
+ever calling `_try_stackelberg_latex`. For the 10 Contract entries in the
+"no adverse-selection screening IC" family (2408_13223, 2505_02462,
+2505_05842, 2605_02935, Huang2024aigc, Karimireddy2022data_sharing,
+Li2026network, Zhang2020fedserving, Zhao2023truthful,
+Bornstein2023realistic_incentive) plus Khan2019edge (Stackelberg), the row
+below shows `bail_function` as `_try_contract_latex` /
+`_try_stackelberg_latex`, but the real pipeline would have rejected the
+entry one frame earlier at the gate. The recorded obstruction TEXT remains
+accurate for all 11 (e.g. "ic_screening_latex is null" is the real reason
+either way) -- only the exact function name in `bail_function` is one frame
+too deep for these 11 rows.
+
 **Mismatches found: 86 / 86**
 
 | Paper ID | Category | Stored Round | Stored Obstruction (truncated) | Real Bail Function | Real Bail Reason (truncated) | Match? |

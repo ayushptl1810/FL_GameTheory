@@ -1,4 +1,4 @@
-# R2/R3 — Per-Entry Verdict Baseline
+# R9 — Per-Entry Verdict Baseline
 
 Captured before the sweep. Out-of-scope categories (`RL`, `Valuation`, `Naive`) are omitted.
 

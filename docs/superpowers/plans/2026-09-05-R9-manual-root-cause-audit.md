@@ -408,6 +408,12 @@ pattern R4 used after R2/R3. Do not guess those tasks now; invoke
 Task-3+ continuation plan (or a fresh plan file) covering Phase 3 (widen) and
 Phase 4 (re-sweep + backlog regeneration).
 
+**Outcome:** Task 2's analysis found 0 confirmed-fixable clusters (all 8 real
+≥2-entry clusters classified genuine solver ceilings) — so this continuation
+pass was never invoked; there was nothing for Phase 3/4 to widen or
+re-sweep this round. See `round-R9-widening-candidates.md` and the spec's
+Exit criterion section for the full record.
+
 ## Self-Review
 
 **1. Spec coverage:**
