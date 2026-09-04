@@ -358,6 +358,30 @@ roadmap spec with the final numbers.
 - Depends on: R6–R7
 - Plan authored at round start.
 
+### R9 — MANUAL root-cause audit + widening *(plan: `docs/superpowers/specs/2026-09-05-R9-manual-root-cause-audit.md`)*
+
+The program formally ends at R8 (`UNKNOWN = 0`, `VERIFIED_TEMPLATE = 0` met).
+R9 is a follow-on round, not part of the original R1-R8 program, targeting
+the 86-entry `MANUAL` set: an open-ended trace of every entry's actual
+code-level bail point (not the stored `manual_diagnosis` text, which a spot
+check found can be wrong — see the R9 spec's motivation), corrected
+catalogue, and widenings for any real cause recurring across >= 2 entries.
+
+- Corpus effect: unknown (Phase 1 is discovery, not estimated)
+- Depends on: R8
+- Plan authored 2026-09-05.
+
+### R10 — Nash-equilibrium / action-choice track *(named, not planned)*
+
+Scoped in the R9 spec's own "R10" section: the `no-screening-IC` MANUAL
+family needs new corpus schema fields + a new checker for truthfulness proved
+as a Nash-equilibrium condition over a discrete action set, rather than
+type-vs-type IC screening. Depends on R9's corrected catalogue; plan authored
+at R10's start.
+
+- Corpus effect: unestimated (design deferred to R10 start)
+- Depends on: R9
+
 ## Cross-round invariants
 
 Every round, without exception:
