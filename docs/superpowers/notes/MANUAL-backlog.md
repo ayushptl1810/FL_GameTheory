@@ -2,20 +2,6 @@
 
 One paragraph per corpus entry that no automated track can decide. Appended to from R2 onward; the R7 honesty pass closes it out.
 
-## 2404_13841 (VCG) — R2
-
-**Mechanism:** Budget-split proportional payment B/(S(k-1)) to a threshold-index winning set; allocation LaTeX is an alpha-fairness share, not a selection rule.
-**Obstruction:** Winner set is a budget-threshold cutoff k=min{k: b_k > B/(Sk)}; not argmax/top-k with fixed k, and the recorded allocation LaTeX is a share formula, so no grid-decidable allocation node exists. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Extract the true winner-selection rule from the paper and decide whether the budget-threshold cutoff admits a finite-grid encoding.
-**Diagnosed:** 2026-09-03
-
-## Ahmed2023frimfl (VCG) — R2
-
-**Mechanism:** Per-client indicator x_i=1 iff posted price p_i=B/r_i is under budget B; payment is a fixed posted price.
-**Obstruction:** Allocation is a per-client budget-feasibility cases-threshold, not a welfare argmax, and the payment B/r_i is a posted price independent of others' reports, so no Groves pivot exists to prove. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Decide whether the budget-feasibility threshold is monotone in the report and, if so, re-encode as a threshold mechanism outside the VCG family.
-**Diagnosed:** 2026-09-03
-
 ## Haupt2021auctions (VCG) — R2
 
 **Mechanism:** Score-comparison allocation w_i chosen by pairwise comparison b_i(s-hat - s_i) against a permuted rival, with a Punish() term in the payment.
@@ -23,32 +9,11 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Human task:** Define Punish() concretely and determine whether the pairwise-comparison allocation reduces to an argmax over a scoring function.
 **Diagnosed:** 2026-09-03
 
-## Jiao2019auto_auction (VCG) — R2
-
-**Mechanism:** Budget-constrained greedy: n_t = argmax n s.t. cumulative proportional cost sum_{i<=n} (b_{n+1}/q_{n+1}) q_i <= B_t, with proportional-share payment r_{t,i}.
-**Obstruction:** The allocation maximizes a COUNT subject to a budget constraint (a knapsack-style greedy), not a welfare argmax, and the payment is a proportional share of the critical unit price rather than a Clarke pivot. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Encode the budget-greedy cutoff as a monotone-threshold mechanism and prove critical-payment truthfulness outside the VCG grid path.
-**Diagnosed:** 2026-09-03
-
-## Jin2023bara_budget (VCG) — R2
-
-**Mechanism:** Identical budget-constrained greedy to Jiao2019: n_t = argmax n s.t. sum (b_{n+1}/q_{n+1}) q_i <= B_t with proportional critical-price payment; client_utility_latex is null.
-**Obstruction:** Budget-knapsack allocation is out of the {argmax, top-k, weighted-welfare} family and the proportional-share payment is not a Clarke pivot; with no utility LaTeX the grid proof has no objective to check. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Supply the client utility and re-encode as a monotone threshold mechanism; prove truthfulness via critical-value payment, not Groves.
-**Diagnosed:** 2026-09-03
-
 ## Lim2020edge_collab (VCG) — R2
 
 **Mechanism:** No allocation or payment rule recorded in the corpus entry; the paper's edge-collaboration mechanism is described only in prose.
 **Obstruction:** Both allocation_rule_latex and payment_rule_latex are null, so there is no closed-form rule to classify or discharge on a grid. (Track 1: RL-policy or opaque-algorithm allocation, not a closed-form rule)
 **Human task:** Re-extract the allocation and payment rules from the paper PDF before any solver attempt.
-**Diagnosed:** 2026-09-03
-
-## Lu2021cluster_auction (VCG) — R2
-
-**Mechanism:** Select the K_j lowest bidders among clients passing a data-size filter s_min; payment is an affine 1/(N-K+1) + ((N-K)/(N-K+1)) c_i formula.
-**Obstruction:** The eligible set JL is itself defined by a min over a previously-selected set (a fixed-point/filter dependency), so the allocation is not a plain top-k over reports, and the affine payment is not a Clarke pivot. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Resolve the s_min fixed point and determine whether the filtered top-K selection is monotone in each client's bid.
 **Diagnosed:** 2026-09-03
 
 ## Model2024trading_fl (VCG) — R2
@@ -112,20 +77,6 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Mechanism:** Threshold acceptance x_i = 1 iff b_i <= rho*, payment min(rho*, b_i); utility is time-discounted p_i - c_i (T-t+1).
 **Obstruction:** The threshold rho* is set online from an unbounded arrival stream and the utility scales with the remaining horizon (T-t+1), so a single-round finite grid cannot represent the mechanism's incentive structure. (Track 1: continuous bid space with no valid discretization)
 **Human task:** Fix the horizon and threshold to prove per-round truthfulness, then argue the online composition separately.
-**Diagnosed:** 2026-09-03
-
-## Zheng2023fl_market (VCG) — R2
-
-**Mechanism:** Sort by unit value v_i^unit ascending and include i while v_i^unit <= B / sum of included d_j eps_j; payment is a proportional share d_i eps_i p^unit of the budget.
-**Obstruction:** The winner set is defined by a self-referential budget-density condition (the threshold depends on the set being built), a budget-greedy rather than argmax/top-k, and the payment is a proportional budget share rather than a Clarke pivot. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Prove the greedy is monotone and identify the true critical unit price per client to get a critical-value truthfulness argument.
-**Diagnosed:** 2026-09-03
-
-## GPS2023afl_recruit (VCG) — R2
-
-**Mechanism:** Selects participants 'among the lowest bids' (a reverse top-k with unspecified k) and pays p_i = b_i - C_i(t), which equals the stated client utility.
-**Obstruction:** The winner count is not specified so the rule is not a fixed top-k, and the payment pays the bid minus own cost — a first-price form, not a Clarke pivot; the payment and utility LaTeX are literally identical, so the recorded model is degenerate. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
-**Human task:** Recover k and the true payment from the paper; a first-price reverse auction is not DSIC and may warrant a counterexample search instead.
 **Diagnosed:** 2026-09-03
 
 ## Cui2024auction_market (VCG) — R2
@@ -254,46 +205,11 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Human task:** Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.
 **Diagnosed:** 2026-09-03
 
-## 2102_03401 (Contract) — R3a
-
-**Mechanism:** CAV data-quality contract menu {(P_m, R_m)}; utility theta_m R_m - u_3(kappa c phi^2 s-bar I + P_m t-hat).
-**Obstruction:** The IC and IR parse cleanly (type subscript m, contract subscript hat-m, soundness gate passes), but the cost term is wrapped in u_3(.), a function the entry never defines algebraically. _sp_to_z3 raises 'unsupported SymPy node u_{3}' at the first index pair, so Track 1 produces no obligation and the reported verdict is the generic linear-cost template only. (Track 1: utility contains the undefined opaque function u_3(.) -- Z3 encoding rejects it ('unsupported SymPy node u_{3}'), so no grid obligation can be built)
-**Human task:** Supply the algebraic form of u_3(.) from the paper (or confirm it is affine and inline it), then re-run Track 1.
-**Diagnosed:** 2026-09-03
-
 ## 2308_12502 (Contract) — R3a
 
 **Mechanism:** Multidimensional-type (theta_j, xi_j) privacy/training contract menu {(d_j, r_j^L)}.
 **Obstruction:** Two independent obstructions. (1) The entry's own notes record that kappa_j is itself a sum over OTHER agents' contract terms -- a population coupling the verifier's single-agent type-i-vs-type-j substitution cannot express. (2) Even ignoring that, r_j^L reads as r_j raised to a symbolic exponent L and _sp_to_z3 raises 'unsupported exponent L'; L is a layer label, not a power. (Track 1: population-coupled cost term (kappa_j sums over other agents' contracts) -- single-agent substitution cannot represent it; additionally r_j^L carries a symbolic superscript Z3 rejects as an exponent)
 **Human task:** Re-transcribe r_j^L with the layer label distinguished from an exponent, and decide whether a population-coupled cost admits any single-agent encoding; if not, this needs a multi-agent equilibrium track.
-**Diagnosed:** 2026-09-03
-
-## 2407_02845 (Contract) — R3a
-
-**Mechanism:** FedPot defence-data-quality contract menu {pi_m = (V_m, R_m)}; utility ln(theta_m R_m) - C_m.
-**Obstruction:** The IC/IR parse and the soundness gate passes, but the log-utility encoding requires the argument theta_m R_m to be provably positive before _sp_to_z3 will admit it. The entry declares no positivity domain for theta_m or R_m, so the encoding raises and Track 1 yields nothing; the recorded verdict is the generic template only. (Track 1: log(theta_m R_m) argument sign not established -- Z3 encoding rejects the transcendental ('log argument sign not established'))
-**Human task:** Record the paper's positivity domain for theta_m and R_m (or a general positivity precondition for log-utility Contract entries) so the transcendental can be admitted, then re-run Track 1.
-**Diagnosed:** 2026-09-03
-
-## Han2025paid_models (Contract) — R3a
-
-**Mechanism:** Paid-model contract with private per-unit collection cost c_i; utility E[v(r_i)] - c_i m_i.
-**Obstruction:** The IC parses (type subscript i, contract subscript j, soundness gate passes) but E[v(r_i)] is an expectation of an undefined valuation function. _sp_to_z3 raises 'unsupported SymPy node v'. Track 4's Bayesian path cannot help either, because v has no algebraic form to integrate. (Track 1: utility contains the undefined opaque valuation function v(.) inside an expectation E[v(r_i)] -- Z3 encoding rejects it ('unsupported SymPy node v'))
-**Human task:** Supply v(.)'s algebraic form and the distribution the expectation is over, then route to Track 4 (Bayesian) rather than Track 1.
-**Diagnosed:** 2026-09-03
-
-## Kang2019reliable_contract (Contract) — R3a
-
-**Mechanism:** Reliable-worker contract menu {(R_n, f_n)} with data-quality type theta_n = psi/log(1/epsilon_n).
-**Obstruction:** The IC/IR parse and the soundness gate passes. The communication-cost term divides by a Shannon capacity B ln(1 + rho_n h_n / N_0); _sp_to_z3 will not admit the log without an established argument sign, and the entry declares no positivity domain for rho_n, h_n or N_0. No Track 1 obligation is built. (Track 1: Shannon-capacity term log(1 + rho h / N_0) in the denominator -- Z3 encoding rejects it ('log argument sign not established'))
-**Human task:** Declare the positivity domain for the channel parameters (rho, h, N_0 > 0) so the capacity log is admissible, then re-run Track 1.
-**Diagnosed:** 2026-09-03
-
-## Nguyen2025right_reward (Contract) — R3a
-
-**Mechanism:** Joint capability/joining-time contract phi_k = {e_k, t_k, r_k} with multidimensional type (theta_k, t_k).
-**Obstruction:** The IC parses via utility-call expansion (type subscript k, contract subscript k-prime, soundness gate passes), but the staleness weight h(t_k) is an undefined function and _sp_to_z3 raises 'unsupported SymPy node h'. The type is also genuinely two-dimensional, which the single-type-subscript machinery does not model even once h is supplied. (Track 1: utility contains the undefined opaque staleness function h(t_k) -- Z3 encoding rejects it ('unsupported SymPy node h'))
-**Human task:** Supply h(.)'s algebraic form from the paper, and separately decide whether the joint (capability, joining-time) type needs a two-dimensional screening encoding.
 **Diagnosed:** 2026-09-03
 
 ## Yang2023async_contract (Contract) — R3a
@@ -303,39 +219,11 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Human task:** Rename or re-transcribe E_com so it is not shaped like an expectation operator (e.g. E^{com} or Ecom), then re-run Track 1; the IC itself already parses.
 **Diagnosed:** 2026-09-03
 
-## Kang2019contract_mobile (Contract) — R3a
-
-**Mechanism:** Mobile-device contract; routed to Track 3 (mpmath.iv branch-and-bound, delta-sound).
-**Obstruction:** Track 1 does not apply and Track 3's interval branch-and-bound cannot cover the box: the IC carries 9 free variables and the IR 11, so the branch count is beyond the search budget at the configured delta. The verifier reports UNKNOWN honestly rather than a partial-coverage result. (Track 3: 9 free variables in IC and 11 in IR -- interval box search is intractable at delta=0.001 over [0.001, 1.0])
-**Human task:** Reduce the free-variable count by fixing paper-declared constants to their stated values (or narrowing their domains), then re-run Track 3; alternatively transcribe the IC/IR in a form Track 1 can encode symbolically.
-**Diagnosed:** 2026-09-03
-
-## Tian2021contract (Contract) — R3a
-
-**Mechanism:** Contract with a LaTeX-parsed entry-specific utility; n=2 types, IR binding at type-0 with adjacent upward IC.
-**Obstruction:** _type_family() cannot match the entry's type_variable to any indexed symbol family in the parsed utility, so no type-ordering precondition is imposed. Without an ordering, Z3's counterexamples fall in parameter regions (reversed type order) the paper excludes, and the verifier correctly suppresses them to UNKNOWN rather than report an artifact. Both IC and IR come back UNKNOWN. (Track 1: type-ordering unidentified -- verifier cannot fix the single-crossing direction, so IC counterexamples are suppressed and neither IC nor IR is decidable)
-**Human task:** Correct the entry's type_variable field so it names the indexed type family appearing in the utility, letting the verifier impose the single-crossing ordering; then re-run Track 1.
-**Diagnosed:** 2026-09-03
-
 ## Khan2019edge (Stackelberg) — R3b
 
 **Mechanism:** Base station posts a reward; UEs choose a number of local iterations. Utilities are described in words only.
 **Obstruction:** equilibrium_existence not established in the corpus entry -- position-paper (short IEEE magazine article), the Stackelberg game is described only qualitatively, and no explicit utility, derived best-response, FOC or IR constraint appears anywhere in the 7 pages. (Track 1: no proved equilibrium; Track 1 Stackelberg needs one)
 **Human task:** a technical treatment with a derived Stackelberg equilibrium is needed; this venue does not provide one -- replace the entry with a full-length paper or drop it from the Stackelberg slice.
-**Diagnosed:** 2026-09-03
-
-## 2101_05628 (Stackelberg) — R3b
-
-**Mechanism:** OSPs (leaders) announce prices; each mobile device (follower) picks an offloading strategy vector alpha_i = (alpha_{i,1},...,alpha_{i,N}) splitting its task across N OSPs.
-**Obstruction:** Both best_response_latex and follower_foc_latex are null, and the follower decision is an N-dimensional simplex-constrained vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). _stackelberg_check_core's single-variable d(leader_utility)/d(follower_decision) FOC cannot express the stationarity system. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** record the paper's per-component stationarity system (or its KKT form) and extend the Stackelberg checker to multi-variable stationarity before this can be discharged.
-**Diagnosed:** 2026-09-03
-
-## 2101_12428 (Stackelberg) — R3b
-
-**Mechanism:** Chains post block rewards R_m; each staker n allocates a stake vector s_n = (s_n^1,...,s_n^M) across M chains subject to a budget sum_m s_n^m <= B_n.
-**Obstruction:** The recorded follower_foc_latex is a budget-eliminated *difference* of two per-chain derivatives (dU/ds_n^m - dU/ds_n^M = 0 for m=1..M-1), so the M-1 conditions are coupled to each other through the eliminated component s_n^M = B_n - sum_{m<M} s_n^m. It is not a single-variable stationarity equation and the components do not decouple, so the single-variable FOC path cannot consume it. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** extend the Stackelberg checker to budget-coupled multi-component stationarity systems, or record a decoupled per-component FOC if the paper admits one.
 **Diagnosed:** 2026-09-03
 
 ## 2103_05866 (Stackelberg) — R3b
@@ -352,39 +240,11 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Human task:** either unroll the recursion for a fixed small horizon T and record the resulting explicit closed form, or add a finite-horizon backward-induction mode to the Stackelberg checker.
 **Diagnosed:** 2026-09-03
 
-## 2502_10765 (Stackelberg) — R3b
-
-**Mechanism:** Provider sets unit prices p_r and p_w; each user jointly chooses rendering resources x_i^r AND bandwidth resources x_i^w.
-**Obstruction:** The follower decision is two variables chosen jointly; follower_foc_latex records two separate partial-derivative equations and best_response_latex two separate maximizers. The single-variable FOC path has no way to express a joint stationarity system, and the entry's own follower_decision field flags that the verifier's pipeline cannot yet handle this. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** extend _stackelberg_check_core to accept a vector of decision variables with a system of partial-derivative conditions; the two components here happen to separate, so this is the cheapest multi-variable case to unblock.
-**Diagnosed:** 2026-09-03
-
 ## Chu2023hierarchical (Stackelberg) — R3b
 
 **Mechanism:** Cloud server sets rewards to edge servers; each edge server chooses its number of local aggregations K_l.
 **Obstruction:** best_response_latex is deliberately null: the paper states on p.21, immediately after the recorded FOC (Eq. 31), that there is 'a lack of the closed-form solution for the optimal edge aggregation strategies of the edge server l', and solves the equilibrium numerically by variational inequality / iterative updates instead. The recorded follower_foc_latex mixes Z_l = sqrt(A_l - F_l K_l / B_l) inside rational terms of degree 2 in Z_l and has no closed-form root in K_l, so there is no equilibrium point for the FOC check to substitute and verify. (Track 1: follower FOC is transcendental with no closed-form root (paper states this explicitly) -- Track 1 cannot solve the stationarity equation)
 **Human task:** decide whether a numerically-certified equilibrium (interval enclosure of the FOC root) is acceptable evidence for this corpus, and if so add a numeric-root Track to the Stackelberg checker.
-**Diagnosed:** 2026-09-03
-
-## Guo2023stackelberg_industrial (Stackelberg) — R3b
-
-**Mechanism:** Leader allocates reward R_n and model size sigma; each follower jointly chooses data quantity |D'_n| AND compensation S_n (FS_n = (D'_n, S_n)).
-**Obstruction:** Both best_response_latex and follower_foc_latex are null (fail-closed on human review) and the follower decision is an explicit two-component joint choice inside a multi-objective bi-level program. There is no recorded stationarity condition of any kind for Track 1 to discharge. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** transcribe the paper's bi-level optimality conditions for (D'_n, S_n) if they exist in closed form, and extend the checker to multi-variable stationarity; otherwise this stays a genuine obstruction.
-**Diagnosed:** 2026-09-03
-
-## Li2025split (Stackelberg) — R3b
-
-**Mechanism:** SFL tenants post price incentives P_i; each device j chooses a participation vector {q_{i,j}}_{i in [1,M]} across all M tenants simultaneously.
-**Obstruction:** best_response_latex is a bare argmax placeholder (q*_{i,j} = argmax lambda_j) with no algebraic content, and follower_foc_latex is a full KKT system: M stationarity equations plus two complementary-slackness conditions, two primal feasibility conditions and two dual feasibility conditions for the simplex constraints phi_j^{(1)}, phi_j^{(2)}. That is a constrained multi-variable system, not a single-variable FOC. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** add KKT-system support (stationarity plus complementary slackness) to the Stackelberg checker, or record an explicit closed-form solution of the KKT system if the paper derives one.
-**Diagnosed:** 2026-09-03
-
-## Liu2026fedbud (Stackelberg) — R3b
-
-**Mechanism:** Server pays R^t to edge nodes; each node k jointly chooses data volume B_k^t AND privacy/noise budget epsilon_k^t.
-**Obstruction:** The follower decision is two variables chosen jointly and follower_foc_latex is null (fail-closed). best_response_latex gives two separate maximizers but with no recorded stationarity conditions to differentiate against, so there is nothing for a d(leader_utility)/d(follower_decision) check to consume, and the single-variable path could not express the joint system in any case. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** transcribe the two partial-derivative conditions from the paper and extend the checker to joint stationarity.
 **Diagnosed:** 2026-09-03
 
 ## Luo2023unbiased (Stackelberg) — R3b
@@ -408,16 +268,142 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Human task:** pin f and d to the paper's actual instantiation (and resolve the Appendix A.9 notation conflict) before any obligation can be built; given the venue, verify the result independently first.
 **Diagnosed:** 2026-09-03
 
-## Wang2022blockchain (Stackelberg) — R3b
+## 2101_05628 (Stackelberg) — R4
+
+**Mechanism:** OSPs (leaders) announce prices; each mobile device (follower) picks an offloading strategy vector alpha_i = (alpha_{i,1},...,alpha_{i,N}) splitting its task across N OSPs.
+**Obstruction:** Both best_response_latex and follower_foc_latex are null, and the follower decision is an N-dimensional simplex-constrained vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). _stackelberg_check_core's single-variable d(leader_utility)/d(follower_decision) FOC cannot express the stationarity system. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## 2101_12428 (Stackelberg) — R4
+
+**Mechanism:** Chains post block rewards R_m; each staker n allocates a stake vector s_n = (s_n^1,...,s_n^M) across M chains subject to a budget sum_m s_n^m <= B_n.
+**Obstruction:** The recorded follower_foc_latex is a budget-eliminated *difference* of two per-chain derivatives (dU/ds_n^m - dU/ds_n^M = 0 for m=1..M-1), so the M-1 conditions are coupled to each other through the eliminated component s_n^M = B_n - sum_{m<M} s_n^m. It is not a single-variable stationarity equation and the components do not decouple, so the single-variable FOC path cannot consume it. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## 2502_10765 (Stackelberg) — R4
+
+**Mechanism:** Provider sets unit prices p_r and p_w; each user jointly chooses rendering resources x_i^r AND bandwidth resources x_i^w.
+**Obstruction:** The follower decision is two variables chosen jointly; follower_foc_latex records two separate partial-derivative equations and best_response_latex two separate maximizers. The single-variable FOC path has no way to express a joint stationarity system, and the entry's own follower_decision field flags that the verifier's pipeline cannot yet handle this. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## Guo2023stackelberg_industrial (Stackelberg) — R4
+
+**Mechanism:** Leader allocates reward R_n and model size sigma; each follower jointly chooses data quantity |D'_n| AND compensation S_n (FS_n = (D'_n, S_n)).
+**Obstruction:** Both best_response_latex and follower_foc_latex are null (fail-closed on human review) and the follower decision is an explicit two-component joint choice inside a multi-objective bi-level program. There is no recorded stationarity condition of any kind for Track 1 to discharge. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## Li2025split (Stackelberg) — R4
+
+**Mechanism:** SFL tenants post price incentives P_i; each device j chooses a participation vector {q_{i,j}}_{i in [1,M]} across all M tenants simultaneously.
+**Obstruction:** best_response_latex is a bare argmax placeholder (q*_{i,j} = argmax lambda_j) with no algebraic content, and follower_foc_latex is a full KKT system: M stationarity equations plus two complementary-slackness conditions, two primal feasibility conditions and two dual feasibility conditions for the simplex constraints phi_j^{(1)}, phi_j^{(2)}. That is a constrained multi-variable system, not a single-variable FOC. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## Liu2026fedbud (Stackelberg) — R4
+
+**Mechanism:** Server pays R^t to edge nodes; each node k jointly chooses data volume B_k^t AND privacy/noise budget epsilon_k^t.
+**Obstruction:** The follower decision is two variables chosen jointly and follower_foc_latex is null (fail-closed). best_response_latex gives two separate maximizers but with no recorded stationarity conditions to differentiate against, so there is nothing for a d(leader_utility)/d(follower_decision) check to consume, and the single-variable path could not express the joint system in any case. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## Wang2022blockchain (Stackelberg) — R4
 
 **Mechanism:** Leader sets unit prices p_ti and p_mi; each miner i jointly chooses CPU cycles per second for training q_ti AND for mining q_mi.
 **Obstruction:** Two obstructions compound. (1) The follower decision is two variables chosen jointly, while follower_foc_latex records only the single partial dU_i/dq_ti = p_ti - 2 rho_i q_ti = 0 -- there is no recorded condition for q_mi. (2) That FOC is inconsistent with the recorded utility (U_i has revenue mu_i p_ti / q_ti and cost rho_i mu_i q_ti^2, so the true derivative is strictly negative and the optimum is a corner, not an interior stationary point), and the stored best_response q_ti* = (p_ti/rho_i)^{1/3} is not the root of the recorded FOC either. Substituting it into a d(leader_utility)/d(follower_decision) check would certify a stationarity claim the entry's own algebra contradicts. (Track 1: vector follower decision -- single-variable FOC reduction does not apply; the stored best response is additionally not an interior FOC solution)
-**Human task:** re-derive the follower problem against the PDF to settle whether the optimum is interior or a corner, correct the recorded FOC/best-response pair, and extend the checker to joint stationarity.
-**Diagnosed:** 2026-09-03
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round. Also: the paper's own Sec 3.1.2 prints dU/dq < 0 for both variables then miscalls the objective concave; the real stationarity is a Lagrangian on the time constraint (Eqs. 30-31) matching NEITHER the stored follower_foc_latex NOR best_response_latex (corner solution) -- needs a full PDF re-derivation in R6.
+**Diagnosed:** 2026-09-04
 
-## Yu2022multi_leader_fl (Stackelberg) — R3b
+## Yu2022multi_leader_fl (Stackelberg) — R4
 
 **Mechanism:** Multiple task leaders post reward rates p_i; each data owner j chooses a task-accuracy vector {epsilon_j^i} for tasks i = 1..K simultaneously under a shared resource budget.
 **Obstruction:** Three compounding obstructions. The follower chooses a K-component vector coupled by the resource budget sum_i L_j^i <= tau_j^max; best_response_latex is a three-branch piecewise form whose active-constraint branch carries a Lagrange multiplier lambda_j found only by bisection search (Algorithm 1, Eq. 27); and both branch values bar-epsilon and hat-epsilon are defined implicitly as roots of the transcendental relation log(e^{1/eps} eps) = const, which the recorded follower_foc_latex also is. None of the three is expressible as a single-variable closed-form stationarity condition. (Track 1: vector follower decision -- single-variable FOC reduction does not apply)
-**Human task:** add multi-variable stationarity with an active-set/Lagrangian branch plus transcendental root support; alternatively record only the constraint-inactive branch as a scoped-down obligation and state that scoping explicitly.
-**Diagnosed:** 2026-09-03
+**Human task:** R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.
+**Diagnosed:** 2026-09-04
+
+## Kang2019reliable_contract (Contract) — R4
+
+**Mechanism:** Reliable-worker contract menu {(R_n, f_n)} with data-quality type theta_n = psi/log(1/epsilon_n).
+**Obstruction:** The IC/IR parse and the soundness gate passes. The communication-cost term divides by a Shannon capacity B ln(1 + rho_n h_n / N_0); _sp_to_z3 will not admit the log without an established argument sign, and the entry declares no positivity domain for rho_n, h_n or N_0. No Track 1 obligation is built. (Track 1: Shannon-capacity term log(1 + rho h / N_0) in the denominator -- Z3 encoding rejects it ('log argument sign not established'))
+**Human task:** R4 admitted the Shannon-capacity log(1 + rho_n h_n / N_0) via a positivity_domain field (Sec III-C: rho_n, h_n, N_0 > 0) + the _is_definitely_positive_sum integer-power fix, but Z3 still returns UNKNOWN on both IC and IR -- the obstruction is not the log admissibility.
+**Diagnosed:** 2026-09-04
+
+## 2407_02845 (Contract) — R4
+
+**Mechanism:** FedPot defence-data-quality contract menu {pi_m = (V_m, R_m)}; utility ln(theta_m R_m) - C_m.
+**Obstruction:** The IC/IR parse and the soundness gate passes, but the log-utility encoding requires the argument theta_m R_m to be provably positive before _sp_to_z3 will admit it. The entry declares no positivity domain for theta_m or R_m, so the encoding raises and Track 1 yields nothing; the recorded verdict is the generic template only. (Track 1: log(theta_m R_m) argument sign not established -- Z3 encoding rejects the transcendental ('log argument sign not established'))
+**Human task:** R4 checked pdfs/2407.02845.pdf: admitting log(theta_m R_m) needs theta_m R_m >= 1, which the paper never states (only C5: R_m > 0, a type ordering theta_1 <= ... <= theta_M, and a budget cap). Genuine ceiling absent a domain lower bound.
+**Diagnosed:** 2026-09-04
+
+## Nguyen2025right_reward (Contract) — R4
+
+**Mechanism:** Joint capability/joining-time contract phi_k = {e_k, t_k, r_k} with multidimensional type (theta_k, t_k).
+**Obstruction:** The IC parses via utility-call expansion (type subscript k, contract subscript k-prime, soundness gate passes), but the staleness weight h(t_k) is an undefined function and _sp_to_z3 raises 'unsupported SymPy node h'. The type is also genuinely two-dimensional, which the single-type-subscript machinery does not model even once h is supplied. (Track 1: utility contains the undefined opaque staleness function h(t_k) -- Z3 encoding rejects it ('unsupported SymPy node h'))
+**Human task:** R4 checked pdfs/Nguyen2025right_reward.pdf: h(t_k) is defined (Eq. 2) but 2-branch piecewise (1 + vartheta ln(2 t_k) if t_k in CLPs, else 1); opaque_function_forms maps one name to one form and cannot represent a piecewise function.
+**Diagnosed:** 2026-09-04
+
+## Han2025paid_models (Contract) — R4
+
+**Mechanism:** Paid-model contract with private per-unit collection cost c_i; utility E[v(r_i)] - c_i m_i.
+**Obstruction:** The IC parses (type subscript i, contract subscript j, soundness gate passes) but E[v(r_i)] is an expectation of an undefined valuation function. _sp_to_z3 raises 'unsupported SymPy node v'. Track 4's Bayesian path cannot help either, because v has no algebraic form to integrate. (Track 1: utility contains the undefined opaque valuation function v(.) inside an expectation E[v(r_i)] -- Z3 encoding rejects it ('unsupported SymPy node v'))
+**Human task:** R4: no source PDF exists in pdfs/ and the entry's arxiv_id/source/notes are all null -- the opaque valuation v(.) inside E[v(r_i)] cannot be transcribed.
+**Diagnosed:** 2026-09-04
+
+## Jiao2019auto_auction (VCG) — R4
+
+**Mechanism:** Budget-constrained greedy: n_t = argmax n s.t. cumulative proportional cost sum_{i<=n} (b_{n+1}/q_{n+1}) q_i <= B_t, with proportional-share payment r_{t,i}.
+**Obstruction:** The allocation maximizes a COUNT subject to a budget constraint (a knapsack-style greedy), not a welfare argmax, and the payment is a proportional share of the critical unit price rather than a Clarke pivot. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Human task:** R4: cross-paper provenance bug -- the entry's allocation_rule_latex and payment_rule_latex are byte-identical to Jin2023bara_budget's and absent from pdfs/Jiao2019auto_auction.pdf. The Jiao2019 paper does prove winner-monotonicity + critical payment (Theorem 1 + Proposition 1, for its RMA mechanism), but for a rule the entry does not record. Needs an R6 corpus re-extraction of the RMA fields.
+**Diagnosed:** 2026-09-04
+
+## Jin2023bara_budget (VCG) — R4
+
+**Mechanism:** Identical budget-constrained greedy to Jiao2019: n_t = argmax n s.t. sum (b_{n+1}/q_{n+1}) q_i <= B_t with proportional critical-price payment; client_utility_latex is null.
+**Obstruction:** Budget-knapsack allocation is out of the {argmax, top-k, weighted-welfare} family and the proportional-share payment is not a Clarke pivot; with no utility LaTeX the grid proof has no objective to check. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Human task:** R4 checked pdfs/Jin2023bara_budget.pdf: zero theorems/lemmas/proofs; BARA is a budget-allocation algorithm explicitly 'orthogonal to incentive mechanisms', the auction is recapped as background prose. No monotonicity or critical-payment result to cite.
+**Diagnosed:** 2026-09-04
+
+## Ahmed2023frimfl (VCG) — R4
+
+**Mechanism:** Per-client indicator x_i=1 iff posted price p_i=B/r_i is under budget B; payment is a fixed posted price.
+**Obstruction:** Allocation is a per-client budget-feasibility cases-threshold, not a welfare argmax, and the payment B/r_i is a posted price independent of others' reports, so no Groves pivot exists to prove. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Human task:** R4 checked the PDF: no monotonicity, critical-payment, or Myerson content; the recorded payment is a budget/proportional share, not a critical value.
+**Diagnosed:** 2026-09-04
+
+## 2404_13841 (VCG) — R4
+
+**Mechanism:** Budget-split proportional payment B/(S(k-1)) to a threshold-index winning set; allocation LaTeX is an alpha-fairness share, not a selection rule.
+**Obstruction:** Winner set is a budget-threshold cutoff k=min{k: b_k > B/(Sk)}; not argmax/top-k with fixed k, and the recorded allocation LaTeX is a share formula, so no grid-decidable allocation node exists. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Human task:** R4 checked the PDF: no monotonicity, critical-payment, or Myerson content; the recorded payment is a budget/proportional share, not a critical value.
+**Diagnosed:** 2026-09-04
+
+## Lu2021cluster_auction (VCG) — R4
+
+**Mechanism:** Select the K_j lowest bidders among clients passing a data-size filter s_min; payment is an affine 1/(N-K+1) + ((N-K)/(N-K+1)) c_i formula.
+**Obstruction:** The eligible set JL is itself defined by a min over a previously-selected set (a fixed-point/filter dependency), so the allocation is not a plain top-k over reports, and the affine payment is not a Clarke pivot. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Human task:** R4 checked pdfs/Lu2021cluster_auction.pdf: the greedy has a fixed-point eviction (provisional set -> s_min threshold -> reselect), so the winner set is not monotone in a client's own report; the payment is a BNE bidding strategy, not a critical value.
+**Diagnosed:** 2026-09-04
+
+## Kang2019contract_mobile (Contract) — R4
+
+**Mechanism:** Mobile-device contract; routed to Track 3 (mpmath.iv branch-and-bound, delta-sound).
+**Obstruction:** Track 1 does not apply. The R4 fixed_constants field removes the three numerically-declared constants from the box (mu, c_n, s_n), but zeta (effective capacitance, never given a number) and the transmission-energy sub-symbols sigma/rho_n/B/h_n (paper only fixes the composite E^com=20, not the parts) stay free. IC is 6-dim but the branch-and-bound is inconclusive over the generic positive box; IR is still 8-dim, above the cap. The verifier reports UNKNOWN honestly rather than a partial-coverage result. (Track 3: after pinning the 3 paper-declared constants (mu=1, c_n=5, s_n=20) the IC drops from 9 to 6 free vars but the interval search over the generic [0.001,100] parameter box is still inconclusive (unsupported op / budget); the IR drops from 11 to 8 free vars and remains > box-dim cap -- neither IC nor IR is decidable at delta=0.001)
+**Human task:** R4 pinned the 3 paper-declared constants (mu=1, c_n=5, s_n=20) via fixed_constants, dropping the IC box from 9 to 6 free vars and the IR box from 11 to 8, but IR is still over _MAX_BOX_DIMS and IC comes back inconclusive. zeta and the transmission sub-symbols (sigma, rho_n, B, h_n) have no per-symbol numeric values in the paper -- only the composite E^com = 20 -- so they were left free (fail-closed). Needs a tighter Track 3 or a symbolic reduction (R6).
+**Diagnosed:** 2026-09-04
+
+## GPS2023afl_recruit (VCG) — R4
+
+**Mechanism:** Selects participants 'among the lowest bids' (a reverse top-k with unspecified k) and pays p_i = b_i - C_i(t), which equals the stated client utility.
+**Obstruction:** The winner count is not specified so the rule is not a fixed top-k, and the payment pays the bid minus own cost — a first-price form, not a Clarke pivot; the payment and utility LaTeX are literally identical, so the recorded model is degenerate. (Track 1: budget-constrained greedy allocation not in the {argmax, top-k, weighted-welfare} family)
+**Human task:** R4: payment p_i = b_i - C_i(t) is first-price (increasing in own bid) and literally identical to client_utility_latex (degenerate model); not DSIC but no source PDF to construct a rigorous counterexample; R6 corpus re-extraction or paper authors.
+**Diagnosed:** 2026-09-04
+
+## 2102_03401 (Contract) — R4
+
+**Mechanism:** CAV data-quality contract menu {(P_m, R_m)}; utility theta_m R_m - u_3(kappa c phi^2 s-bar I + P_m t-hat).
+**Obstruction:** corpus data transcription bug, not a math obstruction (Track 1: mechanism LaTeX writes the scalar unit-energy-cost u_3 as a function call u_3(...) instead of a coefficient u_3 * (...); the parser reads it as an opaque function and bails)
+**Human task:** correct the mechanism IC/IR/utility LaTeX fields to write u_3 as a scalar coefficient (u_3 \cdot (...)) rather than u_3(...); confirmed from pdfs/2102.03401.pdf Eq. 21: 'u3 is the unit cost of the energy consumption'. Then Track 1 can build the obligation.
+**Diagnosed:** 2026-09-04

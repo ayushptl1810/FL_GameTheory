@@ -37,7 +37,7 @@ Captured before any R4 widening.
 | 30 | Zhang2022expost_auction | VCG | VERIFIED_SHAPE | False |
 | 31 | Zhang2022online | VCG | MANUAL | False |
 | 32 | Zhang2024auction_comm | VCG | MANUAL | False |
-| 33 | Zheng2023fl_market | VCG | MANUAL | False |
+| 33 | Zheng2023fl_market | VCG | VERIFIED | True |
 
 ## Verdict Counts
 
@@ -82,7 +82,7 @@ Captured before any R4 widening.
 | 29 | Saputra2021straggling | Contract | VERIFIED_TEMPLATE | False |
 | 30 | Sun2022coded | Contract | VERIFIED | True |
 | 31 | Tan2025renegotiable_contract | Contract | VERIFIED | True |
-| 32 | Tian2021contract | Contract | MANUAL | False |
+| 32 | Tian2021contract | Contract | VERIFIED | True |
 | 33 | Wang2022motilearn_contract | Contract | MANUAL | False |
 | 34 | Wen2025diffusion_contract | Contract | MANUAL | False |
 | 35 | Wu2021contract_DP | Contract | VERIFIED_TEMPLATE | False |
