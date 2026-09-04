@@ -324,6 +324,28 @@ in-scope entry is `VERIFIED` + `COUNTEREXAMPLE` + `MANUAL`, and
 - Depends on: R4, R5
 - Plan authored at round start.
 
+**Landed 2026-09-06:** Phase 6 ran `architect.formalize --second-pass` (model
+`nvidia/nemotron-3-super-120b-a12b`, the largest instruct model reachable on the
+NVIDIA endpoint — every other 70B/120B/340B candidate 404'd for this account;
+per-entry prior-reason hint injected via the existing `concerns` path) over the
+25 residual `VERIFIED_TEMPLATE`/`VERIFIED_SHAPE` entries — **0 reclaimed**. The
+Batch-C/D/E walls (no follower IR / null FOC / genuinely multi-dimensional type /
+no screening IC in the paper) held against a ~6x larger model with the same
+prior-failure hint: 8 entries rebuilt a valid AST that still failed the
+category-specific check, 14 produced no valid AST, 3 VCG entries hit unparseable
+allocation LaTeX with no hint path. These are real math/spec gaps in the source
+papers, not formalization misses. Phase 7 flipped the remaining 24 to `MANUAL`
+with full `manual_diagnosis` (one entry, `Zheng2023fl_market`, was already
+live-`VERIFIED` pre-round via a stale stored `z3_verdict` field and was correctly
+excluded — see `round-R6R7-delta.md` "Deviation"). In-scope `VERIFIED_TEMPLATE`
+22 -> 0, `VERIFIED_SHAPE` 10 -> 8 (residual non-Shapley VCG shape matches, out of
+this round's scope), `UNKNOWN` 0 -> 0 — **the program's hard exit criterion
+(`UNKNOWN` = 0, `VERIFIED_TEMPLATE` = 0 on the live verifier) is met.**
+`MANUAL-backlog.md` regenerated from `corpus.json`
+(`scripts/build_manual_backlog.py`), 86 paragraphs in 10 obstruction families.
+Also folded in the two R5 carry-forward findings (`payment_ok` flag split; Tier A
+ceiling note). Merge commit `<sha>`. Delta: `docs/superpowers/notes/round-R6R7-delta.md`.
+
 ### R8 — `ARCHITECT_AST_VERIFY` flip + docs
 
 With ~75–90 / 101 corpus entries verified through `verify_from_ast`, the AST path
