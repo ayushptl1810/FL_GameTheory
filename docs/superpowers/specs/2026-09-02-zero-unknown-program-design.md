@@ -1,6 +1,7 @@
 # Zero-UNKNOWN Program — Design
 
-**Status:** Program design approved 2026-09-02. Umbrella spec for Rounds R1–R8.
+**Status:** Program design approved 2026-09-02. Umbrella spec for Rounds R1–R8
+(R6 and R7 combined into one round R6–R7 at plan time).
 Individual round plans are authored at the start of each round (R1's is written;
 R4's is authored *from* R2/R3 diagnostics by construction).
 
@@ -261,35 +262,66 @@ instance — `2605_11889`; `K`-normalized OR-approximation, not exact Shapley, o
 model-utility value — `2606_18384`). Shapley `UNSUPPORTED` 4 -> 0. Merge commit
 `bfb2e8f`. Delta: `docs/superpowers/notes/round-R5-delta.md`.
 
-### R6 — Second-formalizer pass on residual `MANUAL`
+### R6–R7 — Second-formalizer pass + honesty gate (the hard gate)
 
-For every entry still `MANUAL` after R4/R5, a fresh formalization attempt with a
-*different* model and the accumulated `MANUAL` reason injected as a hint ("the
-prior attempt was blocked on X — try formulating around it, e.g. reframe the
-continuous type as a fine discrete grid / isolate the binding constraint / drop a
-provably-slack term"). Some `MANUAL`s are formalization failures, not math
-failures. Each reclaimed entry is hand-checked as in R2/R3.
+**Combined into one round** (`docs/superpowers/plans/2026-09-06-R6-R7-final-classification.md`,
+one branch `round-R6R7-final-classification`). R6 and R7 act on the same
+residual set and R7's flip is only meaningful once R6 has taken its shot, so
+they run as two phases of one round rather than two rounds.
 
-- Corpus effect: +3–8
+**Residual to clear (`main`, 2026-09-05, after R5):** 25 in-scope
+`VERIFIED_TEMPLATE` with no `verdict_override`, 1 `UNKNOWN`
+(`Kang2019contract_mobile`), 1 in-scope `UNSUPPORTED` (proportional-share) =
+**27 entries**. The other 62 in-scope entries already carry `verdict_override:
+"MANUAL"` + a `manual_diagnosis` from R2–R5; 18 are entry-specific `VERIFIED`;
+`VERIFIED_SHAPE` is already 0 (all reclassified in R2–R5).
+
+**Phase 6 — second-formalizer pass (reclaim).** For each of the 27, a fresh
+formalization attempt with **a different, larger model** than R1–R5's
+`gpt-oss-20b` — the largest instruct model the `.env` NVIDIA endpoint offers
+(same client, same credentials, no new provider), pinned in the plan at round
+start. The per-entry accumulated reason (the `manual_diagnosis` where one
+exists, or the corpus `notes` "Manual review / fail-closed" text for the
+Batch-C/D/E templates) is injected as a reformulation hint ("the prior attempt
+was blocked on X — try reframing around it: fine discrete grid for a continuous
+type / isolate the binding constraint / drop a provably-slack term").
+`verify_from_ast` runs the real solver on whatever AST comes back; every flip to
+`VERIFIED` / `COUNTEREXAMPLE` is hand-checked exactly as R2–R5 (one independent
+check recorded in `round-R6R7-new-verified.md`). Fail closed: a still-flagged or
+unclean entry stays where it is and goes to Phase 7.
+
+**Phase 7 — honesty gate.** Every entry still `VERIFIED_TEMPLATE` /
+`VERIFIED_SHAPE` / `UNKNOWN` after Phase 6 flips to `MANUAL` with
+`verdict_override` + a full `manual_diagnosis` (`round: "R7"`, `track`, `limit`,
+`mechanism`, `obstruction`, `human_task`, `date`). The Batch-C/D/E templates
+already name their obstruction in `notes` (missing follower IR, null FOC,
+genuinely multi-dimensional type) — the diagnosis is written from that; the rest
+from the Phase 6 attempt's failure. No entry left in a non-terminal state.
+
+**`MANUAL-backlog.md` finalization.** R7 re-reads every existing paragraph
+(~62) against the R7 format (mechanism / obstruction with the track and the
+specific limit / concrete human task / diagnosed date), fixes format drift,
+appends one paragraph per newly-flipped residual entry, groups the file by
+recurring obstruction family (no-screening-IC-in-paper, vector-follower-decision,
+transcendental-FOC-no-closed-form, opaque-function-in-utility,
+RL/opaque-allocation), and adds a summary header — total counts + the recurring
+ceiling families with their entry lists. This is the program's human-facing
+deliverable.
+
+**Also folded in (no corpus effect):** the two R5 carry-forward findings — split
+`payment_ok` into its own flag in `track_coalition.py` (a stated-payment
+mismatch becomes distinct from a core violation), and add the `ponytail:`
+ceiling comment on Tier A's structural Shapley-formula check.
+
+**Exit criterion (hard): `PYTHONPATH=src python -m verifier corpus.json` shows,
+in-scope, `UNKNOWN = 0`, `VERIFIED_TEMPLATE = 0`, `VERIFIED_SHAPE = 0`.** Every
+in-scope entry is `VERIFIED` + `COUNTEREXAMPLE` + `MANUAL`, and
+`MANUAL-backlog.md` has one audited paragraph per `MANUAL` entry.
+
+- Corpus effect: +3–8 reclaimed to `VERIFIED` (Phase 6); the remaining residual
+  `VERIFIED_TEMPLATE` + `UNKNOWN` -> diagnosed `MANUAL` (Phase 7);
+  `VERIFIED_TEMPLATE` -> 0, `VERIFIED_SHAPE` -> 0, `UNKNOWN` -> 0
 - Depends on: R4, R5
-- Plan authored at round start.
-
-### R7 — Honesty pass + final classification (the hard gate)
-
-Every remaining `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE` that the formalizer could
-not upgrade flips to `UNKNOWN`, then **immediately** receives a `MANUAL` diagnosis
-naming why it is not automatically provable. Every remaining `UNKNOWN` (there
-should be none from parser failures by now) likewise gets a `MANUAL` diagnosis.
-
-**Exit criterion (hard): after R7 the corpus contains no `UNKNOWN` and no
-unqualified `VERIFIED_TEMPLATE` / `VERIFIED_SHAPE`.** Commit
-`docs/superpowers/notes/MANUAL-backlog.md`: one paragraph per `MANUAL` entry —
-the mechanism, the obstruction (with the track and the specific limit it hit),
-and the concrete human task to close it.
-
-- Corpus effect: `VERIFIED_TEMPLATE` 59 -> 0, `VERIFIED_SHAPE` 33 -> 0, `UNKNOWN` -> 0;
-  counts move to `VERIFIED` + `REFUTED` + `MANUAL`
-- Depends on: R6
 - Plan authored at round start.
 
 ### R8 — `ARCHITECT_AST_VERIFY` flip + docs
@@ -301,7 +333,7 @@ flagged `run_eval` (or document it remains infra-blocked), flip
 roadmap spec with the final numbers.
 
 - Corpus effect: +0 (loop-side change)
-- Depends on: R7
+- Depends on: R6–R7
 - Plan authored at round start.
 
 ## Cross-round invariants
