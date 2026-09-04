@@ -94,3 +94,30 @@ needs a human read in Phase 2 to confirm the real obstruction.
 | Zhang2022online | VCG | R2 | The threshold rho* is set online from an unbounded arrival s... | verify_vcg | returned non-terminal verdict VERIFIED_SHAPE: IR: VERIFIED |... | False |
 | Zhang2024auction_comm | VCG | R2 | The payment subtracts the agent's OWN cost c_i from the sum ... | verify_vcg | returned non-terminal verdict VERIFIED_SHAPE: IR: VERIFIED |... | False |
 | Zhao2023truthful | Contract | R3a | The entry's ic_screening_latex is deliberately null: the pap... | _try_contract_latex | returned None | False |
+
+## Regrouped by real cause
+
+Task 1's table above is one row per entry (86 rows). Grouping those rows by
+`bail_function` + `bail_reason` prefix (>= 2 entries per group) and reading
+each mismatch row's full stored obstruction/limit text against the real
+`bail_reason` produced 8 real clusters covering 60 entries, all classified
+as genuine solver ceilings (0 fixable bugs found) — full detail, entry
+lists, real-cause writeups, and per-cluster corrected diagnosis text are in
+`docs/superpowers/notes/round-R9-widening-candidates.md`. Summary:
+
+| Cluster | Entries | Classification |
+|---|---|---|
+| Contract: no adverse-selection IC in paper | 9 | ceiling |
+| Contract: multi-dim / population-coupled type | 3 | ceiling |
+| Contract: transcendental / opaque function | 3 | ceiling |
+| Stackelberg: no follower IR stated | 11 | ceiling |
+| Stackelberg: vector follower decision | 8 | ceiling |
+| VCG: allocation outside fixed template (4 sub-groups) | 21 | ceiling (1 sub-group of 4 flagged for closer inspection) |
+| Shapley: k > 3 / coalition size unstated | 3 | ceiling |
+| Contract: box-dimension cap after pinning | 2 | ceiling |
+
+`matches_stored == false` on every one of these 60 rows is the known
+non-discriminating heuristic (lexical mismatch between real bail_reason and
+stored obstruction text), not evidence of a stale diagnosis — confirmed by
+reading full text for each row. See `round-R9-widening-candidates.md` for
+the per-cluster reasoning.
