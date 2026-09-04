@@ -1092,7 +1092,17 @@
       ],
       "payment_mechanism_latex": "\\ell_{i,\\text{FACT}}(m_i, c) = \\frac{\\gamma\\sigma^2 L}{2(m_i + \\sum \\bm{m}_{-i})} + c_i m_i + P_{fr}(m_i, c) + P_{ct}(c)"
     },
-    "z3_verdict": "UNSUPPORTED"
+    "z3_verdict": "UNSUPPORTED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R5",
+      "track": 5,
+      "limit": "mis-categorized: no coalition characteristic function and no Shapley value anywhere in the paper",
+      "mechanism": "PFL/FACT — a penalty-based free-riding truthfulness mechanism (free-riding penalty P_fr Eq 4, competition penalty P_ct Eq 10), per-agent local/federated loss.",
+      "obstruction": "The paper never defines v(S) over agent subsets and never uses the Shapley value; the Shapley category tag is wrong. No coalition track applies.",
+      "human_task": "re-categorize this entry as Contract/penalty-mechanism and route it through the R3 Contract path, or confirm it is out-of-scope (no verifiable-tier incentive claim).",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "2406_14910",
@@ -1489,7 +1499,7 @@
     "num_clients": "unspecified",
     "quality_tier": "silver",
     "z3_validated": false,
-    "notes": null,
+    "notes": "R5: no numeric v(S) instance in PDF — Fig 3(a) gives Shapley values (Sh1=Sh2=1/6) but not v(S) over all 8 subsets, and the max-flow topology is figure-only; stays MANUAL via Tier A.",
     "mechanism": {
       "valuation_metric": "max-flow value",
       "exact_or_approx": "exact",
@@ -1508,7 +1518,17 @@
         "no over-reporting"
       ]
     },
-    "z3_verdict": "UNSUPPORTED"
+    "z3_verdict": "UNSUPPORTED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R5",
+      "track": 5,
+      "limit": "no concrete numeric max-flow instance in the paper",
+      "mechanism": "Max-flow-based Shapley value: phi_i is the exact Shapley value of a network max-flow characteristic function v(S)=F(c).",
+      "obstruction": "Tier A confirms the standard Shapley formula, but the paper states v(S)=F(c) abstractly with no numeric capacity network, so Tier B cannot enumerate.",
+      "human_task": "transcribe or construct a concrete capacity network from the paper's model, compute F(S) for all S<=3, verify core/IR.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "2502_10765",
@@ -2499,7 +2519,7 @@
     "num_clients": "unspecified",
     "quality_tier": "silver",
     "z3_validated": false,
-    "notes": null,
+    "notes": "R5: no numeric v(S) instance for the paper mechanism in PDF — Table 2 (App B.3) is an axiom-illustration table (monotonicity/desirability) with toy values, not a worked instance of the Bayesian log-likelihood characteristic function; stays MANUAL via Tier A.",
     "mechanism": {
       "valuation_metric": "log-likelihood of the validation set for Bayesian models",
       "exact_or_approx": "exact",
@@ -2522,7 +2542,17 @@
         "A3"
       ]
     },
-    "z3_verdict": "UNSUPPORTED"
+    "z3_verdict": "UNSUPPORTED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R5",
+      "track": 5,
+      "limit": "transcendental / opaque characteristic function (Bayesian log-likelihood v(D_C) = log p(T=T*|D_C) - log p(T=T*|∅)); no numeric instance in the paper",
+      "mechanism": "Bayesian Shapley data valuation: phi_i is the exact Shapley value of a log-likelihood characteristic function over data subsets.",
+      "obstruction": "Tier A confirms the formula is the exact Shapley value, but v(S) is a Bayesian log-likelihood over a model+dataset the paper never instantiates numerically, so Tier B (core/IR) has nothing to enumerate over.",
+      "human_task": "instantiate a concrete Bayesian model + validation set and compute v(S) for all S, or prove core/IR analytically from the log-likelihood's supermodularity.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "2606_18384",
@@ -2537,7 +2567,7 @@
     "num_clients": "unspecified",
     "quality_tier": "bronze",
     "z3_validated": false,
-    "notes": "2606_18384: characteristic_function_latex = the paper's implicit coalition-value definition v(Sub)=U(M_Sub^(R)), where M_Sub^(R) is the one-round-reconstructed model built by aggregating only the updates of clients in subset Sub (Algorithm 1, lines 8-12) and U(.) is the model utility function (e.g. validation accuracy, per Table I notation). shapley_formula_latex = Algorithm 1 line 15, the paper's 'Scalable OR (One-Round Reconstruction)' approximation of the Shapley formula: a K-normalized sum of marginal utility contributions U(M_{Sub union j}) - U(M_Sub) over all subsets Sub of the other assigned clients, weighted by inverse binomial coefficients -- explicitly called 'the Shapley formula' by the paper (Sec IV-A) despite being a per-tier-2-server-scoped approximation rather than the exact combinatorial Shapley sum over the full client population.",
+    "notes": "2606_18384: characteristic_function_latex = the paper's implicit coalition-value definition v(Sub)=U(M_Sub^(R)), where M_Sub^(R) is the one-round-reconstructed model built by aggregating only the updates of clients in subset Sub (Algorithm 1, lines 8-12) and U(.) is the model utility function (e.g. validation accuracy, per Table I notation). shapley_formula_latex = Algorithm 1 line 15, the paper's 'Scalable OR (One-Round Reconstruction)' approximation of the Shapley formula: a K-normalized sum of marginal utility contributions U(M_{Sub union j}) - U(M_Sub) over all subsets Sub of the other assigned clients, weighted by inverse binomial coefficients -- explicitly called 'the Shapley formula' by the paper (Sec IV-A) despite being a per-tier-2-server-scoped approximation rather than the exact combinatorial Shapley sum over the full client population. | R5: no numeric v(S) instance in PDF, checked App A + results §; characteristic function v(Sub)=U(M_Sub^(R)) is opaque model-utility, only aggregate accuracy metrics reported — stays MANUAL via Tier A.",
     "mechanism": {
       "valuation_metric": "model accuracy improvement",
       "exact_or_approx": "other",
@@ -2553,7 +2583,17 @@
       ],
       "key_assumptions": []
     },
-    "z3_verdict": "UNSUPPORTED"
+    "z3_verdict": "UNSUPPORTED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R5",
+      "track": 5,
+      "limit": "stated payment is a K-normalized one-round-reconstruction *approximation* of Shapley, not the exact value; value U(M_Sub) is opaque model accuracy",
+      "mechanism": "One-round reconstruction payment phi_j^OR approximating the Shapley value of a trained-model-accuracy characteristic function U(M_Sub).",
+      "obstruction": "Tier A rejects the formula: the 1/binom(|C|-1,|Sub|) weighting and the K factor are not the exact Shapley weights. Even granting the approximation, v(Sub)=U(M_Sub^(R)) is a trained-model accuracy — not symbolically or grid-computable.",
+      "human_task": "bound the approximation error |phi_j^OR - phi_j^Shapley| from Algorithm 1, or run the paper's reconstruction to get numeric v(Sub) and verify core/IR empirically.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "2606_28824",

@@ -58,6 +58,8 @@ def _classify_ast(m: Mechanism) -> int:
         return 3
     if any(_contains(s, Pow) for s in (m.utility, m.ic, m.ir)) and _is_continuous(m):
         return 2
+    if m.category == "Shapley":
+        return 5
     return 1
 
 
@@ -324,7 +326,8 @@ def verify_from_ast(m: Mechanism, meta: dict | None = None) -> VerificationResul
         return res
 
     if m.category == "Shapley":
-        return _shapley_check_core(paper_id=pid)
+        from tracks.track_coalition import verify_coalition
+        return verify_coalition({"mechanism": meta, "paper_id": pid})
 
     return VerificationResult(
         verdict="UNSUPPORTED", category=m.category, paper_id=pid, track=track,

@@ -162,7 +162,7 @@ the LLM emitted; 6 meta-field readers now coerce non-`str` → `""`). Merge comm
 **R2 + R3 combined:** in-scope UNKNOWN (VCG + Contract + Stackelberg) 2 → **0**.
 9 entry-specific `VERIFIED` (6 pre-existing + 3 new VCG), 60 `MANUAL` with
 catalogued ceilings (R4 input, grouped by recurring obstruction in the delta),
-32 R6 formalization-miss candidates. The 4 Shapley entries stay `UNSUPPORTED` (R5).
+32 R6 formalization-miss candidates. The 4 Shapley entries are diagnosed `MANUAL` in R5.
 
 ### R4 — Track widenings driven by R2/R3 `MANUAL` reasons
 
@@ -244,6 +244,22 @@ coalition track is standalone infra R6 and the Architect loop reuse.
   Shapley `UNSUPPORTED` -> 0
 - Depends on: R3 (independent of R4)
 - Plan authored at round start.
+
+**Landed 2026-09-05:** `src/tracks/track_coalition.py` — a two-tier `verify_coalition`
+(`k <= 3`): Tier A a structural Shapley-formula identity check (sympy `parse_latex` could
+not handle the factorial `\sum`, so it is a regex structural match with `\binom` / `\hat` /
+`K` rejection guards); Tier B enumerated core / IR / payment over all `2^k` coalitions,
+running only when a concrete finite `v(S)` is transcribed into `mechanism.coalition_values`.
+Wired into `verify_shapley` (was an `UNSUPPORTED` stub), `_classify_ast` (`Shapley` ->
+track 5), and `verify_from_ast` (`Coalition` branch); 15 tests in
+`tests/tracks/test_coalition.py`. **0 new entry-specific `VERIFIED`** — no numeric `v(S)`
+instance exists in any of the four papers' PDFs, so Tier B never had ground to run.
+**4 `MANUAL`** (catalogued ceilings: mis-categorized penalty mechanism with no `v(S)` at
+all — `2405_13879`; standard Shapley formula confirmed but no numeric max-flow instance —
+`2502_08248`; transcendental Bayesian log-likelihood characteristic function, no numeric
+instance — `2605_11889`; `K`-normalized OR-approximation, not exact Shapley, over an opaque
+model-utility value — `2606_18384`). Shapley `UNSUPPORTED` 4 -> 0. Merge commit
+`<merge-sha>`. Delta: `docs/superpowers/notes/round-R5-delta.md`.
 
 ### R6 — Second-formalizer pass on residual `MANUAL`
 

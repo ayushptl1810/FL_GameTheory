@@ -2058,12 +2058,20 @@ def _shapley_check_core(*, paper_id: str) -> VerificationResult:
 
 
 def verify_shapley(entry: dict) -> VerificationResult:
-    """
-    Shapley IC/IR is intractable in Z3 for general coalitional games.
-    Hard-gate fields (ic_proof_present / ir_proof_present) are the primary signal.
-    """
-    paper_id = entry.get("paper_id", "<unknown>")
-    return _shapley_check_core(paper_id=paper_id)
+    """R5: delegate to the Track 5 coalition verifier when the entry states a
+    Shapley payment formula; otherwise MANUAL (was an UNSUPPORTED stub)."""
+    from tracks.track_coalition import verify_coalition  # local: avoid import cycle
+
+    m = entry.get("mechanism") or {}
+    if m.get("shapley_formula_latex"):
+        return verify_coalition(entry)
+    pid = entry.get("paper_id", "<unknown>")
+    d = entry.get("manual_diagnosis") or {}
+    return VerificationResult(
+        verdict="MANUAL", category="Shapley", paper_id=pid, track=5,
+        notes=(f"MANUAL ({d.get('round', 'R5')}): "
+               f"{d.get('obstruction', 'no coalition characteristic function / Shapley formula in the paper')}"),
+    )
 
 
 # ── Coalition IC (bounded, discrete Contract menus) ──────────────────────────

@@ -407,3 +407,31 @@ One paragraph per corpus entry that no automated track can decide. Appended to f
 **Obstruction:** corpus data transcription bug, not a math obstruction (Track 1: mechanism LaTeX writes the scalar unit-energy-cost u_3 as a function call u_3(...) instead of a coefficient u_3 * (...); the parser reads it as an opaque function and bails)
 **Human task:** correct the mechanism IC/IR/utility LaTeX fields to write u_3 as a scalar coefficient (u_3 \cdot (...)) rather than u_3(...); confirmed from pdfs/2102.03401.pdf Eq. 21: 'u3 is the unit cost of the energy consumption'. Then Track 1 can build the obligation.
 **Diagnosed:** 2026-09-04
+
+## 2605_11889 (Shapley) — R5
+
+**Mechanism:** Bayesian Shapley data valuation — phi_i is the exact Shapley value of a log-likelihood characteristic function v(D_C) = log p(T=T*|D_C) - log p(T=T*|∅) over data subsets.
+**Obstruction:** Tier A confirms the formula is the exact Shapley value, but v(S) is a Bayesian log-likelihood over a model+dataset the paper never instantiates numerically, so Tier B (core/IR) has nothing to enumerate over. (Track 5: transcendental / opaque characteristic function (Bayesian log-likelihood v(D_C) = log p(T=T*|D_C) - log p(T=T*|∅)); no numeric instance in the paper)
+**Human task:** instantiate a concrete Bayesian model + validation set and compute v(S) for all S, or prove core/IR analytically from the log-likelihood's supermodularity.
+**Diagnosed:** 2026-09-05
+
+## 2606_18384 (Shapley) — R5
+
+**Mechanism:** One-round reconstruction payment phi_j^OR approximating the Shapley value of a trained-model-accuracy characteristic function U(M_Sub).
+**Obstruction:** Tier A rejects the formula: the 1/binom(|C|-1,|Sub|) weighting and the K factor are not the exact Shapley weights. Even granting the approximation, v(Sub)=U(M_Sub^(R)) is a trained-model accuracy — not symbolically or grid-computable. (Track 5: stated payment is a K-normalized one-round-reconstruction *approximation* of Shapley, not the exact value; value U(M_Sub) is opaque model accuracy)
+**Human task:** bound the approximation error |phi_j^OR - phi_j^Shapley| from Algorithm 1, or run the paper's reconstruction to get numeric v(Sub) and verify core/IR empirically.
+**Diagnosed:** 2026-09-05
+
+## 2405_13879 (Shapley) — R5
+
+**Mechanism:** PFL/FACT — a penalty-based free-riding truthfulness mechanism (free-riding penalty P_fr Eq 4, competition penalty P_ct Eq 10), per-agent local/federated loss.
+**Obstruction:** The paper never defines v(S) over agent subsets and never uses the Shapley value; the Shapley category tag is wrong. No coalition track applies. (Track 5: mis-categorized: no coalition characteristic function and no Shapley value anywhere in the paper)
+**Human task:** re-categorize this entry as Contract/penalty-mechanism and route it through the R3 Contract path, or confirm it is out-of-scope (no verifiable-tier incentive claim).
+**Diagnosed:** 2026-09-05
+
+## 2502_08248 (Shapley) — R5
+
+**Mechanism:** Max-flow-based Shapley value — phi_i is the exact Shapley value of a network max-flow characteristic function v(S)=F(c).
+**Obstruction:** Tier A confirms the standard Shapley formula, but the paper states v(S)=F(c) abstractly with no numeric capacity network, so Tier B cannot enumerate. (Track 5: no concrete numeric max-flow instance in the paper)
+**Human task:** transcribe or construct a concrete capacity network from the paper's model, compute F(S) for all S<=3, verify core/IR.
+**Diagnosed:** 2026-09-05
