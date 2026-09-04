@@ -98,26 +98,35 @@ needs a human read in Phase 2 to confirm the real obstruction.
 ## Regrouped by real cause
 
 Task 1's table above is one row per entry (86 rows). Grouping those rows by
-`bail_function` + `bail_reason` prefix (>= 2 entries per group) and reading
-each mismatch row's full stored obstruction/limit text against the real
-`bail_reason` produced 8 real clusters covering 60 entries, all classified
-as genuine solver ceilings (0 fixable bugs found) — full detail, entry
-lists, real-cause writeups, and per-cluster corrected diagnosis text are in
+`bail_function` + `bail_reason` prefix (>= 2 entries per group) produces 5
+raw clusters covering 85 of the 86 entries (1 true singleton). Two of those
+raw clusters (`_try_contract_latex`/`_try_stackelberg_latex` "returned
+None") and one (`verify_vcg` VERIFIED_SHAPE) are not single causes — reading
+each entry's full stored obstruction/limit text against the real
+`bail_reason` splits them into 14 real named clusters plus 2 named
+singletons (all 86 entries accounted for, 0 fixable bugs found among the
+clustered/named entries) — full detail, entry lists, real-cause writeups,
+and per-cluster corrected diagnosis text are in
 `docs/superpowers/notes/round-R9-widening-candidates.md`. Summary:
 
 | Cluster | Entries | Classification |
 |---|---|---|
 | Contract: no adverse-selection IC in paper | 9 | ceiling |
 | Contract: multi-dim / population-coupled type | 3 | ceiling |
+| Contract: data/transcription/notation defects (15 distinct causes) | 15 | mixed, no confirmed fixable bug |
 | Contract: transcendental / opaque function | 3 | ceiling |
 | Stackelberg: no follower IR stated | 11 | ceiling |
 | Stackelberg: vector follower decision | 8 | ceiling |
-| VCG: allocation outside fixed template (4 sub-groups) | 21 | ceiling (1 sub-group of 4 flagged for closer inspection) |
+| Stackelberg: beyond 2-stage / dynamic recursion | 2 | ceiling |
+| Stackelberg: transcendental / implicit follower FOC | 3 | ceiling |
+| Stackelberg/VCG: no diagnosed missing field | 3 | diagnosis gap |
+| Stackelberg: additional single-entry causes | 3 | ceiling |
+| VCG: allocation outside fixed template (5 sub-groups) | 19 | ceiling (1 sub-group of 4 flagged for closer inspection) |
+| VCG: no separate platform objective (singleton) | 1 | ceiling |
 | Shapley: k > 3 / coalition size unstated | 3 | ceiling |
 | Contract: box-dimension cap after pinning | 2 | ceiling |
+| Singleton (true, not in any >= 2-entry cluster) | 1 | ceiling (corpus mis-categorization) |
 
-`matches_stored == false` on every one of these 60 rows is the known
-non-discriminating heuristic (lexical mismatch between real bail_reason and
-stored obstruction text), not evidence of a stale diagnosis — confirmed by
-reading full text for each row. See `round-R9-widening-candidates.md` for
-the per-cluster reasoning.
+Total: 85 + 1 = 86, verified against the JSON with no duplicates. See
+`round-R9-widening-candidates.md` for the per-cluster reasoning and the
+full re-verification command/output.

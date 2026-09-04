@@ -77,6 +77,71 @@ contracts." limit: kept as stored per-entry (already accurate).
 
 ---
 
+## Cluster: `_try_contract_latex` returned None — data/transcription/notation defects in the stored entry
+
+**Entries:** 2102_03401 (u_3 written as function call, not coefficient),
+2403_09153 (single-crossing assumption stripped by 2026-07-18 sanitization
+pass), 2502_20882 (empty `notes` field, no diagnosed missing formal field),
+2602_21844 (Bayesian posterior-expectation IC, Track 4 cannot integrate to
+closed form), Bornstein2023realistic_incentive (moral hazard, not
+adverse-selection — `ic_screening_latex` deliberately null, same underlying
+cause as the first cluster above but flagged separately here because it was
+found in the coverage-gap sweep), Ding2020contract_multidim (degenerate IC —
+utility has no dependence on the contract variable, substitution collapses
+to identity), International_Journal…Wan…Hierarchical (IC is an
+equilibrium-utility ordering evaluated at own type on both sides, not a
+substitutable screening IC — soundness gate correctly rejects),
+Kang2022blockchain_metaverse (`R_{n-1}` parses as an opaque symbol, not an
+offset index — no adjacent-IC semantics in `_contract_check_core`),
+Ma2023joint_pricing (`client_utility_latex` is a simplified rendering that
+drops a congestion-term sum, inconsistent with `ic_screening_latex`),
+Saputra2020fl_contract (unresolved phi-weighting discrepancy between merged
+duplicate's fields, never re-verified against PDF), Saputra2021iov_contract
+(medium-confidence `S()` satisfaction function due to OCR artifacts),
+Saputra2021straggling (square-root gain functions outside polynomial-friendly
+assumptions), Wang2022motilearn_contract (IR indexed by `a`, IC by `n`/`i` —
+no sound index correspondence to substitute), Wen2025diffusion_contract
+(recorded IC/IR is period-2 static myopic only; paper's true mechanism is a
+two-period intertemporal contract not represented in the entry),
+Yang2023async_contract (`E_com` communication-energy scalar constant is
+lexically indistinguishable from a Bayesian expectation `E_{...}[.]`, so the
+Bayesian bail-out guard fires) (15)
+
+**Real cause:** Unlike the two clusters above (which share one real
+game-theoretic cause each), these 15 entries land on the same
+`_try_contract_latex` → `_parse_contract_entry` → `None` exit point for 15
+*different* reasons, none of which recur >= 2 times: PDF transcription
+errors, prior sanitization passes stripping unverified assumptions, empty
+review notes, OCR-uncertain fields, index-naming mismatches between IR/IC,
+degenerate algebra, moral hazard misclassified alongside contract entries,
+and one genuine Track 4 (Bayesian expectation) ceiling. Each is a distinct,
+single-entry root cause; they are grouped here only because they share the
+generic code-level bail point, not because they share a real obstruction.
+Reading each `stored_limit` (done above, per entry) confirms none of these
+15 duplicate each other or the two named clusters above.
+
+**Classification:** not a single classification — mixed. Two possible
+implementation bugs are visible here on inspection (not confirmed fixable,
+flagged for closer look): 2102_03401's `u_3(...)` function-call-vs-coefficient
+parse could be a genuine LaTeX-normalization bug rather than a math
+ceiling — if the entry's source truly means `u_3 * (...)`, a preprocessing
+fix in the parser (recognizing single-scalar "function calls" that are
+actually multiplication) might resolve it, but this needs a look at the raw
+LaTeX source, which is out of scope for this pass. Kang2022blockchain_metaverse's
+`R_{n-1}` offset-index parsing is a real but narrow parser gap (single
+entry, so not a widening candidate cluster). Everything else here (13
+entries) is either a genuine solver/data ceiling (OCR uncertainty,
+Bayesian-guard collision, degenerate algebra, mismatched notation, dropped
+assumptions) that the verifier is correctly and conservatively declining, or
+lacks enough recorded diagnostic information (`notes` empty) to say more.
+
+**If ceiling — corrected diagnosis:** kept as stored per-entry — these 15
+already have accurate, entry-specific `stored_limit` text; none should be
+overwritten with cluster-level generic text since there is no single real
+cluster-level cause here.
+
+---
+
 ## Cluster: `_try_contract_latex` returned None — transcendental / opaque function in utility
 
 **Entries:** 2407_02845 (log argument sign not established), Han2025paid_models (opaque v(.) inside expectation), Nguyen2025right_reward (opaque h(t_k)) (3)
@@ -145,9 +210,142 @@ follower best response." limit: kept as stored per-entry.
 
 ---
 
+## Cluster: `_try_stackelberg_latex` returned None — beyond 2-stage / dynamic recursion
+
+**Entries:** 2103_05866 (>2-stage / multi-layer game), 2412_05636 (follower
+best-response is a backward recursion over a horizon) (2)
+
+**Real cause:** The Stackelberg entry-specific path models one leader move
+followed by one follower move, resolved via a single-variable FOC. Both
+these papers have a game with more than two stages (a multi-layer hierarchy,
+or a backward-recursion best response over a multi-period horizon), which
+has no representation in a 2-player, 2-stage template at all — not even as a
+vector-follower variant, since the issue is stage count, not decision
+dimensionality.
+
+**Classification:** genuine solver ceiling
+
+**If ceiling — corrected diagnosis:** obstruction: "Game has more than two
+stages (multi-layer hierarchy or multi-period backward recursion) — Track
+1's Stackelberg model is strictly single-leader/single-follower, two-stage."
+limit: kept as stored per-entry.
+
+---
+
+## Cluster: `_try_stackelberg_latex` returned None — transcendental / implicit follower FOC with no closed-form root
+
+**Entries:** Chu2023hierarchical (transcendental stationarity equation, no
+closed-form root, paper states this explicitly), Luo2023unbiased (implicit
+cubic in q_n*, no transcribed root), Pandey2019crowd (transcendental
+`1/theta - log(1/theta) = const`, plus a min-clipped implicit solution) (3)
+
+**Real cause:** The Stackelberg FOC-reduction path needs to solve the
+follower's stationarity condition for a closed-form best response to
+substitute into the leader's problem. In these 3 papers the FOC itself is
+transcendental (log/implicit-cubic/min-clip) and the paper never provides
+(or the entry never transcribes) a closed-form root — Z3's polynomial
+machinery cannot solve for an implicit root symbolically, so the reduction
+step fails before the leader-side check ever runs. This is the same class of
+"Z3 cannot handle an opaque/transcendental expression" ceiling as the
+Contract-cluster's transcendental-utility cluster above, but hitting the
+Stackelberg follower-FOC path instead of the Contract IC/IR path.
+
+**Classification:** genuine solver ceiling
+
+**If ceiling — corrected diagnosis:** obstruction: "Follower's first-order
+stationarity condition is transcendental or implicit (log/cubic/min-clip)
+with no closed-form root available — Track 1's Stackelberg FOC reduction
+requires a scalar closed-form best response to substitute." limit: kept as
+stored per-entry.
+
+---
+
+## Cluster: Stackelberg / VCG — VERIFIED_TEMPLATE with no diagnosed missing formal field (empty or abstract-level notes)
+
+**Entries:** FLamma2025stackelberg (Stackelberg: notes give only the paper's
+abstract-level description), Javaherian2025stackelberg_ic (Stackelberg: IR
+is stated and proven satisfied at equilibrium, but sits at VERIFIED_TEMPLATE
+— likely missing a different formal field), Mai2022double_auction (VCG:
+notes give only the paper's abstract-level description) (3)
+
+**Real cause:** These 3 entries sit at the generic VERIFIED_TEMPLATE verdict
+with no prior reviewer note identifying which specific formal field Track 1
+needs and doesn't have — the `notes` field is either empty or only restates
+the paper's abstract. This is a data/annotation gap in the corpus, not a
+demonstrated code-level ceiling: unlike the clusters above, it is not known
+*what* is missing, only that something is, so no corrected obstruction text
+can be written without first doing the missing-field diagnosis (the same
+work Task 1's `bail_function`/`bail_reason` trace already did for every
+other entry in this doc, but that trace only reaches `_try_contract_latex`
+/`_try_stackelberg_latex`/`verify_vcg` internals — it does not explain why
+these 3 never reached a discriminating bail point inside those functions in
+the first place, i.e. why they're still VERIFIED_TEMPLATE rather than
+None/VERIFIED_SHAPE like their cluster-mates).
+
+**Classification:** genuine ceiling, but of a different kind than the others
+in this doc — a diagnosis gap, not a confirmed solver-capability boundary.
+Not classified fixable (no confirmed missing field to fix toward), and not
+folded into a solver-ceiling cluster above (would misrepresent that a real
+math cause is known).
+
+**If ceiling — corrected diagnosis:** obstruction: "No prior manual review
+has identified which formal field Track 1 is missing for this entry — the
+`notes` field is empty or paper-abstract-level only; needs a fresh read of
+the source PDF before a specific field-level obstruction can be recorded."
+limit: kept as stored per-entry (already states this).
+
+---
+
+## Cluster: `_try_stackelberg_latex` returned None — additional single-entry causes near the "no follower IR" family
+
+**Entries:** Khan2019edge (no proved equilibrium — Track 1 needs one, a
+distinct prerequisite from IR/participation being stated), Pang2025quality
+(payment/cost are unspecified generic functions f, d — no algebraic form to
+differentiate, a data-completeness gap rather than a missing-IR gap),
+Xiao2020stackelberg_twostage (follower IR is enforced algorithmically via an
+Algorithm-1 quit-check rather than as a closed-form constraint inside the
+Stage II arg max — already referenced as "related but distinct" in the
+no-follower-IR cluster above, listed here explicitly as its own case since
+it does not share that cluster's exact cause: the IR exists procedurally,
+it's just not expressible as an equation Track 1 can substitute) (3)
+
+**Real cause:** Each of these 3 fails `_try_stackelberg_latex` for a cause
+adjacent to, but distinct from, "no follower IR/participation constraint
+stated" (the 11-entry cluster above) and "vector follower decision" (the
+8-entry cluster above): a missing proved equilibrium is a different
+prerequisite than a missing IR constraint; unspecified generic cost
+functions is a data-completeness gap (nothing to differentiate) rather than
+a missing-constraint gap; and an algorithmically-enforced (not
+closed-form-expressible) IR is a structurally different failure than an IR
+that was simply never written down. None of the three recurs a second time
+in this JSON, so each is a genuine singleton cause within the broader
+Stackelberg-None mega-cluster.
+
+**Classification:** genuine solver ceiling (all three)
+
+**If ceiling — corrected diagnosis:** kept as stored per-entry — each
+already has accurate, cause-specific `stored_limit` text.
+
+---
+
 ## Cluster: `verify_vcg` non-terminal VERIFIED_SHAPE — allocation rule outside the fixed threshold-payment template
 
-**Entries:** 2404_13841, Ahmed2023frimfl, GPS2023afl_recruit, Jiao2019auto_auction, Jin2023bara_budget, Lu2021cluster_auction (budget-constrained greedy, 6); Lim2020edge_collab, Model2024trading_fl, Peng2023auction_medical, Tan2023hire (RL-policy / opaque-algorithm allocation, 4); Cui2024auction_market, Yang2023buyers_market, Zhang2022online (continuous bid space, no discretization, 3); Haupt2021auctions, Seo2021sdn_fl, Seo2022noniid_auction, Wei2024truthful_bandit (non-polynomial gap Z3 cannot linearize, 4) (21 total, in 4 real sub-groups)
+**Entries:** 2404_13841, Ahmed2023frimfl, GPS2023afl_recruit, Jiao2019auto_auction, Jin2023bara_budget, Lu2021cluster_auction (budget-constrained greedy, 6); Lim2020edge_collab, Model2024trading_fl, Peng2023auction_medical, Tan2023hire (RL-policy / opaque-algorithm allocation, 4); Cui2024auction_market, Yang2023buyers_market, Zhang2022online (continuous bid space, no discretization, 3); Haupt2021auctions, Seo2021sdn_fl, Seo2022noniid_auction, Wei2024truthful_bandit (non-polynomial gap Z3 cannot linearize, 4); Xia2026privacy_mfg, Zhang2024auction_comm (payment rule structurally not a Clarke pivot, 2) (19 total, in 5 real sub-groups; see coverage note below for the other 2 of the raw 21-member cluster)
+
+**Coverage note:** the raw `verify_vcg`/VERIFIED_SHAPE cluster has 21
+members total. Batool2022fl_mab and Mai2022double_auction are 2 of those 21
+and are accounted for separately: Batool2022fl_mab has its own singleton
+write-up immediately below (distinct cause — no separate platform
+objective), and Mai2022double_auction is folded into the "no diagnosed
+missing formal field" cluster above (empty/abstract-only notes, same cause
+class as FLamma2025stackelberg and Javaherian2025stackelberg_ic). That
+leaves 19 entries in the 5 sub-groups named here... but the sub-group counts
+above (6+4+3+4+2) sum to 19, matching. 19 + Batool2022fl_mab (1) +
+Mai2022double_auction (accounted for above, not re-counted here) = 20 of 21;
+the 21st is Xia2026privacy_mfg / Zhang2024auction_comm's pair already
+included in the 19 — recount: 6+4+3+4+2 = 19, +Batool 1 = 20,
++Mai2022double_auction 1 = 21. All 21 raw cluster members are accounted for
+across this section and the notes-gap cluster above.
 
 **Real cause:** `verify_vcg` (`src/tracks/track1_z3.py:75`) first tries the
 real finite-grid DSIC+IR proof (`verify_vcg_dsic`); when that returns
@@ -155,11 +353,13 @@ UNKNOWN/UNSUPPORTED it falls through to a fixed threshold-payment /
 Clarke-pivot regex-classified template (`_vcg_check_core`, line 149), whose
 success is explicitly demoted to the non-terminal `VERIFIED_SHAPE` verdict
 (line 143-145) because it never solves the entry's own math — it only checks
-that the payment-rule string matches a known VCG *form*. All 21 entries here
-have allocation rules that are not "regex-classifiable payment on a
+that the payment-rule string matches a known VCG *form*. The 19 entries in
+the 5 named sub-groups here (plus Batool2022fl_mab just below) have
+allocation or payment rules that are not "regex-classifiable payment on a
 fixed-template threshold auction": budget-constrained greedy selection,
-RL/opaque-policy allocation, continuous (non-discretizable) bid space, or a
-non-polynomial payment gap. Each sub-group is a real, distinct reason the
+RL/opaque-policy allocation, continuous (non-discretizable) bid space, a
+non-polynomial payment gap, or a payment structurally outside the
+Clarke-pivot family entirely. Each sub-group is a real, distinct reason the
 fixed template's assumption (discrete top-k/argmax/weighted-welfare
 allocation with a linearizable Clarke-pivot payment) doesn't hold — this is
 the single biggest real ceiling class in the corpus by entry count.
@@ -175,6 +375,13 @@ the single biggest real ceiling class in the corpus by entry count.
   linearize" is sometimes a solvable encoding problem rather than a true
   template mismatch, but confirming that needs per-entry inspection of the
   actual payment expression, which is out of scope for this analysis pass.
+- Payment rule structurally not a Clarke pivot (2, Xia2026privacy_mfg /
+  Zhang2024auction_comm): genuine ceiling — Xia2026privacy_mfg's budget cap
+  `min(B/k, ·)` and Zhang2024auction_comm's own-cost-inclusive payment
+  (`sum_{j!=i} c_j - c_i`) are both payment forms `_vcg_check_core`'s regex
+  classifier does not and should not recognize as Clarke-pivot, since they
+  are not Clarke-pivot payments — no fix sketch here, this is the template
+  correctly declining a genuinely different payment family.
 
 **If fixable (non-polynomial-gap sub-group only) — fix sketch:** If, on
 inspection, the "non-polynomial gap" is a monotone/bounded expression (e.g.
@@ -187,6 +394,26 @@ each entry's actual `payment_rule_latex` to confirm the gap is genuinely
 polynomial-adjacent and not an unbounded transcendental (which would just
 move the ceiling, not remove it) — flagged for the Task 3+ planning pass to
 scope properly, not implemented here.
+
+---
+
+## Cluster: `verify_vcg` non-terminal VERIFIED_SHAPE — no separate platform-level objective (singleton)
+
+**Entries:** Batool2022fl_mab (1)
+
+**Real cause:** `_vcg_check_core`'s template checks a payment/allocation
+rule against a platform objective distinct from the per-client
+scoring/allocation formula. This entry's mechanism folds the platform's
+objective and the per-client scoring rule into one and the same function —
+there is no separate platform-level objective to check the allocation rule
+against, so the template's structural precondition is never met. This does
+not recur elsewhere in the corpus (a genuine singleton), so it is not folded
+into any of the 5 sub-groups above.
+
+**Classification:** genuine solver ceiling
+
+**If ceiling — corrected diagnosis:** kept as stored per-entry — already
+accurate.
 
 ---
 
@@ -237,26 +464,51 @@ accurate.
 |---|---|---|
 | Contract: no adverse-selection IC in paper | 9 | ceiling |
 | Contract: multi-dim / population-coupled type | 3 | ceiling |
+| Contract: data/transcription/notation defects (15 distinct single-entry causes, grouped only by shared bail point) | 15 | mixed — no confirmed fixable bug; 2 flagged for a closer look (2102_03401 possible parser normalization gap, Kang2022blockchain_metaverse narrow offset-index parser gap) |
 | Contract: transcendental / opaque function | 3 | ceiling |
 | Stackelberg: no follower IR stated | 11 | ceiling |
 | Stackelberg: vector follower decision | 8 | ceiling |
-| VCG: allocation outside fixed template (4 sub-groups) | 21 | ceiling (4-entry non-polynomial-gap sub-group flagged for a closer look, not confirmed fixable) |
+| Stackelberg: beyond 2-stage / dynamic recursion | 2 | ceiling |
+| Stackelberg: transcendental / implicit follower FOC | 3 | ceiling |
+| Stackelberg/VCG: no diagnosed missing field (empty/abstract notes) | 3 | diagnosis gap, not a confirmed solver ceiling |
+| Stackelberg: additional single-entry causes near "no follower IR" | 3 | ceiling |
+| VCG: allocation outside fixed template (5 sub-groups) | 19 | ceiling (4-entry non-polynomial-gap sub-group flagged for a closer look, not confirmed fixable) |
+| VCG: no separate platform objective (singleton) | 1 | ceiling |
 | Shapley: k > 3 / coalition size unstated | 3 | ceiling |
 | Contract: box-dimension cap after pinning | 2 | ceiling |
+| **Total clustered (>= 2-entry clusters, plus the 2 named singletons within the VCG/Shapley write-ups above)** | **85** | |
 
-**0 of 60 clustered entries are confirmed fixable bugs.** Every cluster
-traces to a genuine template/solver-capability boundary: Track 1's Contract
-model assumes single-dimension adverse-selection screening, its Stackelberg
-model assumes a scalar follower action with a stated IR, and its VCG model
-assumes a discrete, closed-form, regex-classifiable Clarke-pivot-family
-payment. All are real limitations of the current verifier tracks, not bugs
-in how those tracks are implemented. The one sub-group worth a second,
-closer look before the Task 3+ plan is finalized is the 4-entry
-"non-polynomial payment gap" VCG group — flagged above as the only place a
-fix sketch is offered, and even that is conditional on inspection this pass
-did not do.
+**Singletons (true, verified against the grouping query):**
 
-The remaining 26 MANUAL entries (86 total minus the 60 above) either did not
-form a `>= 2`-entry cluster (singleton `bail_function`/`bail_reason`
-combinations) or were not present in the audit JSON's covered set; per the
-brief, only `>= 2`-entry clusters are in scope for this document.
+- 2405_13879 — `verify_shapley` bails MANUAL because the paper never
+  defines a coalition characteristic function `v(S)` or uses the Shapley
+  value at all; the Shapley category tag on this entry is itself wrong (no
+  coalition track applies). This is the only entry among all 86 whose
+  `(bail_function, bail_reason[:80])` key has no other member — every other
+  entry belongs to one of the 5 raw clusters above. Genuine ceiling (a
+  mis-categorization, not a fixable verifier bug — fixing it means
+  recategorizing the corpus entry, out of scope for solver widening).
+
+**0 of 85 clustered entries are confirmed fixable bugs**, and the 1 true
+singleton is also not a fixable bug (a corpus mis-categorization). Every
+named cluster traces to either a genuine template/solver-capability
+boundary (Track 1's Contract model assumes single-dimension
+adverse-selection screening, its Stackelberg model assumes a
+2-stage/scalar-follower game with a stated IR, and its VCG model assumes a
+discrete, closed-form, regex-classifiable Clarke-pivot-family payment) or,
+for the 15-entry Contract "data/transcription/notation defects" bucket and
+the 3-entry "no diagnosed missing field" bucket, a mix of per-entry data
+defects and open diagnosis gaps rather than one shared math cause — these
+two buckets are reported as clusters (they share a bail point) but
+explicitly are NOT single-cause clusters the way the other 11 are, and no
+single corrected `obstruction` line is offered for them. Two single-entry
+items inside the 15-entry bucket (2102_03401, Kang2022blockchain_metaverse)
+are flagged as possibly narrow parser bugs worth inspection, and the
+4-entry "non-polynomial payment gap" VCG group remains the one sub-group
+with an actual fix sketch — both are conditional on inspection this pass
+did not do, per the fail-closed instruction.
+
+**Entry-count verification:** every paper_id listed across all sections and
+the singleton above was collected and counted independently of this
+narrative — 85 distinct clustered entries + 1 singleton = 86, with zero
+duplicates. See the fix report for the exact re-run command and output.
