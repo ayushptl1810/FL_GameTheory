@@ -55,7 +55,7 @@ def _tier_b_numeric_core(
     values: dict[frozenset[int], float],
     n: int,
     stated_payments: dict[int, float] | None,
-) -> tuple[bool, bool, list[str]]:
+) -> tuple[bool, bool, bool, list[str]]:
     phi = _shapley_from_values(values, n)
     conds: list[str] = []
     tol = 1e-9
@@ -83,16 +83,17 @@ def _tier_b_numeric_core(
             f"{'ok' if ok else 'VIOLATED'}"
         )
 
+    payment_ok = True
     if stated_payments is not None:
         for i in range(1, n + 1):
             match = math.isclose(phi[i], stated_payments.get(i, float("nan")), abs_tol=1e-6)
-            core_ok &= match
+            payment_ok &= match
             conds.append(
                 f"payment i={i}: stated={stated_payments.get(i)} vs Shapley={phi[i]:.6g} -> "
                 f"{'match' if match else 'MISMATCH'}"
             )
 
-    return core_ok, ir_ok, conds
+    return core_ok, ir_ok, payment_ok, conds
 
 
 # --- Tier A: symbolic identity -------------------------------------------------
@@ -103,6 +104,11 @@ def _tier_b_numeric_core(
 #   - a Shapley weight    |S|!(n-|S|-1)!/n!  or  (|S|-1)!(n-|S|)!/n!
 # The fail-closed rejection guards (\binom / \hat / K-normalization / approx)
 # still run first, so a binom-normalized approximation returns (False, ...).
+
+# ponytail: structural substring check — a numeric or other-letter scalar
+# prefactor on the sum (e.g. "2\sum ...") passes the marginal-term + weight
+# match. Inherent to a substring test; tighten to a parsed coefficient check
+# only if a corpus entry ever exercises it. None does today.
 import re
 
 _MARGINAL_RE = re.compile(
@@ -172,21 +178,28 @@ def verify_coalition(entry: dict) -> VerificationResult:
     stated = m.get("coalition_payments")
     stated_payments = ({int(k): float(v) for k, v in stated.items()} if stated else None)
 
-    core_ok, ir_ok, conds = _tier_b_numeric_core(values, n, stated_payments)
+    core_ok, ir_ok, payment_ok, conds = _tier_b_numeric_core(values, n, stated_payments)
     tier_a_line = f"Tier A: {detail}"
 
-    if core_ok and ir_ok:
+    if core_ok and ir_ok and payment_ok:
         return VerificationResult(
             verdict="VERIFIED", category="Shapley", paper_id=pid, track=5,
             conditions=[tier_a_line, *conds], entry_specific=True,
-            notes="Tier A (Shapley identity) + Tier B (core, IR) both hold",
+            notes="Tier A (Shapley identity) + Tier B (core, IR, payment) all hold",
         )
     if not core_ok:
-        violated = [c for c in conds if "VIOLATED" in c or "MISMATCH" in c]
+        violated = [c for c in conds if "VIOLATED" in c]
         return VerificationResult(
             verdict="COUNTEREXAMPLE", category="Shapley", paper_id=pid, track=5,
             conditions=[tier_a_line, *conds], entry_specific=True,
-            notes="core / payment violated: " + "; ".join(violated),
+            notes="core violated: " + "; ".join(violated),
+        )
+    if not payment_ok:
+        mism = [c for c in conds if "MISMATCH" in c]
+        return VerificationResult(
+            verdict="COUNTEREXAMPLE", category="Shapley", paper_id=pid, track=5,
+            conditions=[tier_a_line, *conds], entry_specific=True,
+            notes="stated payment != Shapley value: " + "; ".join(mism),
         )
     return _manual(pid, "core holds but individual rationality is violated — "
                         "check the paper's participation model")
