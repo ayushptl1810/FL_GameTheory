@@ -768,3 +768,84 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** population-coupling support is a separate future round; independently, fix the r_j^L label so it is not read as a power.
 **Diagnosed:** 2026-09-06
 
+## R12 — Nash-equilibrium / action-choice track (new track_nash.py, 0 flips)
+
+R12 built `src/tracks/track_nash.py` (`verify_nash_action_choice`, Track 6) —
+a finite best-response check over an explicit discrete action set — and
+wired it into the LaTeX Contract dispatch and the AST path. Task 2 re-traced
+the 10 no-screening-IC entries and partitioned them by real equilibrium
+shape: (a) finite-action Nash, (b) peer-prediction BNE, (c) Bayesian
+persuasion, (d) continuous-action Nash / other. No entry carries a
+transcribable numeric action-payoff table (the R3a extraction declined for
+all; no PDFs available), so 0 flipped. Every diagnosis below replaces the
+generic "no-screening-IC" text with the shape-specific obstruction.
+
+### 2408_13223 (Contract) — R12
+
+**Mechanism:** Nash action-choice equilibrium over {abstain, join, buy}; rewards assigned directly per platform-known type, no menu self-selection.
+**Obstruction:** shape (a) — finite-action Nash confirmed, Track 6 is the right check, but no numeric action_payoffs table is stated (R3a extraction declined; no PDF here). Fail-closed: fields left absent, entry stays MANUAL.
+**Human task:** transcribe action_set / players / action_payoffs / stated_equilibrium_profile with a source cite; Track 6 then runs unchanged.
+**Diagnosed:** 2026-09-06
+
+### 2605_02935 (Contract) — R12
+
+**Mechanism:** Blockchain smart contracts with per-role strategy-proofness against a small fixed deviation set; no type space, cost function, or contract menu.
+**Obstruction:** shape (a) — per-role strategy-proofness against a fixed deviation set is a finite best-response check Track 6 can represent, but no numeric per-role/per-deviation payoff table is stated (R3a extraction declined; no PDF here).
+**Human task:** transcribe each role's action set and the payoff at every deviation profile with a source cite.
+**Diagnosed:** 2026-09-06
+
+### Li2026network (Contract) — R12
+
+**Mechanism:** Per-type closed-form payment plus an explicit 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening.
+**Obstruction:** shape (a) — 3-action best-response equilibrium, Track 6's exact target, but no numeric action_payoffs table is stated (R3a extraction declined; no PDF here).
+**Human task:** instantiate the closed-form per-type payments/utilities at concrete parameters to build action_payoffs over {abstain, join, buy}^n with a source cite.
+**Diagnosed:** 2026-09-06
+
+### Zhang2020fedserving (Contract) — R12
+
+**Mechanism:** Bayesian peer-prediction / Bayesian Truth Serum with a BNE truthfulness proof (Defs 1-2) over reported predictions; no discrete type space, no menu.
+**Obstruction:** shape (b) — truthfulness is a strictly-proper-scoring-rule BNE over reported signals, not "no profitable unilateral deviation" over a finite action set. Track 6 has no belief/signal model and no properness check; it cannot represent this.
+**Human task:** a future peer-prediction track — model the signal space and prior, verify the scoring rule is strictly proper so truthful reporting is a BNE.
+**Diagnosed:** 2026-09-06
+
+### 2505_05842 (Contract) — R12
+
+**Mechanism:** Dynamic Bayesian persuasion: a signal over the posterior of tau plus a single uniform reward; feasibility governed by Bayesian Consistency / Plausibility / Benefit (Defs 2-4), not a type-indexed menu.
+**Obstruction:** shape (c) — the proof object is the server's signal scheme feasibility, not a player's best-response over a finite action set. Track 6 does not apply (nor does the screening-IC template).
+**Human task:** a future Bayesian-persuasion track — check Bayesian Consistency / Plausibility / Benefit (Eqs 9-11) for the stated signal scheme and posterior.
+**Diagnosed:** 2026-09-06
+
+### Bornstein2023realistic_incentive (Contract) — R12
+
+**Mechanism:** Moral hazard over a continuously self-chosen contribution m_i (Theorem 1 Nash condition); the paper explicitly distinguishes itself from contract theory.
+**Obstruction:** shape (d) — a Nash claim, but over a continuous action m_i >= 0 proved by a parametrized inequality, not a small discrete set. Track 6 enumerates finite profiles and has nothing to enumerate here.
+**Human task:** verify Theorem 1's inequality analytically, or route the continuous FOC through a Stackelberg-style stationarity check.
+**Diagnosed:** 2026-09-06
+
+### Huang2024aigc (Contract) — R12
+
+**Mechanism:** A single uniform unit-data price with post-hoc behavioural type regions of a continuous (s_k, lambda_k) space; the paper never states IC, screening, or a menu.
+**Obstruction:** shape (d) — each client's response to the posted price is a continuous data-amount choice; "type-1/type-2" are regions of that continuous space, not a finite action set. Track 6's finite enumeration cannot represent it.
+**Human task:** verify the per-client continuous best-response to the posted price analytically or via a Stackelberg-style FOC check.
+**Diagnosed:** 2026-09-06
+
+### Karimireddy2022data_sharing (Contract) — R12
+
+**Mechanism:** Moral hazard / continuous-action Nash with verifiable costs; "Theorem 4.6 (Incentive compatibility)" is a no-distortion property of the equilibrium continuous contribution, not self-selection.
+**Obstruction:** shape (d) — equilibrium over a continuous contribution m_i, costs explicitly verifiable (no hidden type), and the paper's "IC" theorem is a no-distortion identity, not a finite best-response. Track 6 has no finite set to enumerate.
+**Human task:** verify the Theorem 4.6 no-distortion identity symbolically.
+**Diagnosed:** 2026-09-06
+
+### Zhao2023truthful (Contract) — R12
+
+**Mechanism:** Moral hazard (hidden action): one desired action assigned to every client, truthfulness proved as a Nash equilibrium over continuous effort (e_i, D_i).
+**Obstruction:** shape (d) — Lemma 2's equilibrium is over continuous effort variables e_i and D_i, not a small discrete action set. Track 6 enumerates finite profiles and has nothing to enumerate here; no hidden type, so the screening-IC template does not apply either.
+**Human task:** verify Lemma 2's stationarity condition over (e_i, D_i) symbolically or numerically (Stackelberg-style).
+**Diagnosed:** 2026-09-06
+
+### 2505_02462 (Contract) — R12
+
+**Mechanism:** Graph-based reciprocal model-sharing with a single self-reported-cost truthfulness property (Lemma 1 / Theorem 2) and a real IR proof (Theorem 1); no discrete type set, no (effort, reward) menu.
+**Obstruction:** shape (d) — a one-shot truthful-report guarantee for a single self-reported cost parameter, not a best-response over a set of actions and not a menu self-selection. Track 6 needs a finite action_set per player and a joint-profile payoff table; this mechanism has neither.
+**Human task:** a single-parameter truthful-report check (reporting c_i truthfully is weakly dominant) plus the Theorem 1 IR inequality.
+**Diagnosed:** 2026-09-06

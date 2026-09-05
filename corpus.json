@@ -1768,13 +1768,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- Nash action-choice equilibrium over {abstain, join, buy} with rewards assigned directly per platform-known type; template does not apply",
-      "mechanism": "Nash action-choice equilibrium over {abstain, join, buy} with rewards assigned directly per platform-known type.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "finite-action Nash shape confirmed (action set {abstain, join, buy}) but no concrete numeric action-payoff table in the paper",
+      "mechanism": "Nash action-choice equilibrium over {abstain, join, buy}; rewards assigned directly per platform-known type, no menu self-selection.",
+      "obstruction": "Task 2's re-trace confirms this is a finite-action Nash mechanism (shape a) -- verify_nash_action_choice (Track 6) is the right check. But it needs action_payoffs: a numeric payoff for every player at every joint action profile. The R3a LLM extraction over the PDF text declined (confident=false), no such table is in the mechanism dict, and no PDF is available here to transcribe one. Fail-closed: fields left absent, entry stays MANUAL.",
+      "human_task": "Transcribe the paper's action_set, players, action_payoffs table and stated_equilibrium_profile into the mechanism dict with an action_payoffs_source cite; Track 6's finite best-response check then runs with no further plumbing.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -2274,13 +2274,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- graph-based reciprocal model-sharing with a single self-reported-cost truthfulness property, no discrete type set and no (effort, reward) menu; template does not apply",
-      "mechanism": "Graph-based reciprocal model-sharing with a single self-reported-cost truthfulness property, no discrete type set and no (effort, reward) menu.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "single self-reported-cost truthfulness property with a real IR proof -- no per-player action set at all; not a finite-action Nash game",
+      "mechanism": "Graph-based reciprocal model-sharing with a single self-reported-cost truthfulness property (Lemma 1 / Theorem 2) and a real IR proof (Theorem 1); no discrete type set, no (effort, reward) menu.",
+      "obstruction": "Task 2 re-diagnoses this as shape (d): the incentive property is a one-shot truthful-report guarantee for a single self-reported cost parameter, not a best-response over a set of actions and not a type-i-vs-type-j menu self-selection. Track 6 needs a finite action_set per player and a joint-profile payoff table; this mechanism has neither. It is closer to a single-parameter direct-mechanism truthfulness check.",
+      "human_task": "A single-parameter truthful-report check (report cost c_i truthfully is weakly dominant) plus the Theorem 1 IR inequality; neither the screening-IC template nor the finite-action Nash track fits.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -2319,13 +2319,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- dynamic Bayesian persuasion (signal over the posterior plus a single uniform reward), governed by Bayesian Consistency/Plausibility/Benefit, not by a type-indexed menu; template does not apply",
-      "mechanism": "Dynamic Bayesian persuasion (signal over the posterior plus a single uniform reward), governed by Bayesian Consistency/Plausibility/Benefit, not by a type-indexed menu.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "dynamic Bayesian persuasion feasibility (signal design) -- not a player action-choice equilibrium; out of Track 6 scope",
+      "mechanism": "Dynamic Bayesian persuasion: a signal sigma over the posterior of tau plus a single uniform reward; feasibility governed by Bayesian Consistency / Plausibility / Benefit (Defs 2-4), not a type-indexed menu.",
+      "obstruction": "Task 2 re-diagnoses this as shape (c): 'truthfulness' here is about the server's signal/recommendation design being Bayes-consistent and persuasive, not about any player choosing a best-response action from a finite set. Track 6 checks 'no profitable unilateral deviation over a finite action set' -- there is no such player action set here; the object of the proof is the signal scheme's feasibility constraints. Neither the screening-IC template nor the finite-action Nash check applies.",
+      "human_task": "A future round needs a Bayesian-persuasion track: check Bayesian Consistency / Plausibility / Benefit (Eqs 9-11) hold for the stated signal scheme and posterior.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -2986,13 +2986,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- blockchain smart contracts with per-role strategy-proofness against a fixed deviation set; no type space, cost function, or contract menu; template does not apply",
-      "mechanism": "Blockchain smart contracts with per-role strategy-proofness against a fixed deviation set; no type space, cost function, or contract menu.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "per-role strategy-proofness against a fixed deviation set (finite-action Nash shape) but no payoff table transcribed",
+      "mechanism": "Blockchain smart contracts with per-role strategy-proofness against a small fixed deviation set; no type space, cost function, or contract menu.",
+      "obstruction": "Task 2 classifies this as shape (a): 'IR/IC per blockchain role via strategy-proofness against a fixed deviation set' is a finite best-response check in spirit, which Track 6 (verify_nash_action_choice) can represent. But the paper states no numeric per-role/per-deviation payoff table, the R3a extraction declined, and no PDF is available to transcribe one. Fail-closed: fields left absent, entry stays MANUAL.",
+      "human_task": "Transcribe each blockchain role's action set and the payoff at every deviation profile into action_set/players/action_payoffs with a source cite; the Track 6 check then runs.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -3308,13 +3308,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- moral hazard over a continuously self-chosen contribution m_i (Nash equilibrium condition); the paper explicitly distinguishes itself from contract theory; template does not apply",
-      "mechanism": "Moral hazard over a continuously self-chosen contribution m_i (Nash equilibrium condition); the paper explicitly distinguishes itself from contract theory.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "Nash equilibrium over a CONTINUOUS self-chosen contribution -- no finite action set for Track 6 to enumerate",
+      "mechanism": "Moral hazard over a continuously self-chosen contribution m_i (Theorem 1 Nash condition); the paper explicitly distinguishes itself from contract theory.",
+      "obstruction": "Task 2 re-diagnoses this as shape (d): it is a Nash-equilibrium claim, but over a continuous action m_i >= 0, proved by a parametrized inequality, not over a small discrete action set. Track 6 (verify_nash_action_choice) enumerates a finite action set profile-by-profile and has nothing to enumerate here. This is a continuous best-response / first-order-condition check, closer to the Stackelberg track's machinery than to a finite game.",
+      "human_task": "Verify Theorem 1's inequality analytically (or route the continuous FOC through a Stackelberg-style stationarity check); a finite-enumeration Nash track will never apply.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -4390,13 +4390,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- a single uniform unit-data price with post-hoc behavioural type regions; the paper never states incentive compatibility, screening, or a menu; template does not apply",
-      "mechanism": "A single uniform unit-data price with post-hoc behavioural type regions; the paper never states incentive compatibility, screening, or a menu.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "continuous best-response under a single uniform price; 'types' are post-hoc behavioural regions -- no finite action set for Track 6",
+      "mechanism": "A single uniform unit-data price with post-hoc behavioural type regions of a continuous (s_k, lambda_k) space; the paper never states incentive compatibility, screening, or a menu.",
+      "obstruction": "Task 2 re-diagnoses this as shape (d): each client's response to the posted price is a continuous data-amount choice, and 'type-1'/'type-2' are regions of that continuous response space induced by one price, not a finite action set. Track 6's finite best-response enumeration cannot represent a continuous best-response, and there is no payoff table to enumerate.",
+      "human_task": "Verify the per-client continuous best-response to the posted price analytically or via a Stackelberg-style FOC check; the finite-action Nash track does not apply.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -5035,13 +5035,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- moral hazard / continuous-action Nash with verifiable costs; the paper's own 'incentive compatibility' theorem is a no-distortion property, not self-selection; template does not apply",
-      "mechanism": "Moral hazard / continuous-action Nash with verifiable costs; the paper's own 'incentive compatibility' theorem is a no-distortion property, not self-selection.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "continuous-action Nash with verifiable costs; the paper's own 'IC' theorem is a no-distortion property -- no finite action set for Track 6",
+      "mechanism": "Moral hazard / continuous-action Nash with verifiable costs; 'Theorem 4.6 (Incentive compatibility)' is a no-distortion property of the equilibrium continuous contribution, not self-selection.",
+      "obstruction": "Task 2 re-diagnoses this as shape (d): the equilibrium is over a continuous contribution m_i, costs are explicitly verifiable (no hidden type being screened), and the paper's 'incentive compatibility' theorem asserts the equilibrium contribution equals the training-alone contribution (a no-distortion identity), not a best-response over a finite action set. Track 6 has no finite set to enumerate and this is not a screening-IC constraint either.",
+      "human_task": "Verify the Theorem 4.6 no-distortion identity symbolically; neither the screening-IC template nor a finite-action Nash track applies.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -5584,13 +5584,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- per-type closed-form payment plus a 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening; template does not apply",
-      "mechanism": "Per-type closed-form payment plus a 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "finite-action Nash shape confirmed (3-action {abstain, join, buy} equilibrium) but no concrete numeric action-payoff table in the paper",
+      "mechanism": "Per-type closed-form payment plus an explicit 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening.",
+      "obstruction": "Task 2 confirms shape (a): the paper's incentive condition is a 3-action best-response equilibrium, which Track 6 (verify_nash_action_choice) is built to check. It needs a numeric action_payoffs table over the joint action profiles; the R3a extraction declined, none is in the mechanism dict, and no PDF is available here. Fail-closed: fields left absent, entry stays MANUAL.",
+      "human_task": "Instantiate the paper's closed-form per-type payments and utilities at concrete parameters to build action_payoffs over {abstain, join, buy}^n, with a source cite; Track 6 then verifies the stated equilibrium.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -7663,13 +7663,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- Bayesian peer-prediction / Bayesian Truth Serum with BNE truthfulness, no discrete client type space and no self-selected menu; template does not apply",
-      "mechanism": "Bayesian peer-prediction / Bayesian Truth Serum with BNE truthfulness, no discrete client type space and no self-selected menu.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "peer-prediction / Bayesian Truth Serum BNE truthfulness -- not a finite-action best-response check; out of Track 6 scope",
+      "mechanism": "Bayesian peer-prediction / Bayesian Truth Serum with a BNE truthfulness proof (Defs 1-2) over reported predictions; no discrete client type space, no self-selected menu.",
+      "obstruction": "Task 2 re-diagnoses this as shape (b): truthfulness is proved via a proper scoring rule over reported signals with a Bayes-Nash equilibrium argument, not via 'no profitable unilateral deviation' over a small finite action set. Track 6's finite-enumeration best-response check cannot represent a proper-scoring-rule BNE (it has no belief/signal model and no scoring-rule properness check). The generic 'no-screening-IC' label was correct that the screening-IC template does not apply, but the real shape is peer-prediction, not finite-action Nash.",
+      "human_task": "A future round needs a peer-prediction track: model the signal space, the prior, and verify the scoring rule is strictly proper so truthful reporting is a BNE.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -7861,13 +7861,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
-      "track": 1,
-      "limit": "no adverse-selection screening IC in the paper -- moral hazard (hidden action): one desired action assigned to every client, truthfulness proved as a Nash equilibrium over actions; template does not apply",
-      "mechanism": "Moral hazard (hidden action): one desired action assigned to every client, truthfulness proved as a Nash equilibrium over actions.",
-      "obstruction": "The entry's ic_screening_latex is deliberately null: the paper states no two-sided type-i-vs-type-j self-selection constraint. The R3a LLM extraction pass over the PDF text also declined (confident=false, empty fields) -- the correct fail-closed outcome. The generic linear-cost VERIFIED_TEMPLATE verdict was never a statement about this paper's mechanism.",
-      "human_task": "Decide whether this mechanism family warrants its own verification template (Nash-equilibrium action choice, peer prediction, or Bayesian persuasion feasibility); the screening-IC template will never apply to it.",
-      "date": "2026-09-03"
+      "round": "R12",
+      "track": 6,
+      "limit": "hidden-action moral hazard; Lemma 2 is a Nash condition over CONTINUOUS effort (e_i, D_i) -- no finite action set for Track 6",
+      "mechanism": "Moral hazard (hidden action): one desired action assigned to every client, truthfulness proved as a Nash equilibrium over continuous effort (e_i, D_i).",
+      "obstruction": "Task 2 re-diagnoses this as shape (d): Lemma 2's equilibrium is over continuous effort variables e_i and D_i, not a small discrete action set. Track 6 (verify_nash_action_choice) enumerates finite action profiles and has nothing to enumerate here. The screening-IC template also does not apply -- there is no hidden type, only a hidden continuous action.",
+      "human_task": "Verify Lemma 2's stationarity condition over (e_i, D_i) symbolically or numerically (Stackelberg-style); a finite-enumeration Nash track will never apply.",
+      "date": "2026-09-06"
     }
   },
   {
