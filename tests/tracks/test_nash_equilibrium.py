@@ -93,3 +93,45 @@ def test_verify_nash_action_choice_missing_fields_is_manual():
     entry = {"paper_id": "x", "mechanism": {}}
     r = verify_nash_action_choice(entry)
     assert r.verdict == "MANUAL"
+
+
+_ACTION_PAYOFFS_FOR_WIRING_TEST = {
+    "p1=join,p2=join": {"p1": 3.0, "p2": 3.0},
+    "p1=join,p2=abstain": {"p1": 1.0, "p2": 0.0},
+    "p1=abstain,p2=join": {"p1": 0.0, "p2": 1.0},
+    "p1=abstain,p2=abstain": {"p1": 0.0, "p2": 0.0},
+}
+
+
+def test_contract_dispatch_tries_nash_first_when_action_set_present():
+    # `_verify_latex` is the real category dispatch entry point in verifier.py
+    # (there is no standalone `dispatch_contract`).
+    from verifier import _verify_latex
+    entry = {
+        "paper_id": "x", "category": "Contract",
+        "mechanism": {
+            "action_set": ["join", "abstain"], "players": ["p1", "p2"],
+            "action_payoffs": _ACTION_PAYOFFS_FOR_WIRING_TEST,
+            "stated_equilibrium_profile": {"p1": "join", "p2": "join"},
+        },
+    }
+    r = _verify_latex(entry)
+    assert r.verdict == "VERIFIED"
+    assert r.track == 6
+
+
+def test_ast_path_routes_to_nash_when_action_set_in_meta():
+    from architect.ast import Mechanism
+    from architect.ast_verify import verify_from_ast
+    m = Mechanism(
+        category="Contract", utility=None, payment=None, ic=None, ir=None,
+        meta={
+            "paper_id": "y",
+            "action_set": ["join", "abstain"], "players": ["p1", "p2"],
+            "action_payoffs": _ACTION_PAYOFFS_FOR_WIRING_TEST,
+            "stated_equilibrium_profile": {"p1": "join", "p2": "join"},
+        },
+    )
+    r = verify_from_ast(m)
+    assert r.verdict == "VERIFIED"
+    assert r.track == 6

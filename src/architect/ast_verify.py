@@ -289,6 +289,14 @@ def _route_continuous_seam(
 def verify_from_ast(m: Mechanism, meta: dict | None = None) -> VerificationResult:
     meta = {**m.meta, **(meta or {})}
     pid = meta.get("paper_id", "architect-proposal")
+
+    # Track 5b: finite-action Nash equilibrium -- if meta carries an explicit
+    # action_set, route to the best-response check before the category path,
+    # mirroring the Shapley/coalition local-import pattern below.
+    if (meta or {}).get("action_set"):
+        from tracks.track_nash import verify_nash_action_choice
+        return verify_nash_action_choice({"mechanism": meta, "paper_id": pid})
+
     track = _classify_ast(m)
 
     if track in (2, 3, 4):

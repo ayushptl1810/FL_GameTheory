@@ -108,6 +108,17 @@ def _verify_latex(entry: dict) -> VerificationResult:
             notes=f"'{category}' is RAG-only — no formal mechanism proofs expected.",
         )
 
+    # Track 5b: finite-action Nash equilibrium. When the mechanism carries an
+    # explicit finite action_set, the truthfulness claim is a best-response
+    # condition, not a screening-IC constraint -- try it before the normal
+    # category path. Only a decisive verdict short-circuits; MANUAL falls
+    # through to the existing screening-IC Contract path.
+    if (entry.get("mechanism") or {}).get("action_set"):
+        from tracks.track_nash import verify_nash_action_choice
+        r = verify_nash_action_choice(entry)
+        if r.verdict in ("VERIFIED", "COUNTEREXAMPLE"):
+            return r
+
     preferred = _classify_utility(entry)
 
     # Track 4: Bayesian IC — SymPy integration
