@@ -627,9 +627,67 @@ def _try_contract_latex(entry: dict) -> "VerificationResult | None":
 
     mech     = entry.get("mechanism") or {}
     paper_id = entry.get("paper_id", "<unknown>")
+
+    # Multi-dimensional type path (R11): if the entry names more than one type
+    # symbol AND supplies a paper-stated `type_reduction_map` collapsing that
+    # vector to one effective scalar, try the vector wrapper first. Declared
+    # data only -- absent for every current corpus entry, so this is a no-op.
+    type_vars = [
+        t.strip()
+        for t in str(mech.get("type_variable") or "").split(",")
+        if t.strip()
+    ]
+    reduction_map = mech.get("type_reduction_map")
+    if len(type_vars) > 1 and isinstance(reduction_map, dict) and reduction_map:
+        return _contract_check_core_vector(
+            U_ir, U_rhs, type_syms=type_vars, contract_sub=contract_sub, n=n,
+            ir_from_ic_lhs=ir_from_ic_lhs, reduction_map=reduction_map,
+            paper_id=paper_id, meta=mech,
+        )
+
     return _contract_check_core(
         U_ir, U_rhs, type_sub, contract_sub, n, ir_from_ic_lhs,
         paper_id=paper_id, meta=mech,
+    )
+
+
+def _contract_check_core_vector(
+    U_ir: Any, U_rhs: Any, type_syms: list, contract_sub: str, n: int,
+    ir_from_ic_lhs: bool, reduction_map: dict, *, paper_id: str,
+    meta: "dict | None" = None,
+) -> "VerificationResult | None":
+    """Multi-dimensional Contract type path: collapse a type vector to one
+    effective scalar via a PAPER-STATED reduction
+    (mechanism['type_reduction_map'], declared data), then delegate to
+    _contract_check_core unchanged.
+
+    Fails closed if the reduction map is not a single {eff_name: latex}
+    entry, if its RHS does not parse, or if any original type symbol
+    survives substitution -- an incomplete reduction is not a genuine
+    dimensionality collapse, and we never guess the missing algebra.
+    """
+    if not isinstance(reduction_map, dict) or len(reduction_map) != 1:
+        return None
+    (eff_name, eff_expr_latex), = reduction_map.items()
+    try:
+        eff_expr = _lx_parse(str(eff_expr_latex))
+    except Exception:
+        return None
+
+    eff_sym = _sp.Symbol(str(eff_name), positive=True)
+    orig_syms = {_sp.Symbol(str(t), positive=True) for t in type_syms}
+    orig_syms |= {_sp.Symbol(str(t)) for t in type_syms}
+
+    U_ir_c = U_ir.subs(eff_sym, eff_expr) if eff_sym in U_ir.free_symbols else U_ir
+    U_rhs_c = U_rhs.subs(eff_sym, eff_expr) if eff_sym in U_rhs.free_symbols else U_rhs
+
+    if (U_ir_c.free_symbols | U_rhs_c.free_symbols) & orig_syms:
+        return None  # reduction incomplete -- original type symbols remain
+
+    eff_index = _get_sub(eff_sym) or str(eff_name)
+    return _contract_check_core(
+        U_ir_c, U_rhs_c, eff_index, contract_sub, n, ir_from_ic_lhs,
+        paper_id=paper_id, meta=meta,
     )
 
 
