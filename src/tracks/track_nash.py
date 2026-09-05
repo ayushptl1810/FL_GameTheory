@@ -39,3 +39,89 @@ def _parse_action_payoffs(
                 )
             parsed[(p, profile)] = float(entry[p])
     return parsed
+
+
+def _is_best_response(
+    payoffs: dict, players: list, profile: tuple, actions: list, player: str
+) -> bool:
+    """True iff no unilateral deviation by `player` (holding all others'
+    actions in `profile` fixed) strictly increases `player`'s payoff."""
+    idx = players.index(player)
+    current = payoffs[(player, profile)]
+    for alt_action in actions:
+        alt_profile = tuple(
+            alt_action if i == idx else a for i, a in enumerate(profile)
+        )
+        if payoffs[(player, alt_profile)] > current:
+            return False
+    return True
+
+
+def _check_all_best_responses(
+    payoffs: dict, players: list, actions: list, stated_profile: tuple
+) -> tuple[bool, list]:
+    """Check `_is_best_response` for every player at the one stated
+    equilibrium profile. Returns (all_ok, per-player condition strings)."""
+    conditions = []
+    all_ok = True
+    for player in players:
+        ok = _is_best_response(payoffs, players, stated_profile, actions, player)
+        all_ok &= ok
+        conditions.append(
+            f"best-response check for {player} at profile {stated_profile}: "
+            f"{'ok (no profitable deviation)' if ok else 'VIOLATED (a deviation strictly improves payoff)'}"
+        )
+    return all_ok, conditions
+
+
+def _manual(pid: str, note: str) -> VerificationResult:
+    return VerificationResult(
+        verdict="MANUAL", category="Contract", paper_id=pid, track=6,
+        notes=note, entry_specific=False,
+    )
+
+
+def verify_nash_action_choice(entry: dict) -> VerificationResult:
+    """Reads mechanism.action_set, mechanism.players,
+    mechanism.action_payoffs and mechanism.stated_equilibrium_profile.
+    Missing any -> MANUAL. Parse failure -> MANUAL with the ValueError
+    message. All best-response checks hold -> VERIFIED (entry_specific).
+    Any player with a profitable deviation -> COUNTEREXAMPLE.
+    """
+    pid = entry.get("paper_id", "<unknown>")
+    m = entry.get("mechanism") or {}
+
+    actions = m.get("action_set")
+    players = m.get("players")
+    raw_payoffs = m.get("action_payoffs")
+    stated = m.get("stated_equilibrium_profile")
+
+    if not isinstance(actions, list) or not actions:
+        return _manual(pid, "no action_set stated -- cannot check a finite-action Nash equilibrium")
+    if not isinstance(players, list) or not players:
+        return _manual(pid, "no players list stated")
+    if not isinstance(raw_payoffs, dict) or not raw_payoffs:
+        return _manual(pid, "no action_payoffs transcribed -- Nash-shape confirmed but nothing to check")
+    if not isinstance(stated, dict) or set(stated) != set(players):
+        return _manual(pid, "no stated_equilibrium_profile naming every player's claimed action")
+
+    try:
+        payoffs = _parse_action_payoffs(raw_payoffs, players, actions)
+    except ValueError as e:
+        return _manual(pid, f"action_payoffs unusable: {e}")
+
+    profile = tuple(stated[p] for p in players)
+    all_ok, conditions = _check_all_best_responses(payoffs, players, actions, profile)
+
+    if all_ok:
+        return VerificationResult(
+            verdict="VERIFIED", category="Contract", paper_id=pid, track=6,
+            conditions=conditions, entry_specific=True,
+            notes="every player's stated action is a best response over the finite action set (no profitable unilateral deviation)",
+        )
+    violated = [c for c in conditions if "VIOLATED" in c]
+    return VerificationResult(
+        verdict="COUNTEREXAMPLE", category="Contract", paper_id=pid, track=6,
+        conditions=conditions, entry_specific=True,
+        notes="stated equilibrium profile is not a Nash equilibrium: " + "; ".join(violated),
+    )
