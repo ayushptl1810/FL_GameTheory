@@ -4,18 +4,40 @@
 
 ## Handoff from R12 (read before starting)
 
-**This section must be filled in by R12's Task 8 Step 3 before R13 begins.**
-Until R12 lands, treat the following as placeholders:
+**Filled in by R12's Task 8 Step 3 (R12 landed 2026-09-06).**
 
-- Confirmation `track_nash.py` used `track=6`: _(R12 fills in)_.
-- Post-R12 corpus counts for the Contract slice: _(R12 fills in)_.
-- Any dispatch-wiring lesson from Task 5 of R12 relevant to R13's own
-  dispatch edits: _(R12 fills in — likely low-relevance, since R13 extends
-  `_sp_to_z3` directly rather than adding a new track/dispatch entry, but
-  confirm)_.
-- Whether any of R12's shape-(b)/(c)/(d) reclassified entries turned out to
-  be transcendental-equation cases R13 should also target: _(R12 fills
-  in — cross-check against this plan's target list in Task 1)_.
+- **`track_nash.py` used `track=6`.** Confirmed — `track_coalition.py`
+  already holds `track=5`, so R12's module took the next integer. R13 adds
+  no new track, but if it writes any verdict metadata, `track` values 1–6
+  are now in use.
+- **Post-R12 corpus counts.** Unchanged by R12 (0 flips): in-scope totals
+  are `VERIFIED 12`, `MANUAL 93` across 105 in-scope entries. Contract
+  slice specifically: `VERIFIED 6`, `MANUAL 32` (38 Contract entries). The
+  R13 baseline (Task 1) should re-capture and confirm this, not trust it.
+- **Dispatch-wiring lesson — low relevance, as predicted.** R12 wired its
+  new track by a `mechanism.action_set`-guarded pre-check at the *top* of
+  `verifier._verify_latex` (not a new entry in the `dispatch` dict) and a
+  mirror early-return in `ast_verify.verify_from_ast` before
+  `_classify_ast`, using a function-local `from tracks.track_nash import …`
+  to avoid an import cycle (same pattern as the coalition track). R13
+  extends `_sp_to_z3` / adds a SciPy fallback *inside* `track1_z3.py`, so it
+  touches no dispatch site — this pattern does not transfer. The one
+  transferable note: a function-local import inside the branch is the
+  established way to reach a sibling `tracks.*` module without a cycle.
+- **No overlap with R13's target list.** R12's Task 2 re-trace
+  (`round-R12-root-cause-recheck.md`) reclassified its 10 entries into
+  shapes (a) finite-action Nash, (b) peer-prediction BNE
+  (`Zhang2020fedserving`), (c) Bayesian persuasion (`2505_05842`),
+  (d) continuous-action Nash / single-report truthfulness
+  (`Bornstein2023realistic_incentive`, `Huang2024aigc`,
+  `Karimireddy2022data_sharing`, `Zhao2023truthful`, `2505_02462`). None of
+  these is a transcendental-equation / opaque-log-argument encoding case,
+  and none appears in R13's target list (`2407_02845`,
+  `Han2025paid_models`, `Nguyen2025right_reward`, `Chu2023hierarchical`,
+  `Luo2023unbiased`, + 1). The shape-(d) continuous-FOC entries are
+  `MANUAL` for a modelling reason (continuous action / no hidden type), not
+  a solver-encoding limit R13 removes. Task 1's confirmation step can treat
+  the R13 target list as unaffected by R12.
 
 **This is the last round in this program.** R13's own Task 8 does not hand
 off to a further plan — it writes the umbrella spec's final "Landed"

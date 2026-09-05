@@ -75,6 +75,28 @@ round internals past what's needed to sequence them.
 - **R12 — Nash-equilibrium / action-choice track.** Targets the 10-entry
   no-screening-IC family named in R9's own "R10" section (renumbered R12 to
   keep this program's rounds contiguous; same scope).
+  **Landed 2026-09-06:** 0 of the 10 entries reclaimed; every one keeps a
+  corrected shape-specific `manual_diagnosis`. Shipped
+  `src/tracks/track_nash.py` (`verify_nash_action_choice`, **`track=6`** —
+  `track_coalition.py` already holds `track=5`): a fail-closed finite
+  best-response check over an explicit `action_set` / `action_payoffs` /
+  `stated_equilibrium_profile`, no `architect.*` import. Wired into
+  `verifier._verify_latex` (pre-check when `mechanism.action_set` present,
+  falling through to the screening-IC path on `MANUAL`) and
+  `ast_verify.verify_from_ast` (early branch before `_classify_ast`, local
+  import like the coalition track). Task 2's re-trace found R9's family
+  label bundled four shapes: (a) finite-action Nash — `2408_13223`,
+  `2605_02935`, `Li2026network`; (b) peer-prediction BNE —
+  `Zhang2020fedserving`; (c) Bayesian persuasion — `2505_05842`;
+  (d) continuous-action Nash / single-report truthfulness — the other five.
+  No shape-(a) entry carries a transcribable numeric payoff table (no PDFs
+  in the repo; the R3a extraction had already declined for all three), so
+  nothing flipped — valid per this spec's "0 entries reclaimed but correct,
+  tested, fail-closed capability" clause. 10 new tests
+  (`tests/tracks/test_nash_equilibrium.py`); full suite green (486 passed).
+  No merge (no branch this program). Delta:
+  `docs/superpowers/notes/round-R12-delta.md`; re-trace:
+  `docs/superpowers/notes/round-R12-root-cause-recheck.md`.
 - **R13 — Transcendental/implicit root-finding fallback.** Targets the
   ~8-10 entry transcendental-FOC / opaque-log-argument cluster across
   Contract and Stackelberg.
