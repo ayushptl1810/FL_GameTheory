@@ -1635,14 +1635,19 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     )
 
 
-def _solve_stationarity_system(mech: dict, decision_syms: list) -> "dict | None":
+def _solve_stationarity_system(
+    mech: dict, decision_syms: list
+) -> "tuple[dict, str] | None":
     """Solve mech['follower_stationarity_system'] jointly for decision_syms.
 
     Each entry is LaTeX of the form ``\\partial U / \\partial x_k = <rhs>``
     (the derivative is set to 0) or a plain ``<lhs> = <rhs>``. Returns
-    ``{sym: solution_expr}`` on a unique real solution with no residual free
-    decision symbols; ``None`` on count mismatch, an unparseable equation,
-    no/multiple solutions, or a solution still containing a decision symbol.
+    ``({sym: solution_expr}, method)`` where ``method`` is ``"symbolic"``
+    (SymPy's exact solve) or ``"numeric:fsolve"`` (the SciPy fallback for a
+    system SymPy's exact solver returns no solution for); ``None`` on count
+    mismatch, an unparseable equation, *multiple* distinct symbolic
+    solutions (genuine multi-root ambiguity -- fail closed, never a numeric
+    guess), or a solution still containing a decision symbol.
     Fail closed everywhere -- a guessed VERIFIED is worse than a template.
     """
     raw = mech.get("follower_stationarity_system")
@@ -1678,16 +1683,88 @@ def _solve_stationarity_system(mech: dict, decision_syms: list) -> "dict | None"
     try:
         sol = _sp.solve(eqs, list(decision_syms), dict=True)
     except Exception:
+        sol = []
+
+    if len(sol) == 1:
+        m = sol[0]
+        dset = set(decision_syms)
+        if all(sym in m for sym in decision_syms) and not any(
+            m[sym].free_symbols & dset for sym in decision_syms
+        ):
+            return {sym: m[sym] for sym in decision_syms}, "symbolic"
         return None
-    if len(sol) != 1:
+
+    if len(sol) > 1:
+        # Distinct exact solutions -> genuine multi-root ambiguity. A numeric
+        # single-basin search would silently pick one; fail closed instead.
         return None
-    m = sol[0]
-    if any(sym not in m for sym in decision_syms):
+
+    # SymPy's exact solver found nothing (empty or it raised). Try a numeric
+    # fallback -- only meaningful once every free parameter symbol is pinned.
+    return _numeric_solve_stationarity(eqs, list(decision_syms))
+
+
+def _numeric_solve_stationarity(
+    eqs: list, decision_syms: list
+) -> "tuple[dict, str] | None":
+    """SciPy fallback for a joint stationarity system SymPy's exact solve
+    could not close (rational/transcendental terms, e.g. 1/(1+x), log(x)).
+
+    Fail-closed: requires >=2 distinct fixed start points to converge to the
+    SAME point within 1e-6, with a residual below 1e-8 there. A system with
+    a free parameter symbol left un-pinned, an unlambdifiable expression, or
+    disagreeing start points returns None -- never a guessed root.
+    """
+    try:
+        import numpy as _np
+        from scipy.optimize import fsolve as _fsolve
+    except Exception:
         return None
+
+    residuals = [eq.lhs - eq.rhs for eq in eqs]
     dset = set(decision_syms)
-    if any(m[sym].free_symbols & dset for sym in decision_syms):
+    if any(r.free_symbols - dset for r in residuals):
+        return None  # free parameter symbols remain -- nothing to evaluate
+    try:
+        fns = [_sp.lambdify(decision_syms, r, "numpy") for r in residuals]
+    except Exception:
         return None
-    return {sym: m[sym] for sym in decision_syms}
+
+    def _system(vec):
+        return [float(f(*vec)) for f in fns]
+
+    starts = [
+        tuple(0.1 for _ in decision_syms),
+        tuple(1.0 for _ in decision_syms),
+        tuple(10.0 for _ in decision_syms),
+    ]
+    roots = []
+    for start in starts:
+        try:
+            root, _info, ier, _msg = _fsolve(
+                _system, _np.array(start, dtype=float), full_output=True
+            )
+        except Exception:
+            continue
+        if ier != 1:
+            continue
+        if max(abs(v) for v in _system(root)) > 1e-8:
+            continue
+        roots.append(root)
+
+    if len(roots) < 2:
+        return None
+    ref = roots[0]
+    if not all(
+        all(abs(r[i] - ref[i]) < 1e-6 for i in range(len(decision_syms)))
+        for r in roots[1:]
+    ):
+        return None  # start points disagree -- multiple roots, fail closed
+
+    return (
+        {sym: _sp.Float(float(v)) for sym, v in zip(decision_syms, ref)},
+        "numeric:fsolve",
+    )
 
 
 def _br_components_match(br_latex: str, opt: dict) -> bool:
@@ -1748,9 +1825,10 @@ def _stackelberg_vector_check(
     require the Hessian negative-definite at the optimum, cross-check every
     component against best_response_latex, and check follower IR at the joint
     optimum. Any ambiguity -> None (fall through to the generic template)."""
-    opt = _solve_stationarity_system(mech, syms)
-    if opt is None:
+    solved = _solve_stationarity_system(mech, syms)
+    if solved is None:
         return None
+    opt, solve_method = solved
     # Rebind parse-minted parameter symbols in the solution to the utility's
     # own (assumption-carrying) symbols so downstream sign reasoning works.
     u_by_name = {str(s): s for s in util_expr.free_symbols}
@@ -1782,12 +1860,13 @@ def _stackelberg_vector_check(
     return VerificationResult(
         verdict="VERIFIED", category="Stackelberg", paper_id=paper_id, track=1,
         conditions=[
-            f"joint stationarity: {', '.join(f'{s}*={opt[s]}' for s in syms)}",
+            f"joint stationarity ({solve_method}): "
+            + ", ".join(f"{s}*={opt[s]}" for s in syms),
             "Hessian negative-definite at the joint optimum",
             "IR: U_follower(joint optimum) >= 0",
         ],
         notes=(
-            "Stackelberg vector-decision: joint stationarity solved, "
+            f"Stackelberg vector-decision: joint stationarity solved ({solve_method}), "
             "Hessian negative-definite at the optimum, best_response cross-check "
             f"{'MATCH' if br_raw else 'n/a'}, follower IR holds at the joint optimum."
         ),

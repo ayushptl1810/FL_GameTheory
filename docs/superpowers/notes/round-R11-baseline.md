@@ -7,7 +7,7 @@ Captured before the sweep. Out-of-scope categories (`RL`, `Valuation`, `Naive`) 
 | # | Paper ID | Category | Verdict | Entry-Specific |
 |---|---|---|---|---|
 | 1 | 2102_03401 | Contract | MANUAL | False |
-| 2 | 2307_15975 | Contract | VERIFIED_TEMPLATE | False |
+| 2 | 2307_15975 | Contract | VERIFIED | True |
 | 3 | 2308_12502 | Contract | MANUAL | False |
 | 4 | 2403_09153 | Contract | MANUAL | False |
 | 5 | 2407_02845 | Contract | MANUAL | False |
@@ -26,18 +26,18 @@ Captured before the sweep. Out-of-scope categories (`RL`, `Valuation`, `Naive`) 
 | 18 | Kang2019reliable_contract | Contract | MANUAL | False |
 | 19 | Kang2022blockchain_metaverse | Contract | MANUAL | False |
 | 20 | Karimireddy2022data_sharing | Contract | MANUAL | False |
-| 21 | Li2025bayesian_incentive | Contract | UNKNOWN | True |
+| 21 | Li2025bayesian_incentive | Contract | VERIFIED | True |
 | 22 | Li2026network | Contract | MANUAL | False |
 | 23 | Lim2020contract | Contract | MANUAL | False |
-| 24 | Lim2020contract_healthcare | Contract | VERIFIED_TEMPLATE | False |
+| 24 | Lim2020contract_healthcare | Contract | VERIFIED | True |
 | 25 | Ma2023joint_pricing | Contract | MANUAL | False |
 | 26 | Nguyen2025right_reward | Contract | MANUAL | False |
 | 27 | Saputra2020fl_contract | Contract | MANUAL | False |
 | 28 | Saputra2021iov_contract | Contract | MANUAL | False |
 | 29 | Saputra2021straggling | Contract | MANUAL | False |
-| 30 | Sun2022coded | Contract | VERIFIED_TEMPLATE | False |
-| 31 | Tan2025renegotiable_contract | Contract | VERIFIED_TEMPLATE | False |
-| 32 | Tian2021contract | Contract | VERIFIED_TEMPLATE | False |
+| 30 | Sun2022coded | Contract | VERIFIED | True |
+| 31 | Tan2025renegotiable_contract | Contract | VERIFIED | True |
+| 32 | Tian2021contract | Contract | VERIFIED | True |
 | 33 | Wang2022motilearn_contract | Contract | MANUAL | False |
 | 34 | Wen2025diffusion_contract | Contract | MANUAL | False |
 | 35 | Wu2021contract_DP | Contract | MANUAL | False |
@@ -74,7 +74,7 @@ Captured before the sweep. Out-of-scope categories (`RL`, `Valuation`, `Naive`) 
 | 66 | Luo2023unbiased | Stackelberg | MANUAL | False |
 | 67 | Pandey2019crowd | Stackelberg | MANUAL | False |
 | 68 | Pang2025quality | Stackelberg | MANUAL | False |
-| 69 | Sarikaya2019stackelberg_workers | Stackelberg | VERIFIED_TEMPLATE | False |
+| 69 | Sarikaya2019stackelberg_workers | Stackelberg | VERIFIED | True |
 | 70 | Wang2022blockchain | Stackelberg | MANUAL | False |
 | 71 | Xiao2020stackelberg_twostage | Stackelberg | MANUAL | False |
 | 72 | Yu2022multi_leader_fl | Stackelberg | MANUAL | False |
@@ -114,9 +114,9 @@ Captured before the sweep. Out-of-scope categories (`RL`, `Valuation`, `Naive`) 
 
 ## Verdict Counts
 
-- VERIFIED: 5
-- VERIFIED_TEMPLATE: 6
+- VERIFIED: 12
+- VERIFIED_TEMPLATE: 0
 - VERIFIED_SHAPE: 0
 - MANUAL: 93
-- UNKNOWN: 1
+- UNKNOWN: 0
 - UNSUPPORTED: 0
