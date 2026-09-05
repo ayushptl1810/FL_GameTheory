@@ -688,3 +688,83 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Obstruction:** The payment subtracts the agent's OWN cost c_i from the sum of others' costs, so it is not a welfare-with-vs-without-i pivot and is directly decreasing in i's own report; the score S is also left undefined, so the argmax has no encodable objective. (Track 1: payment subtracts the agent's own reported cost (sum_{j!=i} c_j - c_i); not a Clarke pivot)
 **Human task:** Define S and recheck the payment against the paper — as recorded it is not a Groves pivot and is likely a transcription error.
 **Diagnosed:** 2026-09-03
+
+## R11 — vector/multi-dim decision round (diagnosis refresh, 0 flips)
+
+### 2101_05628 (Stackelberg) — R11
+
+**Mechanism:** OSPs (leaders) announce prices; each mobile device (follower) picks an offloading strategy vector alpha_i = (alpha_{i,1},...,alpha_{i,N}) splitting its task across N OSPs.
+**Obstruction:** vector follower decision on a simplex; no closed-form joint stationarity system — The follower chooses an N-dimensional simplex-constrained allocation vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). This is a KKT system (stationarity + simplex feasibility + multiplier), not the plain equality FOC system _solve_stationarity_system accepts, and no follower_stationarity_system is transcribed. R11 added a SciPy numeric fallback for the equality-system case but it does not apply to a simplex-constrained KKT problem.
+**Human task:** transcribe the paper's KKT conditions (or a reduced unconstrained stationarity system after eliminating the simplex constraint) from the source PDF, then a future round can extend the vector path to KKT.
+**Diagnosed:** 2026-09-06
+
+### 2101_12428 (Stackelberg) — R11
+
+**Mechanism:** Chains post block rewards R_m; each staker n allocates a stake vector s_n = (s_n^1,...,s_n^M) across M chains subject to a budget sum_m s_n^m <= B_n.
+**Obstruction:** budget-coupled per-chain difference conditions; not a plain stationarity system — follower_foc_latex is a budget-eliminated difference of per-chain derivatives (dU/ds_n^m - dU/ds_n^M = 0, m=1..M-1), the M-1 conditions coupled through s_n^M = B_n - sum_{m<M} s_n^m. No follower_stationarity_system in the accepted '\partial U / \partial x = ... = 0' form is transcribed, and the source PDF is not available here to transcribe one.
+**Human task:** transcribe the M-1 coupled difference conditions as an explicit joint system (with the budget substitution applied) from the source PDF; then R11's numeric fallback can attempt it.
+**Diagnosed:** 2026-09-06
+
+### 2502_10765 (Stackelberg) — R11
+
+**Mechanism:** Provider sets unit prices p_r and p_w; each user jointly chooses rendering resources x_i^r AND bandwidth resources x_i^w.
+**Obstruction:** vector follower decision: numeric fallback ready but pipeline never routes a symbol vector — follower_stationarity_system IS transcribed (R4), but the live verifier pipeline never reaches _solve_stationarity_system for it: verify() returns the R4 verdict_override, and even without that, _try_stackelberg_latex extracts a single follower symbol and deliberately bails when the follower controls more than one variable -- it never builds the symbol tuple _stackelberg_check_core's vector branch needs. R11 added the numeric fallback inside that vector branch; wiring the branch to fire on this entry is unshipped additional work.
+**Human task:** add routing in _try_stackelberg_latex: when follower_stationarity_system is present, collect its decision symbols and call _stackelberg_check_core with follower_decision=tuple(syms); then hand-check the resulting root (residual + Hessian sign) against the paper.
+**Diagnosed:** 2026-09-06
+
+### Guo2023stackelberg_industrial (Stackelberg) — R11
+
+**Mechanism:** Leader allocates reward R_n and model size sigma; each follower jointly chooses data quantity |D'_n| AND compensation S_n (FS_n = (D'_n, S_n)).
+**Obstruction:** multi-objective bi-level program; no recorded stationarity condition — best_response_latex and follower_foc_latex are both null (fail-closed on human review); the follower makes an explicit two-component joint choice inside a multi-objective bi-level program with no closed-form stationarity condition of any kind. Nothing for R11's numeric fallback to consume, and the source PDF is not available to transcribe one.
+**Human task:** from the source PDF, determine whether the follower subproblem has a closed-form joint FOC system; if it is genuinely solved by iteration, this needs a bi-level numeric method, out of R11 scope.
+**Diagnosed:** 2026-09-06
+
+### Li2025split (Stackelberg) — R11
+
+**Mechanism:** SFL tenants post price incentives P_i; each device j chooses a participation vector {q_{i,j}}_{i in [1,M]} across all M tenants simultaneously.
+**Obstruction:** full KKT system (complementary slackness + feasibility), not an equality FOC system — follower_foc_latex is a full KKT system: M stationarity equations plus complementary-slackness, primal-feasibility and dual-feasibility conditions. _solve_stationarity_system (and R11's numeric fallback layered on it) only handles a square system of equality FOCs -- it cannot take inequality/complementarity conditions.
+**Human task:** either identify the active constraint set from the paper and transcribe the reduced equality FOC system, or extend the vector path to solve a KKT system numerically (a larger change than R11).
+**Diagnosed:** 2026-09-06
+
+### Liu2026fedbud (Stackelberg) — R11
+
+**Mechanism:** Server pays R^t to edge nodes; each node k jointly chooses data volume B_k^t AND privacy/noise budget epsilon_k^t.
+**Obstruction:** vector follower decision: numeric fallback ready but pipeline never routes a symbol vector — follower_stationarity_system IS transcribed (R4), a decoupled pair in B_k^t and epsilon_k^t. As with 2502_10765, the live pipeline never routes a follower symbol tuple into _stackelberg_check_core's vector branch (verdict_override MANUAL; single-symbol extraction then bail). R11's numeric fallback sits in that unreached branch.
+**Human task:** wire follower_stationarity_system decision-symbol collection into _try_stackelberg_latex, then hand-check the root (residual + Hessian).
+**Diagnosed:** 2026-09-06
+
+### Wang2022blockchain (Stackelberg) — R11
+
+**Mechanism:** Leader sets unit prices p_ti and p_mi; each miner i jointly chooses CPU cycles per second for training q_ti AND for mining q_mi.
+**Obstruction:** recorded FOC inconsistent with recorded utility; second decision variable unconstrained — Two compounding problems: (1) the follower chooses q_ti and q_mi jointly but follower_foc_latex records only dU_i/dq_ti = p_ti - 2 rho_i q_ti = 0, no condition for q_mi; (2) that FOC is inconsistent with the recorded utility. Fail-closed. R11's numeric fallback cannot run against an incomplete / inconsistent system, and the source PDF is not available to re-transcribe.
+**Human task:** re-transcribe the follower utility and the full joint FOC system from the source PDF, reconciling the q_ti condition; then attempt the vector path.
+**Diagnosed:** 2026-09-06
+
+### Yu2022multi_leader_fl (Stackelberg) — R11
+
+**Mechanism:** Multiple task leaders post reward rates p_i; each data owner j chooses a task-accuracy vector {epsilon_j^i} for tasks i = 1..K simultaneously under a shared resource budget.
+**Obstruction:** budget-coupled K-vector with an implicitly-defined multiplier; not closed-form — follower_stationarity_system is transcribed for one component but the follower chooses a K-component vector coupled by sum_i L_j^i <= tau_j^max; best_response_latex is a three-branch piecewise form whose active branch carries a Lagrange multiplier lambda_j found only by bisection (Algorithm 1), and the branch values are defined implicitly. Even with routing, this is not a closed-form square equality system; R11's fixed-start-point fsolve is not the right tool for an implicit multiplier found by bisection.
+**Human task:** a dedicated bracketed-root (brentq) solve for lambda_j plus the active-set logic, or accept the paper's Algorithm 1 as the numeric certificate with a stated tolerance.
+**Diagnosed:** 2026-09-06
+
+### Lim2020contract (Contract) — R11
+
+**Mechanism:** Contract-theoretic FL incentive design where the private type is a 4-dimensional cost vector, reduced by the paper to an auxiliary 2-dimensional (y, z) type.
+**Obstruction:** 4-D type space; _contract_check_core_vector ready but type_reduction_map not transcribed — The paper screens a 4-dimensional cost type (its own analysis reduces it to 2-D). _parse_contract_entry requires exactly one type subscript and returns None here. R11 added _contract_check_core_vector to collapse a multi-symbol type via a paper-stated mechanism['type_reduction_map'], but that field is not transcribed and the source PDF is not available here to transcribe the reduction formula.
+**Human task:** transcribe the paper's 4-D->2-D (or ->1-D effective type) reduction formula into mechanism['type_reduction_map'] with a _source cite; the code path is already in place.
+**Diagnosed:** 2026-09-06
+
+### Wu2021contract_DP (Contract) — R11
+
+**Mechanism:** Contract-theoretic FL incentive design with differential privacy, private type genuinely 3-dimensional (theta_x, tau_y, rho_z).
+**Obstruction:** 3-D type space; _contract_check_core_vector ready but type_reduction_map not transcribed — Genuinely 3-dimensional type outside _parse_contract_entry's single-subscript model. R11's _contract_check_core_vector can collapse it given a paper-stated mechanism['type_reduction_map'] (e.g. a single effective-cost combination), but that field is not transcribed and the source PDF is unavailable here.
+**Human task:** transcribe the paper's effective-cost / single-index reduction into mechanism['type_reduction_map'] with a _source cite.
+**Diagnosed:** 2026-09-06
+
+### 2308_12502 (Contract) — R11
+
+**Mechanism:** Multidimensional-type (theta_j, xi_j) privacy/training contract menu {(d_j, r_j^L)}.
+**Obstruction:** population coupling (out of R11 scope) plus an exponent-label parse issue — Two independent obstructions, neither addressed by R11: (1) kappa_j is a sum over OTHER agents' contract terms -- a population coupling the single-agent type-i-vs-type-j substitution cannot express, and a different capability than the vector/multi-dim-type work R11 scoped; (2) r_j^L parses as r_j to a symbolic power L (a layer label, not an exponent) and _sp_to_z3 raises 'unsupported exponent L'.
+**Human task:** population-coupling support is a separate future round; independently, fix the r_j^L label so it is not read as a power.
+**Diagnosed:** 2026-09-06
+

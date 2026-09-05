@@ -346,13 +346,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "vector follower decision on a simplex; no closed-form joint stationarity system",
       "mechanism": "OSPs (leaders) announce prices; each mobile device (follower) picks an offloading strategy vector alpha_i = (alpha_{i,1},...,alpha_{i,N}) splitting its task across N OSPs.",
-      "obstruction": "Both best_response_latex and follower_foc_latex are null, and the follower decision is an N-dimensional simplex-constrained vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). _stackelberg_check_core's single-variable d(leader_utility)/d(follower_decision) FOC cannot express the stationarity system.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "The follower chooses an N-dimensional simplex-constrained allocation vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). This is a KKT system (stationarity + simplex feasibility + multiplier), not the plain equality FOC system _solve_stationarity_system accepts, and no follower_stationarity_system is transcribed. R11 added a SciPy numeric fallback for the equality-system case but it does not apply to a simplex-constrained KKT problem.",
+      "human_task": "transcribe the paper's KKT conditions (or a reduced unconstrained stationarity system after eliminating the simplex constraint) from the source PDF, then a future round can extend the vector path to KKT.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -388,13 +388,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "budget-coupled per-chain difference conditions; not a plain stationarity system",
       "mechanism": "Chains post block rewards R_m; each staker n allocates a stake vector s_n = (s_n^1,...,s_n^M) across M chains subject to a budget sum_m s_n^m <= B_n.",
-      "obstruction": "The recorded follower_foc_latex is a budget-eliminated *difference* of two per-chain derivatives (dU/ds_n^m - dU/ds_n^M = 0 for m=1..M-1), so the M-1 conditions are coupled to each other through the eliminated component s_n^M = B_n - sum_{m<M} s_n^m. It is not a single-variable stationarity equation and the components do not decouple, so the single-variable FOC path cannot consume it.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "follower_foc_latex is a budget-eliminated difference of per-chain derivatives (dU/ds_n^m - dU/ds_n^M = 0, m=1..M-1), the M-1 conditions coupled through s_n^M = B_n - sum_{m<M} s_n^m. No follower_stationarity_system in the accepted '\\partial U / \\partial x = ... = 0' form is transcribed, and the source PDF is not available here to transcribe one.",
+      "human_task": "transcribe the M-1 coupled difference conditions as an explicit joint system (with the budget substitution applied) from the source PDF; then R11's numeric fallback can attempt it.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -1222,13 +1222,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3a",
+      "round": "R11",
       "track": 1,
-      "limit": "population-coupled cost term (kappa_j sums over other agents' contracts) -- single-agent substitution cannot represent it; additionally r_j^L carries a symbolic superscript Z3 rejects as an exponent",
+      "limit": "population coupling (out of R11 scope) plus an exponent-label parse issue",
       "mechanism": "Multidimensional-type (theta_j, xi_j) privacy/training contract menu {(d_j, r_j^L)}.",
-      "obstruction": "Two independent obstructions. (1) The entry's own notes record that kappa_j is itself a sum over OTHER agents' contract terms -- a population coupling the verifier's single-agent type-i-vs-type-j substitution cannot express. (2) Even ignoring that, r_j^L reads as r_j raised to a symbolic exponent L and _sp_to_z3 raises 'unsupported exponent L'; L is a layer label, not a power.",
-      "human_task": "Re-transcribe r_j^L with the layer label distinguished from an exponent, and decide whether a population-coupled cost admits any single-agent encoding; if not, this needs a multi-agent equilibrium track.",
-      "date": "2026-09-03"
+      "obstruction": "Two independent obstructions, neither addressed by R11: (1) kappa_j is a sum over OTHER agents' contract terms -- a population coupling the single-agent type-i-vs-type-j substitution cannot express, and a different capability than the vector/multi-dim-type work R11 scoped; (2) r_j^L parses as r_j to a symbolic power L (a layer label, not an exponent) and _sp_to_z3 raises 'unsupported exponent L'.",
+      "human_task": "population-coupling support is a separate future round; independently, fix the r_j^L label so it is not read as a power.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -2038,13 +2038,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "vector follower decision: numeric fallback ready but pipeline never routes a symbol vector",
       "mechanism": "Provider sets unit prices p_r and p_w; each user jointly chooses rendering resources x_i^r AND bandwidth resources x_i^w.",
-      "obstruction": "The follower decision is two variables chosen jointly; follower_foc_latex records two separate partial-derivative equations and best_response_latex two separate maximizers. The single-variable FOC path has no way to express a joint stationarity system, and the entry's own follower_decision field flags that the verifier's pipeline cannot yet handle this.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "follower_stationarity_system IS transcribed (R4), but the live verifier pipeline never reaches _solve_stationarity_system for it: verify() returns the R4 verdict_override, and even without that, _try_stackelberg_latex extracts a single follower symbol and deliberately bails when the follower controls more than one variable -- it never builds the symbol tuple _stackelberg_check_core's vector branch needs. R11 added the numeric fallback inside that vector branch; wiring the branch to fire on this entry is unshipped additional work.",
+      "human_task": "add routing in _try_stackelberg_latex: when follower_stationarity_system is present, collect its decision symbols and call _stackelberg_check_core with follower_decision=tuple(syms); then hand-check the resulting root (residual + Hessian sign) against the paper.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -4039,13 +4039,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "multi-objective bi-level program; no recorded stationarity condition",
       "mechanism": "Leader allocates reward R_n and model size sigma; each follower jointly chooses data quantity |D'_n| AND compensation S_n (FS_n = (D'_n, S_n)).",
-      "obstruction": "Both best_response_latex and follower_foc_latex are null (fail-closed on human review) and the follower decision is an explicit two-component joint choice inside a multi-objective bi-level program. There is no recorded stationarity condition of any kind for Track 1 to discharge.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "best_response_latex and follower_foc_latex are both null (fail-closed on human review); the follower makes an explicit two-component joint choice inside a multi-objective bi-level program with no closed-form stationarity condition of any kind. Nothing for R11's numeric fallback to consume, and the source PDF is not available to transcribe one.",
+      "human_task": "from the source PDF, determine whether the follower subproblem has a closed-form joint FOC system; if it is genuinely solved by iteration, this needs a bi-level numeric method, out of R11 scope.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -5538,13 +5538,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "full KKT system (complementary slackness + feasibility), not an equality FOC system",
       "mechanism": "SFL tenants post price incentives P_i; each device j chooses a participation vector {q_{i,j}}_{i in [1,M]} across all M tenants simultaneously.",
-      "obstruction": "best_response_latex is a bare argmax placeholder (q*_{i,j} = argmax lambda_j) with no algebraic content, and follower_foc_latex is a full KKT system: M stationarity equations plus two complementary-slackness conditions, two primal feasibility conditions and two dual feasibility conditions for the simplex constraints phi_j^{(1)}, phi_j^{(2)}. That is a constrained multi-variable system, not a single-variable FOC.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "follower_foc_latex is a full KKT system: M stationarity equations plus complementary-slackness, primal-feasibility and dual-feasibility conditions. _solve_stationarity_system (and R11's numeric fallback layered on it) only handles a square system of equality FOCs -- it cannot take inequality/complementarity conditions.",
+      "human_task": "either identify the active constraint set from the paper and transcribe the reduced equality FOC system, or extend the vector path to solve a KKT system numerically (a larger change than R11).",
+      "date": "2026-09-06"
     }
   },
   {
@@ -5628,12 +5628,12 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R7",
+      "round": "R11",
       "track": 1,
-      "limit": "Contract: genuinely multi-dimensional type (4-D cost vector -> 2-D auxiliary type) outside the verifier's single-dimension substitution machinery",
+      "limit": "4-D type space; _contract_check_core_vector ready but type_reduction_map not transcribed",
       "mechanism": "Contract-theoretic FL incentive design where the private type is a 4-dimensional cost vector, reduced by the paper to an auxiliary 2-dimensional (y, z) type.",
-      "obstruction": "The corpus note flags that Track 1's single-dimension substitution machinery may not fully capture a 4-D-reduced-to-2-D type space, so any resulting verdict must be treated with caution -- this is a structural mismatch between the paper's multidimensional screening model and the verifier's current type-substitution capability, not a missing field.",
-      "human_task": "Confirm whether the (y, z) auxiliary reduction genuinely collapses to an equivalent single-crossing scalar type (in which case it could be reformalized for Track 1) or is irreducibly 2-D screening (in which case this needs a genuinely multidimensional mechanism-design proof, i.e. stays MANUAL); read Section on the contract-type reduction to decide.",
+      "obstruction": "The paper screens a 4-dimensional cost type (its own analysis reduces it to 2-D). _parse_contract_entry requires exactly one type subscript and returns None here. R11 added _contract_check_core_vector to collapse a multi-symbol type via a paper-stated mechanism['type_reduction_map'], but that field is not transcribed and the source PDF is not available here to transcribe the reduction formula.",
+      "human_task": "transcribe the paper's 4-D->2-D (or ->1-D effective type) reduction formula into mechanism['type_reduction_map'] with a _source cite; the code path is already in place.",
       "date": "2026-09-06"
     }
   },
@@ -5830,13 +5830,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "vector follower decision: numeric fallback ready but pipeline never routes a symbol vector",
       "mechanism": "Server pays R^t to edge nodes; each node k jointly chooses data volume B_k^t AND privacy/noise budget epsilon_k^t.",
-      "obstruction": "The follower decision is two variables chosen jointly and follower_foc_latex is null (fail-closed). best_response_latex gives two separate maximizers but with no recorded stationarity conditions to differentiate against, so there is nothing for a d(leader_utility)/d(follower_decision) check to consume, and the single-variable path could not express the joint system in any case.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "follower_stationarity_system IS transcribed (R4), a decoupled pair in B_k^t and epsilon_k^t. As with 2502_10765, the live pipeline never routes a follower symbol tuple into _stackelberg_check_core's vector branch (verdict_override MANUAL; single-symbol extraction then bail). R11's numeric fallback sits in that unreached branch.",
+      "human_task": "wire follower_stationarity_system decision-symbol collection into _try_stackelberg_latex, then hand-check the root (residual + Hessian).",
+      "date": "2026-09-06"
     }
   },
   {
@@ -6935,13 +6935,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply; the stored best response is additionally not an interior FOC solution",
+      "limit": "recorded FOC inconsistent with recorded utility; second decision variable unconstrained",
       "mechanism": "Leader sets unit prices p_ti and p_mi; each miner i jointly chooses CPU cycles per second for training q_ti AND for mining q_mi.",
-      "obstruction": "Two obstructions compound. (1) The follower decision is two variables chosen jointly, while follower_foc_latex records only the single partial dU_i/dq_ti = p_ti - 2 rho_i q_ti = 0 -- there is no recorded condition for q_mi. (2) That FOC is inconsistent with the recorded utility (U_i has revenue mu_i p_ti / q_ti and cost rho_i mu_i q_ti^2, so the true derivative is strictly negative and the optimum is a corner, not an interior stationary point), and the stored best_response q_ti* = (p_ti/rho_i)^{1/3} is not the root of the recorded FOC either. Substituting it into a d(leader_utility)/d(follower_decision) check would certify a stationarity claim the entry's own algebra contradicts.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round. Also: the paper's own Sec 3.1.2 prints dU/dq < 0 for both variables then miscalls the objective concave; the real stationarity is a Lagrangian on the time constraint (Eqs. 30-31) matching NEITHER the stored follower_foc_latex NOR best_response_latex (corner solution) -- needs a full PDF re-derivation in R6.",
-      "date": "2026-09-04"
+      "obstruction": "Two compounding problems: (1) the follower chooses q_ti and q_mi jointly but follower_foc_latex records only dU_i/dq_ti = p_ti - 2 rho_i q_ti = 0, no condition for q_mi; (2) that FOC is inconsistent with the recorded utility. Fail-closed. R11's numeric fallback cannot run against an incomplete / inconsistent system, and the source PDF is not available to re-transcribe.",
+      "human_task": "re-transcribe the follower utility and the full joint FOC system from the source PDF, reconciling the q_ti condition; then attempt the vector path.",
+      "date": "2026-09-06"
     }
   },
   {
@@ -7141,12 +7141,12 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R7",
+      "round": "R11",
       "track": 1,
-      "limit": "Contract: genuinely 3-dimensional type outside the verifier's single-dimension substitution machinery",
+      "limit": "3-D type space; _contract_check_core_vector ready but type_reduction_map not transcribed",
       "mechanism": "Contract-theoretic FL incentive design with differential privacy, private type genuinely 3-dimensional (theta_x, tau_y, rho_z).",
-      "obstruction": "The corpus note states the verifier's single-dimension substitution machinery cannot capture a genuinely 3-D type space, so any verdict produced here should not be trusted as covering the paper's actual multidimensional screening claim -- this is a structural solver-capability gap, not a missing-field gap.",
-      "human_task": "Confirm whether (theta_x, tau_y, rho_z) can be reduced to a single monotone scalar index preserving the paper's IC ordering (as some sibling multi-dim entries attempt); if genuinely irreducible, this needs a hand-proved multidimensional screening argument and stays MANUAL.",
+      "obstruction": "Genuinely 3-dimensional type outside _parse_contract_entry's single-subscript model. R11's _contract_check_core_vector can collapse it given a paper-stated mechanism['type_reduction_map'] (e.g. a single effective-cost combination), but that field is not transcribed and the source PDF is unavailable here.",
+      "human_task": "transcribe the paper's effective-cost / single-index reduction into mechanism['type_reduction_map'] with a _source cite.",
       "date": "2026-09-06"
     }
   },
@@ -7559,13 +7559,13 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R11",
       "track": 1,
-      "limit": "vector follower decision -- single-variable FOC reduction does not apply",
+      "limit": "budget-coupled K-vector with an implicitly-defined multiplier; not closed-form",
       "mechanism": "Multiple task leaders post reward rates p_i; each data owner j chooses a task-accuracy vector {epsilon_j^i} for tasks i = 1..K simultaneously under a shared resource budget.",
-      "obstruction": "Three compounding obstructions. The follower chooses a K-component vector coupled by the resource budget sum_i L_j^i <= tau_j^max; best_response_latex is a three-branch piecewise form whose active-constraint branch carries a Lagrange multiplier lambda_j found only by bisection search (Algorithm 1, Eq. 27); and both branch values bar-epsilon and hat-epsilon are defined implicitly as roots of the transcendental relation log(e^{1/eps} eps) = const, which the recorded follower_foc_latex also is. None of the three is expressible as a single-variable closed-form stationarity condition.",
-      "human_task": "R4 landed the _stackelberg_check_core vector-decision checker (+ transcribed the follower FOC system for entries where the paper prints one in closed form), but the checker is unreachable: the sibling-name guard at track1_z3.py:1610-1620 returns None before the vector branch, and _lx_parse collapses superscript components (x_i^r -> x_{i}**r). Unblocked by an R6 Stackelberg-parser round.",
-      "date": "2026-09-04"
+      "obstruction": "follower_stationarity_system is transcribed for one component but the follower chooses a K-component vector coupled by sum_i L_j^i <= tau_j^max; best_response_latex is a three-branch piecewise form whose active branch carries a Lagrange multiplier lambda_j found only by bisection (Algorithm 1), and the branch values are defined implicitly. Even with routing, this is not a closed-form square equality system; R11's fixed-start-point fsolve is not the right tool for an implicit multiplier found by bisection.",
+      "human_task": "a dedicated bracketed-root (brentq) solve for lambda_j plus the active-set logic, or accept the paper's Algorithm 1 as the numeric certificate with a stated tolerance.",
+      "date": "2026-09-06"
     }
   },
   {
