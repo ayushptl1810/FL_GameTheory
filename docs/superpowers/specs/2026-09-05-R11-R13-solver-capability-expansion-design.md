@@ -50,6 +50,28 @@ round internals past what's needed to sequence them.
 - **R11 — Vector/multi-dim decision extension.** Targets the 13-entry
   Stackelberg vector/multi-stage cluster + 3-entry Contract multi-dim-type
   cluster (16 entries).
+
+  **Landed 2026-09-06:** 0 of the 11 traced target entries reclaimed;
+  every one keeps a corrected R11-era `manual_diagnosis`. Shipped, tested,
+  fail-closed, and currently dormant: `_numeric_solve_stationarity` (SciPy
+  `fsolve` fallback for a joint stationarity system SymPy can't close;
+  `>=2` fixed start points must agree within `1e-6`, residual `<1e-8`;
+  `>1` distinct symbolic solutions fail closed) and
+  `_contract_check_core_vector` (paper-stated `type_reduction_map` collapse
+  of a multi-symbol type). Two corrections to the plan's assumptions,
+  found during execution: (1) the SymPy LaTeX parser dependency
+  (`antlr4-python3-runtime==4.11`) was not installed, so every LaTeX
+  Track-1 path was silently failing closed — installing it moved the
+  corpus from 5 to 12 `VERIFIED` (and 6→0 `VERIFIED_TEMPLATE`, 1→0
+  `UNKNOWN`) with no code change; (2) the vector-Stackelberg branch
+  (`_stackelberg_vector_check` / `_solve_stationarity_system`, landed by
+  R4) is wired to *no* corpus entry — the live pipeline only ever passes a
+  scalar follower symbol — so R11's numeric fallback has no reachable call
+  site yet, and no source PDFs are in the repo to transcribe the
+  `follower_stationarity_system` / `type_reduction_map` fields the reclaims
+  need. Both `--only Stackelberg` and `--only Contract` gates PASS; suite
+  green (476 passed). Delta: `docs/superpowers/notes/round-R11-delta.md`;
+  findings: `docs/superpowers/notes/round-R11-findings.md`.
 - **R12 — Nash-equilibrium / action-choice track.** Targets the 10-entry
   no-screening-IC family named in R9's own "R10" section (renumbered R12 to
   keep this program's rounds contiguous; same scope).
