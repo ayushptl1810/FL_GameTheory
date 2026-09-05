@@ -3459,7 +3459,17 @@
         "each FLSD can only buy the dataset from one DO and employ one UAV"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: opaque coalition-value function F(.) with no closed form; 3-index multi-winner allocation (data-seller x UAV-seller x buyer)",
+      "mechanism": "Three-sided matching: allocation X* = argmax_X F(x_{l,m,n}) over a 3-index binary assignment (buyer l, data-seller m, UAV-seller n); payment P_{i,k}^f = F(x*) - F_{\\setminus(i,k)}(y^{t*}) + J_{l,(i,k)}, a Clarke-pivot-shaped payment on the opaque objective F.",
+      "obstruction": "F(.) is never given a closed algebraic form anywhere in the corpus's mechanism fields -- it is referenced only by name, same for the counterfactual F_{\\setminus(i,k)}. No track's parser can substitute a numeric/symbolic value for an opaque function reference, and the allocation is additionally a 3-index multi-winner assignment (well beyond the 2-index bipartite case already out of reach).",
+      "human_task": "Transcribe F(.)'s actual formula from the source paper's welfare objective (recorded separately as objective_latex: max sum_l sum_m sum_n x_{l,m,n}(v_{l,(m,n)} - q_{m,l} - s_{n,(m,l)})) into allocation_rule_latex/payment_rule_latex so a future formalizer pass has a concrete function to work with.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Chu2023hierarchical",
@@ -3651,7 +3661,17 @@
         "edge nodes are trustable"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: piecewise/set-membership allocation (x_i = 1 iff i in K) does not parse as any known AllocSpec shape",
+      "mechanism": "Forward auction: allocation is a piecewise indicator (x_i(b) = 1 if i in K, 0 otherwise, where K is an unspecified winner set); payment p_i(b) = sum_{j!=i} c(x_j*, gamma_hat_j) - theta_i, a sum-externality form.",
+      "obstruction": "parse_allocation has no AllocSpec case for a bare \\begin{cases} set-membership rule with an unspecified winner set K (K's selection criterion, e.g. a welfare-max or greedy rule, is never given in allocation_rule_latex) -- there is no argmax expression to classify. Even if K's definition were transcribed, the payment's c(.) is an opaque cost function with no closed form.",
+      "human_task": "Transcribe K's actual selection rule (likely stated elsewhere in the paper as an optimization over K) into allocation_rule_latex as an explicit argmax, and c(.)'s closed form into payment_rule_latex, before any track can attempt this entry.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Ding2020contract_multidim",
@@ -5172,7 +5192,17 @@
         "mobile users have private cost parameters"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: feasible set X for the multi-winner welfare-max allocation is never stated in the corpus (or, per the payment computing to zero, possibly the paper itself)",
+      "mechanism": "Reverse auction: allocation x* = argmax_{x_i} sum_i b_i x_i over an unconstrained-looking x in {0,1}^N; payment is the standard VCG externality form p_i = sum_{j!=i} b_j x_j(b_{-i}) - sum_{j!=i} b_j x_j(b).",
+      "obstruction": "No budget, cardinality, or other constraint on the winner set is recorded anywhere in the corpus's mechanism fields (bid_space, key_assumptions, objective_latex all omit it) -- argmax_{x_i} sum b_i x_i with x_i in {0,1} and no constraint is maximized by x_i=1 for every bidder (since b_i >= 0), i.e. every bidder wins unconditionally. Under that reading the externality payment is identically zero (removing bidder i changes no one else's allocation, since everyone already wins) -- the same identically-zero payment the solver's own soundness gate already flags as non-DSIC (every agent strictly gains by over-reporting when payment never binds).",
+      "human_task": "Re-read the source paper for the actual constraint set X (a budget cap, a cardinality k, or similar) that the corpus extraction dropped -- without it, the recorded mechanism is not a well-posed single-winner-or-more VCG auction, and no solver can prove or refute DSIC for math the paper's LaTeX (as transcribed) does not actually specify.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Lee2024sfl_stackelberg",
@@ -5750,7 +5780,17 @@
         "the mechanism must ensure individual rationality and truthfulness"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: multi-winner coalition allocation with a welfare objective containing non-bidder cost terms -- externality payment cannot be priced generically",
+      "mechanism": "Reverse auction: winning coalition W = argmax_{W subseteq N} phi(W) - sum_j c_{MEC_j} - c_cloud - sum_{i in W} c_{user_i} - sum_{i in W} b_i (a coalition-selection welfare max mixing bidder costs with fixed infrastructure costs c_{MEC_j}/c_cloud); payment p_i = phi(W) - phi(W \\ {i}) - b_i, the Clarke pivot on the coalition value phi.",
+      "obstruction": "This is a genuine multi-winner (coalition subset) allocation, which the current encoder's ArgmaxWelfare path cannot express at all (single-item/single-winner semantics only). Even a general multi-winner welfare-max encoder would need phi(W) -- an opaque coalition-value function never given a closed form in the corpus -- and the objective's non-bidder-indexed terms (c_{MEC_j}, c_cloud) mean 'welfare without bidder i' is not a simple sum-minus-one-term operation the way it is for a clean sum_i v_i x_i objective.",
+      "human_task": "Transcribe phi(W)'s actual closed form from the source paper (if one exists) and hand-derive the Clarke-pivot DSIC/IR proof directly -- a coalition value with embedded infrastructure costs is outside any current track's decidable fragment.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Liu2026fedbud",
@@ -6139,7 +6179,17 @@
       ],
       "mechanism_modification": "integration of coalition formations of UAVs and optimal bidding of cells of workers"
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: payment formula is not a Clarke/Groves externality payment -- it is an (N-1)-normalized redistribution rule, a different mechanism family",
+      "mechanism": "Forward auction: allocation x* = argmax_{x in X} sum_i v_i x_i (unit-weight welfare-max, feasible set X unspecified); payment p_i(b) = v_i x_i - (1/(N-1)) sum_{j!=i} v_j x_j.",
+      "obstruction": "The payment is not of the Clarke-pivot form (winner pays the externality caused by their presence) nor the standard Groves externality-difference form (p_i = W_{-i}(x*_{-i}) - W_{-i}(x*)) that encode_utility's welfare-difference path prices -- the (1/(N-1)) normalization constant is characteristic of a redistribution/rebate mechanism layered on top of a VCG payment (à la Cavallo/Bailey redistribution), not the base Groves payment itself. Even with a general multi-winner welfare-max encoder, this formula has no known closed-form DSIC proof the pipeline's tracks can produce.",
+      "human_task": "Identify the specific redistribution-mechanism theorem this payment rule instantiates (if the paper cites one) and hand-verify DSIC + IR against that theorem's stated conditions -- this needs a paper-specific lemma, not a generic VCG grid proof.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Nguyen2025right_reward",
@@ -7184,7 +7234,17 @@
       ],
       "mechanism_modification": "Edge Server Reallocation scheme (ESR-MHFL)"
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: non-unit-weight bipartite allocation -- welfare-difference Groves pivot equivalence to second price does not hold",
+      "mechanism": "Bipartite client-to-computing-server matching: allocation maximizes sum_{cl_i,CS_j} x_ij v_ij (a two-index assignment, not a single-index unit-weight welfare sum); payment is the welfare-difference Groves pivot r(x*) - sum_{k!=i} c(x_k*, gamma_hat_k).",
+      "obstruction": "The payment text matches the welfare-difference Groves-pivot pattern (same text as Tan2025longterm, which IS provable), but the allocation is a two-index bipartite assignment (x_ij, over clients cl_i AND servers CS_j), not the single-index unit-weight welfare max (sum_i v_i x_i) that makes a welfare-difference pivot algebraically equal to the second price. _argmax_welfare_weights correctly returns None -- the equivalence proved for the single-index case does not generalize to bipartite matching.",
+      "human_task": "A bipartite-matching VCG proof needs a different equivalence argument (e.g. that the pivot payment for a bipartite assignment problem is DSIC by the general Groves theorem, independent of the second-price shortcut) -- this is a genuinely different proof obligation than the encoder's current single-index welfare-max path, not a parser gap.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Xiao2020stackelberg_twostage",
@@ -7643,7 +7703,17 @@
         "workers have private data and computing capabilities"
       ]
     },
-    "z3_verdict": "VERIFIED"
+    "z3_verdict": "VERIFIED",
+    "verdict_override": "MANUAL",
+    "manual_diagnosis": {
+      "round": "R-shape-cleanup",
+      "track": 1,
+      "limit": "VCG: piecewise min(.,.) payment with a nested max(.,.) and a global budget constraint -- not a Clarke pivot or any parseable payment shape",
+      "mechanism": "Reverse auction with a weak budget-balance constraint (sum_i p_i <= B): winning set S = argmax_{S subseteq N} sum_{i in S} R_i - b_i; payment p_i = min(p_i^up, p_i'), where p_i^up = Re_i * rho* and p_i' = Re_i * max(B*re_i / sum_{j in S} re_j, rho*).",
+      "obstruction": "The payment is a 3-level nested piecewise formula (min of two terms, one of which is itself a max, scaled by a ratio over the winning set) tied to a global per-mechanism budget B and a market-clearing price rho* -- none of parse_payment's PaySpec cases (ClarkePivot / ExplicitFormula) can represent this, and it is not a Groves payment in any standard form (the budget cap and proportional-share terms make it a budget-feasible mechanism, a different design family with its own IC/IR proof obligations).",
+      "human_task": "This is a budget-constrained proportional-payment mechanism, not a Groves/VCG payment -- DSIC (if it holds at all) would need a paper-specific proof technique for budget-feasible mechanism design (e.g. a Singer-style budget-feasible mechanism argument), outside every current track's scope.",
+      "date": "2026-09-05"
+    }
   },
   {
     "paper_id": "Zhang2022online",

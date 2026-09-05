@@ -5,18 +5,18 @@ Each names the mechanism, the obstruction (with the track and the specific limit
 and the concrete human task to close it. Regenerated from corpus.json — do not hand-edit;
 edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 
-**Total: 86 MANUAL entries.** Recurring obstruction families:
+**Total: 93 MANUAL entries.** Recurring obstruction families:
 
 - **no-screening-IC** (10): 2408_13223, 2505_02462, 2505_05842, 2605_02935, Bornstein2023realistic_incentive, Huang2024aigc, Karimireddy2022data_sharing, Li2026network, Zhang2020fedserving, Zhao2023truthful
 - **vector-follower-decision** (8): 2101_05628, 2101_12428, 2502_10765, Guo2023stackelberg_industrial, Li2025split, Liu2026fedbud, Wang2022blockchain, Yu2022multi_leader_fl
 - **transcendental-FOC-no-closed-form** (2): Chu2023hierarchical, Pandey2019crowd
-- **opaque-function-in-utility** (9): 2102_03401, 2605_11889, 2606_18384, Han2025paid_models, Lim2020edge_collab, Model2024trading_fl, Nguyen2025right_reward, Peng2023auction_medical, Tan2023hire
+- **opaque-function-in-utility** (10): 2102_03401, 2605_11889, 2606_18384, Cheng2022uav, Han2025paid_models, Lim2020edge_collab, Model2024trading_fl, Nguyen2025right_reward, Peng2023auction_medical, Tan2023hire
 - **no-follower-IR-stated** (11): 1811_12082, 2110_12876, 2203_00270, 2404_08261, 2508_07676, Cao2025service, Chen2023multifactor_iot, Hu2020trading, Hu2022truthful_FEL, Lee2024sfl_stackelberg, Li2025iiot_drl
 - **coalition-value-not-instantiable** (2): 2405_13879, 2502_08248
 - **budget-constrained-greedy-allocation** (6): 2404_13841, Ahmed2023frimfl, GPS2023afl_recruit, Jiao2019auto_auction, Jin2023bara_budget, Lu2021cluster_auction
 - **non-polynomial-gap** (4): Haupt2021auctions, Seo2021sdn_fl, Seo2022noniid_auction, Wei2024truthful_bandit
 - **continuous-bid-space-no-discretization** (3): Cui2024auction_market, Yang2023buyers_market, Zhang2022online
-- **other** (31): 2103_05866, 2308_12502, 2403_09153, 2407_02845, 2412_05636, 2502_20882, 2602_21844, Batool2022fl_mab, Ding2020contract_multidim, FLamma2025stackelberg, International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A, Javaherian2025stackelberg_ic, Kang2019contract_mobile, Kang2019reliable_contract, Kang2022blockchain_metaverse, Khan2019edge, Lim2020contract, Luo2023unbiased, Ma2023joint_pricing, Mai2022double_auction, Pang2025quality, Saputra2020fl_contract, Saputra2021iov_contract, Saputra2021straggling, Wang2022motilearn_contract, Wen2025diffusion_contract, Wu2021contract_DP, Xia2026privacy_mfg, Xiao2020stackelberg_twostage, Yang2023async_contract, Zhang2024auction_comm
+- **other** (37): 2103_05866, 2308_12502, 2403_09153, 2407_02845, 2412_05636, 2502_20882, 2602_21844, Batool2022fl_mab, Deng2020fmore_auction, Ding2020contract_multidim, FLamma2025stackelberg, International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A, Javaherian2025stackelberg_ic, Kang2019contract_mobile, Kang2019reliable_contract, Kang2022blockchain_metaverse, Khan2019edge, Le2021cellular_auction, Lim2020contract, Liu2023reverse_auction, Luo2023unbiased, Ma2023joint_pricing, Mai2022double_auction, Ng2020uav_auction_coalition, Pang2025quality, Saputra2020fl_contract, Saputra2021iov_contract, Saputra2021straggling, Wang2022motilearn_contract, Wen2025diffusion_contract, Wu2021contract_DP, Xia2026privacy_mfg, Xiang2025esr_mhfl, Xiao2020stackelberg_twostage, Yang2023async_contract, Zhang2022expost_auction, Zhang2024auction_comm
 
 ## Family: no-screening-IC
 
@@ -185,6 +185,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Mechanism:** One-round reconstruction payment phi_j^OR approximating the Shapley value of a trained-model-accuracy characteristic function U(M_Sub).
 **Obstruction:** Tier A rejects the formula: the 1/binom(|C|-1,|Sub|) weighting and the K factor are not the exact Shapley weights. Even granting the approximation, v(Sub)=U(M_Sub^(R)) is a trained-model accuracy — not symbolically or grid-computable. (Track 5: stated payment is a K-normalized one-round-reconstruction *approximation* of Shapley, not the exact value; value U(M_Sub) is opaque model accuracy)
 **Human task:** bound the approximation error |phi_j^OR - phi_j^Shapley| from Algorithm 1, or run the paper's reconstruction to get numeric v(Sub) and verify core/IR empirically.
+**Diagnosed:** 2026-09-05
+
+### Cheng2022uav (VCG) — R-shape-cleanup
+
+**Mechanism:** Three-sided matching: allocation X* = argmax_X F(x_{l,m,n}) over a 3-index binary assignment (buyer l, data-seller m, UAV-seller n); payment P_{i,k}^f = F(x*) - F_{\setminus(i,k)}(y^{t*}) + J_{l,(i,k)}, a Clarke-pivot-shaped payment on the opaque objective F.
+**Obstruction:** F(.) is never given a closed algebraic form anywhere in the corpus's mechanism fields -- it is referenced only by name, same for the counterfactual F_{\setminus(i,k)}. No track's parser can substitute a numeric/symbolic value for an opaque function reference, and the allocation is additionally a 3-index multi-winner assignment (well beyond the 2-index bipartite case already out of reach). (Track 1: VCG: opaque coalition-value function F(.) with no closed form; 3-index multi-winner allocation (data-seller x UAV-seller x buyer))
+**Human task:** Transcribe F(.)'s actual formula from the source paper's welfare objective (recorded separately as objective_latex: max sum_l sum_m sum_n x_{l,m,n}(v_{l,(m,n)} - q_{m,l} - s_{n,(m,l)})) into allocation_rule_latex/payment_rule_latex so a future formalizer pass has a concrete function to work with.
 **Diagnosed:** 2026-09-05
 
 ### Han2025paid_models (Contract) — R4
@@ -479,6 +486,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Check whether the paper anywhere states an aggregate objective (e.g. sum of S(r_i,p_i) over selected bidders, or a welfare/cost expression) outside Eq. 3; if the scoring rule genuinely doubles as the only stated objective, this stays MANUAL since Track 1 needs objective and allocation rule as separate fields.
 **Diagnosed:** 2026-09-06
 
+### Deng2020fmore_auction (VCG) — R-shape-cleanup
+
+**Mechanism:** Forward auction: allocation is a piecewise indicator (x_i(b) = 1 if i in K, 0 otherwise, where K is an unspecified winner set); payment p_i(b) = sum_{j!=i} c(x_j*, gamma_hat_j) - theta_i, a sum-externality form.
+**Obstruction:** parse_allocation has no AllocSpec case for a bare \begin{cases} set-membership rule with an unspecified winner set K (K's selection criterion, e.g. a welfare-max or greedy rule, is never given in allocation_rule_latex) -- there is no argmax expression to classify. Even if K's definition were transcribed, the payment's c(.) is an opaque cost function with no closed form. (Track 1: VCG: piecewise/set-membership allocation (x_i = 1 iff i in K) does not parse as any known AllocSpec shape)
+**Human task:** Transcribe K's actual selection rule (likely stated elsewhere in the paper as an optimization over K) into allocation_rule_latex as an explicit argmax, and c(.)'s closed form into payment_rule_latex, before any track can attempt this entry.
+**Diagnosed:** 2026-09-05
+
 ### Ding2020contract_multidim (Contract) — R3a
 
 **Mechanism:** Multidimensional-type contract with menu items phi_i = (s_i, r_i).
@@ -535,12 +549,26 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** a technical treatment with a derived Stackelberg equilibrium is needed; this venue does not provide one -- replace the entry with a full-length paper or drop it from the Stackelberg slice.
 **Diagnosed:** 2026-09-03
 
+### Le2021cellular_auction (VCG) — R-shape-cleanup
+
+**Mechanism:** Reverse auction: allocation x* = argmax_{x_i} sum_i b_i x_i over an unconstrained-looking x in {0,1}^N; payment is the standard VCG externality form p_i = sum_{j!=i} b_j x_j(b_{-i}) - sum_{j!=i} b_j x_j(b).
+**Obstruction:** No budget, cardinality, or other constraint on the winner set is recorded anywhere in the corpus's mechanism fields (bid_space, key_assumptions, objective_latex all omit it) -- argmax_{x_i} sum b_i x_i with x_i in {0,1} and no constraint is maximized by x_i=1 for every bidder (since b_i >= 0), i.e. every bidder wins unconditionally. Under that reading the externality payment is identically zero (removing bidder i changes no one else's allocation, since everyone already wins) -- the same identically-zero payment the solver's own soundness gate already flags as non-DSIC (every agent strictly gains by over-reporting when payment never binds). (Track 1: VCG: feasible set X for the multi-winner welfare-max allocation is never stated in the corpus (or, per the payment computing to zero, possibly the paper itself))
+**Human task:** Re-read the source paper for the actual constraint set X (a budget cap, a cardinality k, or similar) that the corpus extraction dropped -- without it, the recorded mechanism is not a well-posed single-winner-or-more VCG auction, and no solver can prove or refute DSIC for math the paper's LaTeX (as transcribed) does not actually specify.
+**Diagnosed:** 2026-09-05
+
 ### Lim2020contract (Contract) — R7
 
 **Mechanism:** Contract-theoretic FL incentive design where the private type is a 4-dimensional cost vector, reduced by the paper to an auxiliary 2-dimensional (y, z) type.
 **Obstruction:** The corpus note flags that Track 1's single-dimension substitution machinery may not fully capture a 4-D-reduced-to-2-D type space, so any resulting verdict must be treated with caution -- this is a structural mismatch between the paper's multidimensional screening model and the verifier's current type-substitution capability, not a missing field. (Track 1: Contract: genuinely multi-dimensional type (4-D cost vector -> 2-D auxiliary type) outside the verifier's single-dimension substitution machinery)
 **Human task:** Confirm whether the (y, z) auxiliary reduction genuinely collapses to an equivalent single-crossing scalar type (in which case it could be reformalized for Track 1) or is irreducibly 2-D screening (in which case this needs a genuinely multidimensional mechanism-design proof, i.e. stays MANUAL); read Section on the contract-type reduction to decide.
 **Diagnosed:** 2026-09-06
+
+### Liu2023reverse_auction (VCG) — R-shape-cleanup
+
+**Mechanism:** Reverse auction: winning coalition W = argmax_{W subseteq N} phi(W) - sum_j c_{MEC_j} - c_cloud - sum_{i in W} c_{user_i} - sum_{i in W} b_i (a coalition-selection welfare max mixing bidder costs with fixed infrastructure costs c_{MEC_j}/c_cloud); payment p_i = phi(W) - phi(W \ {i}) - b_i, the Clarke pivot on the coalition value phi.
+**Obstruction:** This is a genuine multi-winner (coalition subset) allocation, which the current encoder's ArgmaxWelfare path cannot express at all (single-item/single-winner semantics only). Even a general multi-winner welfare-max encoder would need phi(W) -- an opaque coalition-value function never given a closed form in the corpus -- and the objective's non-bidder-indexed terms (c_{MEC_j}, c_cloud) mean 'welfare without bidder i' is not a simple sum-minus-one-term operation the way it is for a clean sum_i v_i x_i objective. (Track 1: VCG: multi-winner coalition allocation with a welfare objective containing non-bidder cost terms -- externality payment cannot be priced generically)
+**Human task:** Transcribe phi(W)'s actual closed form from the source paper (if one exists) and hand-derive the Clarke-pivot DSIC/IR proof directly -- a coalition value with embedded infrastructure costs is outside any current track's decidable fragment.
+**Diagnosed:** 2026-09-05
 
 ### Luo2023unbiased (Stackelberg) — R3b
 
@@ -562,6 +590,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Obstruction:** This entry's notes never went through a Batch-C/D/E field-level review -- they only restate the paper's stated contribution (an IDA algorithm and an RL-based double-auction algorithm), so no specific null field (objective_latex / allocation_rule_latex / payment_rule_latex) has been identified yet for Track 1's DSIC/efficiency check to consume. (Track 1: VCG: notes give only the paper's abstract-level description, no diagnosed missing formal field)
 **Human task:** Open pdfs/Mai2022double_auction.pdf, locate the formal auction-clearing objective and price-setting rule for the IDA algorithm specifically (not the RL variant, which likely has no closed form), and transcribe them into the missing formal fields.
 **Diagnosed:** 2026-09-06
+
+### Ng2020uav_auction_coalition (VCG) — R-shape-cleanup
+
+**Mechanism:** Forward auction: allocation x* = argmax_{x in X} sum_i v_i x_i (unit-weight welfare-max, feasible set X unspecified); payment p_i(b) = v_i x_i - (1/(N-1)) sum_{j!=i} v_j x_j.
+**Obstruction:** The payment is not of the Clarke-pivot form (winner pays the externality caused by their presence) nor the standard Groves externality-difference form (p_i = W_{-i}(x*_{-i}) - W_{-i}(x*)) that encode_utility's welfare-difference path prices -- the (1/(N-1)) normalization constant is characteristic of a redistribution/rebate mechanism layered on top of a VCG payment (à la Cavallo/Bailey redistribution), not the base Groves payment itself. Even with a general multi-winner welfare-max encoder, this formula has no known closed-form DSIC proof the pipeline's tracks can produce. (Track 1: VCG: payment formula is not a Clarke/Groves externality payment -- it is an (N-1)-normalized redistribution rule, a different mechanism family)
+**Human task:** Identify the specific redistribution-mechanism theorem this payment rule instantiates (if the paper cites one) and hand-verify DSIC + IR against that theorem's stated conditions -- this needs a paper-specific lemma, not a generic VCG grid proof.
+**Diagnosed:** 2026-09-05
 
 ### Pang2025quality (Stackelberg) — R3b
 
@@ -619,6 +654,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Determine whether the budget cap ever binds under the paper's assumptions; if it does not, the mechanism reduces to a critical-value top-k.
 **Diagnosed:** 2026-09-03
 
+### Xiang2025esr_mhfl (VCG) — R-shape-cleanup
+
+**Mechanism:** Bipartite client-to-computing-server matching: allocation maximizes sum_{cl_i,CS_j} x_ij v_ij (a two-index assignment, not a single-index unit-weight welfare sum); payment is the welfare-difference Groves pivot r(x*) - sum_{k!=i} c(x_k*, gamma_hat_k).
+**Obstruction:** The payment text matches the welfare-difference Groves-pivot pattern (same text as Tan2025longterm, which IS provable), but the allocation is a two-index bipartite assignment (x_ij, over clients cl_i AND servers CS_j), not the single-index unit-weight welfare max (sum_i v_i x_i) that makes a welfare-difference pivot algebraically equal to the second price. _argmax_welfare_weights correctly returns None -- the equivalence proved for the single-index case does not generalize to bipartite matching. (Track 1: VCG: non-unit-weight bipartite allocation -- welfare-difference Groves pivot equivalence to second price does not hold)
+**Human task:** A bipartite-matching VCG proof needs a different equivalence argument (e.g. that the pivot payment for a bipartite assignment problem is DSIC by the general Groves theorem, independent of the second-price shortcut) -- this is a genuinely different proof obligation than the encoder's current single-index welfare-max path, not a parser gap.
+**Diagnosed:** 2026-09-05
+
 ### Xiao2020stackelberg_twostage (Stackelberg) — R7
 
 **Mechanism:** Two-stage Stackelberg: server (leader, Stage I) and worker (follower, Stage II) choose local accuracy theta_i^(t); follower FOC is Eq. (13), solved by best_response_latex (Theorem 1's NE local accuracy).
@@ -632,6 +674,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Obstruction:** The IR reads theta R - xi e c f^2 - E_com >= 0, where E_com is a scalar communication-energy constant. The Task 11-pre Bayesian guard (_BAYESIAN_RE) matches the E_{subscript} form and correctly bails Track 1 out rather than risk stripping a real expectation. The entry has no type distribution, so Track 4 cannot pick it up either, and the entry falls through to the generic template. (Track 1: IR's E_{com} communication-energy term is indistinguishable from a Bayesian expectation E_{...}[.]; the Bayesian bail-out fires and Track 1 declines, while Track 4 has no distribution to integrate)
 **Human task:** Rename or re-transcribe E_com so it is not shaped like an expectation operator (e.g. E^{com} or Ecom), then re-run Track 1; the IC itself already parses.
 **Diagnosed:** 2026-09-03
+
+### Zhang2022expost_auction (VCG) — R-shape-cleanup
+
+**Mechanism:** Reverse auction with a weak budget-balance constraint (sum_i p_i <= B): winning set S = argmax_{S subseteq N} sum_{i in S} R_i - b_i; payment p_i = min(p_i^up, p_i'), where p_i^up = Re_i * rho* and p_i' = Re_i * max(B*re_i / sum_{j in S} re_j, rho*).
+**Obstruction:** The payment is a 3-level nested piecewise formula (min of two terms, one of which is itself a max, scaled by a ratio over the winning set) tied to a global per-mechanism budget B and a market-clearing price rho* -- none of parse_payment's PaySpec cases (ClarkePivot / ExplicitFormula) can represent this, and it is not a Groves payment in any standard form (the budget cap and proportional-share terms make it a budget-feasible mechanism, a different design family with its own IC/IR proof obligations). (Track 1: VCG: piecewise min(.,.) payment with a nested max(.,.) and a global budget constraint -- not a Clarke pivot or any parseable payment shape)
+**Human task:** This is a budget-constrained proportional-payment mechanism, not a Groves/VCG payment -- DSIC (if it holds at all) would need a paper-specific proof technique for budget-feasible mechanism design (e.g. a Singer-style budget-feasible mechanism argument), outside every current track's scope.
+**Diagnosed:** 2026-09-05
 
 ### Zhang2024auction_comm (VCG) — R2
 

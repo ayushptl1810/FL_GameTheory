@@ -34,6 +34,12 @@ def test_vcg_verdicts_unchanged_after_seam_extraction():
     # allocation, weights unresolvable -> fails closed, now an R6 candidate);
     # Batool2022fl_mab stays VERIFIED_SHAPE (R6, score defined but argmax never
     # stated).
+    # R-shape-cleanup (2026-09-05): the last 8 VERIFIED_SHAPE entries were
+    # diagnosed to a real terminal state (verdict_override). Cheng2022uav's
+    # allocation is a 3-index buyer/data-seller/UAV-seller assignment with an
+    # opaque coalition-value F(.) never given a closed form -- no track can
+    # substitute a value for an opaque function reference -> MANUAL. See
+    # corpus.json's manual_diagnosis on this entry for the full obstruction.
     expected = {
         "2404_13841": ("MANUAL", False),
         "2504_05563": ("VERIFIED", True),
@@ -41,7 +47,7 @@ def test_vcg_verdicts_unchanged_after_seam_extraction():
         "Ahmed2023frimfl": ("MANUAL", False),
         # R6-R7: flipped to MANUAL, second-pass reclaim attempted and failed (fail-closed)
         "Batool2022fl_mab": ("MANUAL", False),
-        "Cheng2022uav": ("VERIFIED_SHAPE", False),
+        "Cheng2022uav": ("MANUAL", False),
         "Cong2020vcg": ("VERIFIED", True),
         "Cui2024auction_market": ("MANUAL", False),
     }
