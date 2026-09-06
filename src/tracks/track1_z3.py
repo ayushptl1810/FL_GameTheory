@@ -2062,12 +2062,32 @@ def _stackelberg_check_core(
         foc = _sp.diff(util_expr, e_sym)
         if foc.has(_sp.Derivative):
             return None  # chain rule stalled on an unresolved function
-        critical_points = _sp.solve(foc, e_sym)
     except Exception:
         return None
+    try:
+        critical_points = _sp.solve(foc, e_sym)
+    except Exception:
+        critical_points = []  # e.g. NotImplementedError on a transcendental FOC
 
     if not critical_points:
-        return None
+        # No closed-form root. If the FOC is a single transcendental/implicit
+        # equation in e_sym with every parameter pinned, R11's multi-start
+        # fail-closed SciPy solver may still bracket the root (>=2 of 3 fixed
+        # starts must agree within 1e-6, residual < 1e-8; disagreement ->
+        # None). Reused verbatim for the scalar case (1-element decision
+        # list). A found root is fed to the SAME downstream second-order /
+        # IR / best-response checks as an exact critical point -- no new
+        # trust path.
+        if not foc.has(e_sym):
+            return None  # FOC is e-free (constant/linear utility) -- nothing to solve
+        _foc_eq = _sp.Eq(foc, 0)
+        if _foc_eq in (_sp.true, _sp.false):
+            return None
+        numeric = _numeric_solve_stationarity([_foc_eq], [e_sym])
+        if numeric is None:
+            return None
+        sol_map, _numeric_method = numeric
+        critical_points = [sol_map[e_sym]]
 
     second_deriv = None
     try:
