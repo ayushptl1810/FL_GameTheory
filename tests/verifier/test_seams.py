@@ -120,13 +120,8 @@ def test_stackelberg_verdicts_unchanged_after_seam_extraction():
     # _try_stackelberg_latex.
     expected_stackelberg = {
         "Sarikaya2019stackelberg_workers": ("VERIFIED", True),
-        # Corpus-wide sweep (2026-09-06): verdict_override removed after
-        # transcribing fixed_constants (b_i, c_i) from Sec. V; the
-        # follower-IR blocker itself is unresolved (no U>=0 statement in
-        # the paper), so the entry-specific path still declines and falls
-        # through to the generic quadratic template -- an honest
-        # VERIFIED_TEMPLATE, not a guessed VERIFIED.
-        "1811_12082": ("VERIFIED_TEMPLATE", False),
+        # R6-R7: flipped to MANUAL, second-pass reclaim attempted and failed (fail-closed)
+        "1811_12082": ("MANUAL", False),
         # R3b Task 15: adjudicated MANUAL (vector / multi-stage follower
         # decisions the single-variable FOC path cannot reduce). The seam
         # this test locks is unchanged; only the verdict_override is new.
@@ -163,12 +158,6 @@ _EXPECTED_T234 = {
     # keep their track; only the verdict is now recorded rather than left
     # UNKNOWN, and entry_specific drops to False with the override.
     "Kang2019contract_mobile": ("MANUAL", False, 3),
-    # Corpus-wide sweep (2026-09-06): verdict_override removed after
-    # transcribing fixed_constants (zeta, psi, mu, l) from Table II. B,
-    # h_n, N_0, sigma, rho_n remain individually unresolved, so Track 3's
-    # dReal interval search reports its own honest UNKNOWN (delta-sound,
-    # not exact) rather than a guessed verdict.
-    "Kang2019reliable_contract": ("UNKNOWN", True, 3),
     "Sarikaya2019stackelberg_workers": ("VERIFIED", True, 3),
     "Li2025bayesian_incentive": ("VERIFIED", True, 4),
     "2602_21844": ("MANUAL", False, 4),
@@ -218,11 +207,6 @@ _EXPECTED_TRACK3 = {
     # R3a Task 12: diagnosed MANUAL (9 free vars in IC / 11 in IR make the
     # interval box search intractable at delta=0.001). Still routes to Track 3.
     "Kang2019contract_mobile": ("MANUAL", False),
-    # Corpus-wide sweep (2026-09-06): verdict_override removed after
-    # transcribing fixed_constants (zeta, psi, mu, l); remaining free
-    # symbols (B, h_n, N_0, sigma, rho_n) leave the interval search
-    # genuinely undecided -- an honest UNKNOWN, not a guessed verdict.
-    "Kang2019reliable_contract": ("UNKNOWN", True),
 }
 
 

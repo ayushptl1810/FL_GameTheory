@@ -5,7 +5,7 @@ Each names the mechanism, the obstruction (with the track and the specific limit
 and the concrete human task to close it. Regenerated from corpus.json — do not hand-edit;
 edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 
-**Total: 81 MANUAL entries.** Recurring obstruction families:
+**Total: 93 MANUAL entries.** Recurring obstruction families:
 
 - **vector-follower-decision** (1): 2101_05628
 - **transcendental-FOC-no-closed-form** (2): Chu2023hierarchical, Pandey2019crowd
@@ -15,7 +15,7 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 - **budget-constrained-greedy-allocation** (6): 2404_13841, Ahmed2023frimfl, GPS2023afl_recruit, Jiao2019auto_auction, Jin2023bara_budget, Lu2021cluster_auction
 - **non-polynomial-gap** (4): Haupt2021auctions, Seo2021sdn_fl, Seo2022noniid_auction, Wei2024truthful_bandit
 - **continuous-bid-space-no-discretization** (3): Cui2024auction_market, Yang2023buyers_market, Zhang2022online
-- **other** (47): 2101_12428, 2103_05866, 2308_12502, 2403_09153, 2407_02845, 2408_13223, 2412_05636, 2502_20882, 2505_02462, 2505_05842, 2602_21844, 2605_02935, Batool2022fl_mab, Bornstein2023realistic_incentive, Deng2020fmore_auction, Ding2020contract_multidim, FLamma2025stackelberg, Guo2023stackelberg_industrial, Huang2024aigc, International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A, Kang2019contract_mobile, Kang2022blockchain_metaverse, Karimireddy2022data_sharing, Khan2019edge, Le2021cellular_auction, Li2025split, Li2026network, Liu2023reverse_auction, Luo2023unbiased, Ma2023joint_pricing, Mai2022double_auction, Ng2020uav_auction_coalition, Pang2025quality, Saputra2020fl_contract, Saputra2021iov_contract, Saputra2021straggling, Wang2022motilearn_contract, Wen2025diffusion_contract, Xia2026privacy_mfg, Xiang2025esr_mhfl, Xiao2020stackelberg_twostage, Yang2023async_contract, Yu2022multi_leader_fl, Zhang2020fedserving, Zhang2022expost_auction, Zhang2024auction_comm, Zhao2023truthful
+- **other** (59): 1811_12082, 2101_12428, 2103_05866, 2308_12502, 2403_09153, 2407_02845, 2408_13223, 2412_05636, 2502_10765, 2502_20882, 2505_02462, 2505_05842, 2602_21844, 2605_02935, Batool2022fl_mab, Bornstein2023realistic_incentive, Chen2023multifactor_iot, Deng2020fmore_auction, Ding2020contract_multidim, FLamma2025stackelberg, Guo2023stackelberg_industrial, Hu2020trading, Huang2024aigc, International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A, Javaherian2025stackelberg_ic, Kang2019contract_mobile, Kang2019reliable_contract, Kang2022blockchain_metaverse, Karimireddy2022data_sharing, Khan2019edge, Le2021cellular_auction, Lee2024sfl_stackelberg, Li2025iiot_drl, Li2025split, Li2026network, Lim2020contract, Liu2023reverse_auction, Liu2026fedbud, Luo2023unbiased, Ma2023joint_pricing, Mai2022double_auction, Ng2020uav_auction_coalition, Pang2025quality, Saputra2020fl_contract, Saputra2021iov_contract, Saputra2021straggling, Wang2022blockchain, Wang2022motilearn_contract, Wen2025diffusion_contract, Wu2021contract_DP, Xia2026privacy_mfg, Xiang2025esr_mhfl, Xiao2020stackelberg_twostage, Yang2023async_contract, Yu2022multi_leader_fl, Zhang2020fedserving, Zhang2022expost_auction, Zhang2024auction_comm, Zhao2023truthful
 
 ## Family: vector-follower-decision
 
@@ -273,6 +273,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 
 ## Family: other
 
+### 1811_12082 (Stackelberg) — R11-sweep
+
+**Mechanism:** 9-device mobile-crowdsensing Stackelberg game; follower FOC has exp(.) term with free coefficients b_i, c_i.
+**Obstruction:** fixed_constants (b_i, c_i, Sec. V numerical setup) now resolves the FOC's free parameters, but the entry-specific path still requires a follower IR check to certify VERIFIED. Re-checked Sec. III.1/IV: the only stated constraint on the follower's decision is a box domain [0, s_i^{d,u}], never a U_i>=0 / outside-option inequality anywhere including the numerical section. Falls through to the generic template. (Track 1: follower IR blocker unresolved -- no U>=0 statement anywhere in the paper)
+**Human task:** confirm no IR statement exists anywhere in the paper (including any appendix); if genuinely absent, this stays a data-completeness ceiling, not a solver gap.
+**Diagnosed:** 2026-09-06
+
 ### 2101_12428 (Stackelberg) — R11
 
 **Mechanism:** Chains post block rewards R_m; each staker n allocates a stake vector s_n = (s_n^1,...,s_n^M) across M chains subject to a budget sum_m s_n^m <= B_n.
@@ -321,6 +328,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Obstruction:** best_response_latex (Theorem 1, Eq. 21) is a genuine backward recursion: alpha_i^{t*} depends on alpha_i^r for all r > t via S(t) and the product prod_{r=t+1}^{j-1} alpha_i^r, terminated by alpha_i^T = 0. follower_foc_latex is the bare placeholder 'dU_i/dalpha_t^i = 0' with no algebraic content. Track 1's single-shot d(leader_utility)/d(follower_decision) check cannot encode a multi-period dynamic-programming recursion. (Track 1: follower best-response is a backward recursion over the horizon -- Track 1 single-shot FOC cannot encode it)
 **Human task:** either unroll the recursion for a fixed small horizon T and record the resulting explicit closed form, or add a finite-horizon backward-induction mode to the Stackelberg checker.
 **Diagnosed:** 2026-09-03
+
+### 2502_10765 (Stackelberg) — R11-sweep
+
+**Mechanism:** MSU jointly chooses rendering (x_i^r) and bandwidth (x_i^w) resources under a budget cap.
+**Obstruction:** ir_follower_latex (Eq. 13 budget cap p_r*x_r+p_w*x_w<=B_i) was transcribed, but it is a budget/feasibility constraint, not a classic reservation-utility IR -- and separately, _extract_follower_symbol fails to resolve a single follower decision symbol from this 2-variable utility, so the entry-specific Stackelberg path bails before the IR field is even read. Falls through to the generic template. (Track 1: _extract_follower_symbol returns None on this 2-variable utility -- entry never reaches the IR check)
+**Human task:** fix _extract_follower_symbol's heuristic for multi-variable follower utilities where follower_decision names only one of several sibling variables, OR route this entry through the vector-decision path with both x_r/x_w as decision_syms.
+**Diagnosed:** 2026-09-06
 
 ### 2502_20882 (Contract) — R7
 
@@ -371,6 +385,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Verify Theorem 1's inequality analytically (or route the continuous FOC through a Stackelberg-style stationarity check); a finite-enumeration Nash track will never apply.
 **Diagnosed:** 2026-09-06
 
+### Chen2023multifactor_iot (Stackelberg) — R11-sweep
+
+**Mechanism:** Data owner i's accuracy contribution Acc_i^t traded against a reward rate; FOC has free cost coefficient a_i.
+**Obstruction:** fixed_constants (a_1/5/12/20, Table IV) resolves the FOC's cost coefficients, but the follower utility also contains an unresolved Sum(.) over the client population and _extract_follower_symbol incorrectly resolves the follower decision variable to the time index t instead of Acc_i^t, so the FOC differentiation is against the wrong variable entirely. Falls through to the generic template. (Track 1: _extract_follower_symbol picks the wrong symbol (time index t, not Acc_i^t))
+**Human task:** fix the symbol-extraction heuristic to exclude bare loop/time indices (t) from candidacy when a named decision variable (Acc_i^t) exists in the same utility.
+**Diagnosed:** 2026-09-06
+
 ### Deng2020fmore_auction (VCG) — R-shape-cleanup
 
 **Mechanism:** Forward auction: allocation is a piecewise indicator (x_i(b) = 1 if i in K, 0 otherwise, where K is an unspecified winner set); payment p_i(b) = sum_{j!=i} c(x_j*, gamma_hat_j) - theta_i, a sum-externality form.
@@ -399,6 +420,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** from the source PDF, determine whether the follower subproblem has a closed-form joint FOC system; if it is genuinely solved by iteration, this needs a bi-level numeric method, out of R11 scope.
 **Diagnosed:** 2026-09-06
 
+### Hu2020trading (Stackelberg) — R11-sweep
+
+**Mechanism:** Privacy-budget trading game; follower i chooses rho_i to split a shared reward R, cost c(nu_i,rho_i)=nu_i*rho_i.
+**Obstruction:** A regex bug in _DEFINITION_CLAUSE_RE (fixed this sweep) previously prevented the multi-clause utility from resolving at all. Now resolved correctly to R*rho/(Xi_0+rho) - nu*rho, and sp.solve finds the single real critical point exactly. But the second-order concavity check calls sp.ask(Q.nonpositive(...)) on the second derivative, which returns None (undecidable) rather than True, even though the expression is provably negative for positive R, Xi_0, nu -- a SymPy assumption-engine limitation on this particular nested-rational form, not a data or wiring gap. (Track 1: SymPy sign-inference limit -- sp.ask(Q.nonpositive(second_derivative)) returns None on a provably-negative nested-rational expression)
+**Human task:** either strengthen the concavity check to simplify the second derivative into a sign-provable form before calling sp.ask, or add a targeted algebraic rewrite for this rational-utility shape.
+**Diagnosed:** 2026-09-06
+
 ### Huang2024aigc (Contract) — R12
 
 **Mechanism:** A single uniform unit-data price with post-hoc behavioural type regions of a continuous (s_k, lambda_k) space; the paper never states incentive compatibility, screening, or a menu.
@@ -413,12 +441,26 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Re-extract the paper's true self-selection constraint U_m(contract_z) from the PDF so the RHS is the type-m agent's utility from contract z, then re-run Track 1.
 **Diagnosed:** 2026-09-03
 
+### Javaherian2025stackelberg_ic (Stackelberg) — R11-sweep
+
+**Mechanism:** FL client chooses local iteration count tau_i; utility includes a gradient-divergence norm ratio ||w_i^t-w^t||/||w^t||.
+**Obstruction:** follower_foc_latex and best_response_latex were transcribed directly from the paper's own closed-form derivation (Sec. IV-C), but _resolve_stackelberg_utility returns None outright when parsing the utility -- the \|w_i^t-w^t\| norm-bar notation is not recognized by the current LaTeX front-end. (Track 1: LaTeX->SymPy front-end does not handle norm notation (\|.\|))
+**Human task:** extend the LaTeX->SymPy front-end (or a pre-processing regex) to rewrite \|expr\| into a recognizable form (e.g. a named Norm function or an opaque auxiliary symbol) before parse_latex runs.
+**Diagnosed:** 2026-09-06
+
 ### Kang2019contract_mobile (Contract) — R4
 
 **Mechanism:** Mobile-device contract; routed to Track 3 (mpmath.iv branch-and-bound, delta-sound).
 **Obstruction:** Track 1 does not apply. The R4 fixed_constants field removes the three numerically-declared constants from the box (mu, c_n, s_n), but zeta (effective capacitance, never given a number) and the transmission-energy sub-symbols sigma/rho_n/B/h_n (paper only fixes the composite E^com=20, not the parts) stay free. IC is 6-dim but the branch-and-bound is inconclusive over the generic positive box; IR is still 8-dim, above the cap. The verifier reports UNKNOWN honestly rather than a partial-coverage result. (Track 3: after pinning the 3 paper-declared constants (mu=1, c_n=5, s_n=20) the IC drops from 9 to 6 free vars but the interval search over the generic [0.001,100] parameter box is still inconclusive (unsupported op / budget); the IR drops from 11 to 8 free vars and remains > box-dim cap -- neither IC nor IR is decidable at delta=0.001)
 **Human task:** R4 pinned the 3 paper-declared constants (mu=1, c_n=5, s_n=20) via fixed_constants, dropping the IC box from 9 to 6 free vars and the IR box from 11 to 8, but IR is still over _MAX_BOX_DIMS and IC comes back inconclusive. zeta and the transmission sub-symbols (sigma, rho_n, B, h_n) have no per-symbol numeric values in the paper -- only the composite E^com = 20 -- so they were left free (fail-closed). Needs a tighter Track 3 or a symbolic reduction (R6).
 **Diagnosed:** 2026-09-04
+
+### Kang2019reliable_contract (Contract) — R11-sweep
+
+**Mechanism:** IoT reliable-computing contract; utility has a Shannon-capacity log term plus a quadratic cost term.
+**Obstruction:** fixed_constants (zeta=2, psi=15, mu=1, l=1, Table II) narrows the free-variable count in the quadratic cost term, and the previously-added positivity_domain for rho_n/h_n/N_0 remains sufficient for log-admissibility. But B, h_n, N_0, sigma, rho_n are never individually pinned to numbers anywhere in the paper (only composite quantities are given), so Track 3's delta-sound interval search over the remaining free dimensions genuinely cannot decide the IC/IR obligation -- an honest UNKNOWN, not a guessed verdict. (Track 3: Track 3 interval search remains genuinely undecided after partial constant-pinning)
+**Human task:** find (or the paper does not provide) individual numeric values for B, h_n, N_0, sigma, rho_n; without them this stays a genuine data-completeness ceiling.
+**Diagnosed:** 2026-09-06
 
 ### Kang2022blockchain_metaverse (Contract) — R3a
 
@@ -448,6 +490,20 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Re-read the source paper for the actual constraint set X (a budget cap, a cardinality k, or similar) that the corpus extraction dropped -- without it, the recorded mechanism is not a well-posed single-winner-or-more VCG auction, and no solver can prove or refute DSIC for math the paper's LaTeX (as transcribed) does not actually specify.
 **Diagnosed:** 2026-09-05
 
+### Lee2024sfl_stackelberg (Stackelberg) — R11-sweep
+
+**Mechanism:** Client n chooses data contribution d_n; utility includes Sum(d_l for l != n) over other clients.
+**Obstruction:** best_response_latex (Eqs. 18-20, piecewise closed form) was transcribed, but the follower's FOC differentiates to an expression with no d_n dependence at all -- the Sum(d_l, ...) term over other players is treated as an opaque additive constant by SymPy's differentiation, structurally losing the self-dependence the paper's own derivation correctly captures (the true FOC differentiates the OWN d_n inside a term also involving the sum). (Track 1: Sum-node differentiation loses the decision variable entirely)
+**Human task:** fix the FOC derivation to correctly differentiate an expression containing sqrt(Sum(...)) or similar own-plus-others structures where the decision variable interacts with an aggregate sum term.
+**Diagnosed:** 2026-09-06
+
+### Li2025iiot_drl (Stackelberg) — R11-sweep
+
+**Mechanism:** IIoT node i chooses update cycle theta_i; FOC is a simple rational equation with a box-clipped closed-form best response.
+**Obstruction:** sp.solve on the FOC correctly finds theta_i*=sigma_i/r_i, matching the paper's own interior-case closed form EXACTLY. But best_response_latex was transcribed as the full 3-branch piecewise (\begin{cases}) expression from Eq. (16), and the cross-check step's LaTeX parser cannot parse \begin{cases} notation, so the best-response match fails to even attempt a comparison and the entry-specific path declines rather than risk an unverified cross-check. (Track 1: best-response cross-check parser cannot handle piecewise (\begin{cases}) LaTeX)
+**Human task:** extend the best-response cross-check to parse a \begin{cases} block and compare only the interior (non-boundary) branch against the derived critical point, or accept a match when the derived critical point equals any one stated branch.
+**Diagnosed:** 2026-09-06
+
 ### Li2025split (Stackelberg) — R11
 
 **Mechanism:** SFL tenants post price incentives P_i; each device j chooses a participation vector {q_{i,j}}_{i in [1,M]} across all M tenants simultaneously.
@@ -462,12 +518,26 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Instantiate the paper's closed-form per-type payments and utilities at concrete parameters to build action_payoffs over {abstain, join, buy}^n, with a source cite; Track 6 then verifies the stated equilibrium.
 **Diagnosed:** 2026-09-06
 
+### Lim2020contract (Contract) — R11-sweep
+
+**Mechanism:** UAV-enabled multi-dimensional contract; 2-index (y,z) type reduced by the paper's own cost function to one scalar argument of phi(.).
+**Obstruction:** type_reduction_map (Phi = phi(alpha_y*theta_y+psi+beta_z*theta_z+zeta)) was transcribed from the paper's own cost/utility formula, and _contract_check_core_vector (R11) exists to consume it, but this sweep did not trace deeply enough to confirm whether the substitution itself succeeds or a downstream Contract IC/IR check declines for an unrelated reason. Falls through to the generic template. (Track 1: type_reduction_map substitution path not fully traced this session -- needs its own step-through)
+**Human task:** step through _contract_check_core_vector directly against this entry's transcribed fields to find the exact bail point, the same depth of tracing done for the Stackelberg entries this session.
+**Diagnosed:** 2026-09-06
+
 ### Liu2023reverse_auction (VCG) — R-shape-cleanup
 
 **Mechanism:** Reverse auction: winning coalition W = argmax_{W subseteq N} phi(W) - sum_j c_{MEC_j} - c_cloud - sum_{i in W} c_{user_i} - sum_{i in W} b_i (a coalition-selection welfare max mixing bidder costs with fixed infrastructure costs c_{MEC_j}/c_cloud); payment p_i = phi(W) - phi(W \ {i}) - b_i, the Clarke pivot on the coalition value phi.
 **Obstruction:** This is a genuine multi-winner (coalition subset) allocation, which the current encoder's ArgmaxWelfare path cannot express at all (single-item/single-winner semantics only). Even a general multi-winner welfare-max encoder would need phi(W) -- an opaque coalition-value function never given a closed form in the corpus -- and the objective's non-bidder-indexed terms (c_{MEC_j}, c_cloud) mean 'welfare without bidder i' is not a simple sum-minus-one-term operation the way it is for a clean sum_i v_i x_i objective. (Track 1: VCG: multi-winner coalition allocation with a welfare objective containing non-bidder cost terms -- externality payment cannot be priced generically)
 **Human task:** Transcribe phi(W)'s actual closed form from the source paper (if one exists) and hand-derive the Clarke-pivot DSIC/IR proof directly -- a coalition value with embedded infrastructure costs is outside any current track's decidable fragment.
 **Diagnosed:** 2026-09-05
+
+### Liu2026fedbud (Stackelberg) — R11-sweep
+
+**Mechanism:** Edge node k jointly chooses data volume B_k^t and noise budget epsilon_k^t under a resource budget.
+**Obstruction:** follower_stationarity_system (R4) and best_response_latex (Eqs. 18-19, this sweep) are both correctly transcribed and internally consistent with each other, but _extract_follower_symbol fails to resolve a single scalar follower decision variable from this genuinely 2-variable utility BEFORE the vector-decision routing check ever runs -- the entry-specific path bails at symbol extraction, never reaching the sibling-detection logic that would route it to the vector branch. (Track 1: _extract_follower_symbol returns None on this 2-variable utility)
+**Human task:** same root cause as 2502_10765 -- fix _extract_follower_symbol's behavior on multi-variable follower utilities so vector-decision candidates are correctly identified before the routing check.
+**Diagnosed:** 2026-09-06
 
 ### Luo2023unbiased (Stackelberg) — R13
 
@@ -525,6 +595,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Check whether Track 1's Z3 encoding can handle sqrt-form gain functions (e.g. via a polynomial relaxation or bound); if not, this stays MANUAL as a solver-capability gap rather than a missing-field gap.
 **Diagnosed:** 2026-09-06
 
+### Wang2022blockchain (Stackelberg) — R11-sweep
+
+**Mechanism:** Client i jointly chooses training CPU q_ti and mining CPU q_mi under a time budget.
+**Obstruction:** The new sibling-symbol routing fix (this session) correctly detects q_ti/q_mi as a vector decision and routes to _stackelberg_vector_check; follower_stationarity_system and best_response_latex (Theorem 3.1) were both transcribed. But _solve_stationarity_system finds no exact solution for the rational-term system, and the SciPy numeric fallback correctly declines because the FOC's free parameters (mu_i, p_ti, rho_i, psi, p_mi) are never fixed to single numbers in the paper -- they vary per client in the numerical setup, not a single fixed_constants-eligible value. The prior stored diagnosis's claim that the source PDF was unavailable was also factually wrong -- pdfs/Wang2022blockchain.pdf exists and is readable. (Track 1: numeric fallback correctly fails closed -- FOC's free parameters vary per client, never pinned to single numbers)
+**Human task:** no further transcription possible without the paper giving one concrete per-client numeric instance; this is a genuine data-completeness ceiling now, not a missing-PDF or missing-capability one.
+**Diagnosed:** 2026-09-06
+
 ### Wang2022motilearn_contract (Contract) — R3a
 
 **Mechanism:** MotiLearn contract menu with per-type effort/reward pairs.
@@ -538,6 +615,13 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Obstruction:** Every ^2 / ^1 in the recorded IC/IR is a period index, confirmed by contract_menu_latex's superscript-before-subscript ordering and by the entry's own notes. Reading them as exponents yields a different proof obligation than the paper's (linear) utility u_n = theta_n R_n - c T_n - E, and the intertemporal linkage between periods is absent from the entry entirely. Any verdict on the recorded fields would certify a mechanism the paper does not claim. (Track 1: recorded IC/IR is PERIOD-2 static myopic only (^2/^1 are period indices, not exponents); the paper's true mechanism is a two-period intertemporal contract not represented in the entry)
 **Human task:** Transcribe the paper's full two-period intertemporal contract (both periods plus the linking constraint) with period indices distinguished from exponents, then decide whether an intertemporal IC is expressible on the Track 1 grid.
 **Diagnosed:** 2026-09-03
+
+### Wu2021contract_DP (Contract) — R11-sweep
+
+**Mechanism:** Differentially-private data-sharing contract; 3-D type (theta_x, tau_y, rho_z) reduced by the paper's own marginal-cost formula to one scalar alpha.
+**Obstruction:** type_reduction_map (alpha = theta_x - tau_y + rho_z, Eq. 19) was transcribed directly from the paper with an internal sign-consistency check against Eq. 12, and _contract_check_core_vector (R11) exists to consume it, but this sweep did not trace deeply enough to confirm whether the substitution itself succeeds or a downstream Contract IC/IR check declines for an unrelated reason. Falls through to the generic template. (Track 1: type_reduction_map substitution path not fully traced this session -- needs its own step-through)
+**Human task:** step through _contract_check_core_vector directly against this entry's transcribed fields to find the exact bail point, the same depth of tracing done for the Stackelberg entries this session.
+**Diagnosed:** 2026-09-06
 
 ### Xia2026privacy_mfg (VCG) — R2
 

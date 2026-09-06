@@ -51,26 +51,37 @@ any doubt or missing PDF. 93/93 entries traced (Contract 32, Stackelberg
 removal (so the deterministic solver actually runs against them instead of
 being short-circuited):
 
-| paper_id | category | field(s) added | new verdict |
-|---|---|---|---|
-| `1811_12082` | Stackelberg | `fixed_constants` (b_i, c_i, Sec. V) | `VERIFIED_TEMPLATE` |
-| `2502_10765` | Stackelberg | `ir_follower_latex` (Eq. 13 budget cap) | `VERIFIED_TEMPLATE` |
-| `Chen2023multifactor_iot` | Stackelberg | `fixed_constants` (a_1/5/12/20, Table IV) | `VERIFIED_TEMPLATE` |
-| `Hu2020trading` | Stackelberg | `follower_foc_latex` + `best_response_latex` (Eqs. 13/15) | `VERIFIED_TEMPLATE` |
-| `Javaherian2025stackelberg_ic` | Stackelberg | `follower_foc_latex` + `best_response_latex` (Sec. IV-C) | `VERIFIED_TEMPLATE` |
-| `Lee2024sfl_stackelberg` | Stackelberg | `best_response_latex` (Eqs. 18-20) | `VERIFIED_TEMPLATE` |
-| `Li2025iiot_drl` | Stackelberg | `best_response_latex` (Eq. 16) | `VERIFIED_TEMPLATE` |
-| `Liu2026fedbud` | Stackelberg | `best_response_latex` (Eqs. 18-19) | `VERIFIED_TEMPLATE` |
-| `Wang2022blockchain` | Stackelberg | `follower_stationarity_system` + `best_response_latex` (Theorem 3.1) | `VERIFIED_TEMPLATE` |
-| `Kang2019reliable_contract` | Contract | `fixed_constants` (zeta, psi, mu, l, Table II) | `UNKNOWN` (Track 3, δ-sound search, genuinely undecided) |
-| `Lim2020contract` | Contract | `type_reduction_map` (4-D → 1 scalar via φ) | `VERIFIED_TEMPLATE` |
-| `Wu2021contract_DP` | Contract | `type_reduction_map` (3-D → α = θ_x − τ_y + ρ_z, Eq. 19) | `VERIFIED_TEMPLATE` |
+| paper_id | category | field(s) added | verdict once override removed (transiently) | final state |
+|---|---|---|---|---|
+| `1811_12082` | Stackelberg | `fixed_constants` (b_i, c_i, Sec. V) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `2502_10765` | Stackelberg | `ir_follower_latex` (Eq. 13 budget cap) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Chen2023multifactor_iot` | Stackelberg | `fixed_constants` (a_1/5/12/20, Table IV) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Hu2020trading` | Stackelberg | `follower_foc_latex` + `best_response_latex` (Eqs. 13/15) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Javaherian2025stackelberg_ic` | Stackelberg | `follower_foc_latex` + `best_response_latex` (Sec. IV-C) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Lee2024sfl_stackelberg` | Stackelberg | `best_response_latex` (Eqs. 18-20) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Li2025iiot_drl` | Stackelberg | `best_response_latex` (Eq. 16) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Liu2026fedbud` | Stackelberg | `best_response_latex` (Eqs. 18-19) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Wang2022blockchain` | Stackelberg | `follower_stationarity_system` + `best_response_latex` (Theorem 3.1) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Kang2019reliable_contract` | Contract | `fixed_constants` (zeta, psi, mu, l, Table II) | `UNKNOWN` (Track 3, δ-sound, genuinely undecided) | `MANUAL`, corrected diagnosis |
+| `Lim2020contract` | Contract | `type_reduction_map` (4-D → 1 scalar via φ) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
+| `Wu2021contract_DP` | Contract | `type_reduction_map` (3-D → α = θ_x − τ_y + ρ_z, Eq. 19) | `VERIFIED_TEMPLATE` | `MANUAL`, corrected diagnosis |
 
-**Net corpus effect: `MANUAL` 93 → 81 (-12). Entry-specific `VERIFIED`
-count held at 12 — the monotone gate passes** (no entry moved to a
-strictly-worse state; `MANUAL` → `VERIFIED_TEMPLATE`/`UNKNOWN` is a lateral
-honesty improvement, not a regression, since none of these three states
-claims an entry-specific proof).
+**Correction (same session):** removing `verdict_override` on these 12
+entries left them at `VERIFIED_TEMPLATE`/`UNKNOWN` — a violation of R6-R7's
+hard exit criterion (`VERIFIED_TEMPLATE = 0`, `UNKNOWN = 0`), which
+requires every entry to end in `VERIFIED`, `COUNTEREXAMPLE`, or a
+diagnosed `MANUAL`, never a non-terminal template/unknown state. Restored
+`verdict_override: "MANUAL"` on all 12 with a corrected `manual_diagnosis`
+naming the exact code-level bail point traced below — the newly
+transcribed data (`fixed_constants`, `best_response_latex`, etc.) stays on
+each entry for whoever fixes the underlying parser/extraction bugs next.
+
+**Net corpus effect: `MANUAL` stays 93; entry-specific `VERIFIED` stays 12;
+`VERIFIED_TEMPLATE = 0`, `UNKNOWN = 0` (gate restored).** The sweep's real
+output is not a count change but 12 corrected, code-traced diagnoses
+replacing stale ones (an R9-style catalogue correction), the pre-sweep
+routing/regex/encoding bug fixes, and the flagged data-integrity/
+mis-categorization findings below for a future round.
 
 ### Why none reached entry-specific VERIFIED
 
@@ -184,10 +195,13 @@ program.
 
 ## Suite / gate status
 
-- `PYTHONPATH=src:. pytest -q` → 496 passed, 1 skipped, 3 xfailed (4
-  pre-existing pinned-verdict tests updated to reflect the legitimate
-  `MANUAL` → `VERIFIED_TEMPLATE`/`UNKNOWN` moves, per the established
-  stale-pin precedent).
+- `PYTHONPATH=src:. pytest -q` → 496 passed, 1 skipped, 3 xfailed. The
+  pinned-verdict tests were left untouched at their pre-sweep values
+  (`git checkout` reverted an intermediate edit) since the corpus returned
+  to its pre-sweep verdict distribution for these entries after the
+  override restoration.
 - `PYTHONPATH=src python -m verifier corpus.json` runs clean, no API key,
-  no crash.
-- Monotone gate: entry-specific `VERIFIED` count 12 → 12 (held).
+  no crash: `VERIFIED 12 / MANUAL 93 / VERIFIED_TEMPLATE 0 / UNKNOWN 0 /
+  VERIFIED_SHAPE 0 / UNSUPPORTED 0`.
+- Monotone gate: entry-specific `VERIFIED` count 12 → 12 (held). R6-R7
+  exit criterion (`VERIFIED_TEMPLATE = 0`, `UNKNOWN = 0`) holds.
