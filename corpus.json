@@ -1662,13 +1662,14 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R13",
       "track": 1,
       "limit": "log(theta_m R_m) argument sign not established -- Z3 encoding rejects the transcendental ('log argument sign not established')",
       "mechanism": "FedPot defence-data-quality contract menu {pi_m = (V_m, R_m)}; utility ln(theta_m R_m) - C_m.",
-      "obstruction": "The IC/IR parse and the soundness gate passes, but the log-utility encoding requires the argument theta_m R_m to be provably positive before _sp_to_z3 will admit it. The entry declares no positivity domain for theta_m or R_m, so the encoding raises and Track 1 yields nothing; the recorded verdict is the generic template only.",
-      "human_task": "R4 checked pdfs/2407.02845.pdf: admitting log(theta_m R_m) needs theta_m R_m >= 1, which the paper never states (only C5: R_m > 0, a type ordering theta_1 <= ... <= theta_M, and a budget cap). Genuine ceiling absent a domain lower bound.",
-      "date": "2026-09-04"
+      "obstruction": "R13 added a monotone-opaque-function admission path to _sp_to_z3, but this entry's blocker is not an opaque function -- it is that the log ARGUMENT's sign is not provable. The log encoding admits log(x) only when _is_definitely_positive_sum(x - 1) holds; the R4/R11 positivity_domain reader can supply theta_m > 0 and R_m > 0 but not the product lower bound theta_m R_m > 1 that gate needs. No positivity_domain field was added: no source states it, and theta_m R_m > 0 alone still does not clear the '> 1' gate. Genuine algebraic sign gap, not a missing corpus field or an opaque-function ceiling.",
+      "human_task": "R4 checked pdfs/2407.02845.pdf: admitting log(theta_m R_m) needs theta_m R_m >= 1, which the paper never states (only C5: R_m > 0, a type ordering theta_1 <= ... <= theta_M, and a budget cap). No PDF is in the repo now. Genuine ceiling absent a domain lower bound; R13's monotone-opaque-function work does not apply.",
+      "prior_round": "R4",
+      "date": "2026-09-06"
     }
   },
   {
@@ -3505,13 +3506,14 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3b",
+      "round": "R13",
       "track": 1,
       "limit": "follower FOC is transcendental with no closed-form root (paper states this explicitly) -- Track 1 cannot solve the stationarity equation",
       "mechanism": "Cloud server sets rewards to edge servers; each edge server chooses its number of local aggregations K_l.",
-      "obstruction": "best_response_latex is deliberately null: the paper states on p.21, immediately after the recorded FOC (Eq. 31), that there is 'a lack of the closed-form solution for the optimal edge aggregation strategies of the edge server l', and solves the equilibrium numerically by variational inequality / iterative updates instead. The recorded follower_foc_latex mixes Z_l = sqrt(A_l - F_l K_l / B_l) inside rational terms of degree 2 in Z_l and has no closed-form root in K_l, so there is no equilibrium point for the FOC check to substitute and verify.",
-      "human_task": "decide whether a numerically-certified equilibrium (interval enclosure of the FOC root) is acceptable evidence for this corpus, and if so add a numeric-root Track to the Stackelberg checker.",
-      "date": "2026-09-03"
+      "obstruction": "R13 added a scalar numeric-root fallback to _stackelberg_check_core (SciPy multi-start via _numeric_solve_stationarity) for a follower FOC SymPy cannot close in closed form. It fails closed here: the FOC derived from follower_utility_latex in K_l carries un-pinned paper parameters (chi_l, G, lambda, A_l, F_l, B_l, xi, rho_l, |S_l|, x_l) and the cloud (leader) reward; _numeric_solve_stationarity returns None whenever any free non-decision symbol remains. No fixed_constants field was added -- no source PDF is in the repo to transcribe a paper-declared numerical setup, and pinning the leader variable would make any verdict valid only at one reward, not for the mechanism.",
+      "human_task": "Transcribe the paper's numerical-evaluation section (concrete chi_l, lambda, A_l, F_l, B_l, xi, rho_l, ...) into fixed_constants with a source cite; R13's scalar numeric fallback then root-finds the FOC. The check would still be 'verified for the paper's stated numerical instance' unless the leader reward is itself a pinned scenario.",
+      "prior_round": "R3b",
+      "date": "2026-09-06"
     }
   },
   {
@@ -4085,13 +4087,14 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R13",
       "track": 1,
       "limit": "utility contains the undefined opaque valuation function v(.) inside an expectation E[v(r_i)] -- Z3 encoding rejects it ('unsupported SymPy node v')",
       "mechanism": "Paid-model contract with private per-unit collection cost c_i; utility E[v(r_i)] - c_i m_i.",
-      "obstruction": "The IC parses (type subscript i, contract subscript j, soundness gate passes) but E[v(r_i)] is an expectation of an undefined valuation function. _sp_to_z3 raises 'unsupported SymPy node v'. Track 4's Bayesian path cannot help either, because v has no algebraic form to integrate.",
-      "human_task": "R4: no source PDF exists in pdfs/ and the entry's arxiv_id/source/notes are all null -- the opaque valuation v(.) inside E[v(r_i)] cannot be transcribed.",
-      "date": "2026-09-04"
+      "obstruction": "R13's _sp_to_z3 monotone-opaque-function extension admits a bare Function node f(x) as an opaque Z3 real when the IC gap uses it only as a sign-determinate constant multiple of a same-function difference C*(f(a) - f(b)) (structural guard _monotone_difference_functions). This entry's key_assumptions already state v is 'increasing', and the parsed IC gap does have the shape E*(v(r_i) - v(r_j)) + c_i*(m_j - m_i). BUT the 'E' here is the LaTeX parser's misread of the expectation operator E[.] as Euler's number: the mechanism is E[v(r_i)], an expectation of the valuation over the report distribution, and 'v increasing' does not by itself give 'E[v(.)] increasing' without a monotone-report assumption the transcription does not carry. Admitting it would certify against a misparse. No opaque_function_monotonicity field added; the ceiling is the expectation operator, now identified precisely, not bare function opaqueness.",
+      "human_task": "Re-transcribe the client utility with the expectation operator represented explicitly (not folded into a constant), and state whether E[v(r_i)] inherits v's monotonicity in the report. Then opaque_function_monotonicity plus R13's _monotone_difference_functions guard would apply. No source PDF exists in pdfs/ and the entry's arxiv_id/source/notes are all null.",
+      "prior_round": "R4",
+      "date": "2026-09-06"
     }
   },
   {
@@ -5917,13 +5920,14 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3b",
+      "round": "R13",
       "track": 1,
       "limit": "follower best-response is an implicit argmax over a box and the recorded FOC is an implicit cubic in q_n* with no transcribed root -- Track 1 has no closed form to substitute",
       "mechanism": "Server sets customized per-client prices P_n; each client n chooses a participation probability q_n in [0, q_{n,max}].",
-      "obstruction": "best_response_latex is a bare argmax placeholder (q_n^{SE}(P) = argmax_{0<=q_n<=q_{n,max}} U_n(q_n,P_n)) with no algebraic content. follower_foc_latex is implicit in the unknown -- P_n + v_n (alpha/R) a_n^2 G_n^2 / q_n^{*2} - 2 c_n q_n^* = 0 is a cubic in q_n* whose root the entry never records -- and the true optimum is the box-clipped value, not the interior stationary point. There is no closed-form single-variable best response for the FOC check to verify against.",
-      "human_task": "record the explicit (clipped) root of the cubic from the paper, or add root-solving plus box-projection to the Stackelberg checker.",
-      "date": "2026-09-03"
+      "obstruction": "R13's scalar numeric-root fallback does not reach this entry: the FOC is derived from follower_utility_latex, which contains v_n*(F(w_n*) - E[F(w^R(q))]) -- an opaque expectation of an opaque objective. _sp.diff leaves a Derivative node, so _stackelberg_check_core returns at the foc.has(Derivative) hard bail, before the numeric fallback. The recorded follower_foc_latex (a cubic in q_n*) is not consumed -- the checker differentiates the utility itself -- and even solved, the true optimum is the box-clipped value, not the interior stationary point.",
+      "human_task": "Record the explicit (clipped) root of the cubic from the paper, or add root-solving plus box projection AND opaque-expectation handling to the Stackelberg checker. R13's numeric fallback alone cannot help while the utility carries E[F(.)].",
+      "prior_round": "R3b",
+      "date": "2026-09-06"
     }
   },
   {
@@ -6226,13 +6230,14 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R4",
+      "round": "R13",
       "track": 1,
       "limit": "utility contains the undefined opaque staleness function h(t_k) -- Z3 encoding rejects it ('unsupported SymPy node h')",
       "mechanism": "Joint capability/joining-time contract phi_k = {e_k, t_k, r_k} with multidimensional type (theta_k, t_k).",
-      "obstruction": "The IC parses via utility-call expansion (type subscript k, contract subscript k-prime, soundness gate passes), but the staleness weight h(t_k) is an undefined function and _sp_to_z3 raises 'unsupported SymPy node h'. The type is also genuinely two-dimensional, which the single-type-subscript machinery does not model even once h is supplied.",
-      "human_task": "R4 checked pdfs/Nguyen2025right_reward.pdf: h(t_k) is defined (Eq. 2) but 2-branch piecewise (1 + vartheta ln(2 t_k) if t_k in CLPs, else 1); opaque_function_forms maps one name to one form and cannot represent a piecewise function.",
-      "date": "2026-09-04"
+      "obstruction": "R13's _sp_to_z3 monotone-opaque-function extension does not reach this entry: h(t_k) appears in the parsed IC gap as theta_k*e_k*h(t_k) - theta_k*e_{k'}*h(t_{k'}), i.e. multiplied by a type- and menu-dependent coefficient, not as a pure constant-multiple same-function difference. _monotone_difference_functions correctly rejects it (the coefficient theta_k*e_k is not a sign-determinate constant), so no aux-real admission happens even if a monotonicity fact were supplied. The paper also states no monotonicity for h (key_assumptions lists only single-crossing and risk neutrality; R4 found h is a 2-branch piecewise, Eq. 2), and the type (theta_k, t_k) is genuinely 2-dimensional. Independent ceilings remain.",
+      "human_task": "R4 checked pdfs/Nguyen2025right_reward.pdf: h(t_k) is 2-branch piecewise (1 + vartheta ln(2 t_k) if t_k in CLPs, else 1) -- opaque_function_forms cannot represent it, and R13's monotone path needs h to appear as a constant-multiple difference (it does not) and needs a stated monotonicity (there is none). The 2D type is a separate ceiling. No PDF is in the repo now.",
+      "prior_round": "R4",
+      "date": "2026-09-06"
     }
   },
   {
@@ -6268,13 +6273,14 @@
     "z3_verdict": "VERIFIED_TEMPLATE",
     "verdict_override": "MANUAL",
     "manual_diagnosis": {
-      "round": "R3b",
+      "round": "R13",
       "track": 1,
       "limit": "follower FOC is transcendental (1/theta - log(1/theta) = const) with no closed-form root, and the best response is a min-clipped implicit solution -- Track 1 cannot solve the stationarity equation",
       "mechanism": "Server posts a uniform reward r; each client k chooses a local accuracy level theta_k.",
-      "obstruction": "follower_foc_latex is 1/theta_k - log(1/theta_k) = (r + nu_k T_k)/((1-nu_k) gamma_k) - 1, a transcendental equation in theta_k with no closed-form root (its solution is a Lambert-W branch the paper never writes down). best_response_latex is correspondingly implicit: theta_k*(r) = min{ hat-theta_k(r) | g_k(r) = log(e^{1/hat-theta_k} hat-theta_k), theta_th } -- it defines hat-theta_k only as 'the value satisfying' the transcendental relation, then clips at theta_th. Nothing algebraic can be substituted into a d(leader_utility)/d(follower_decision) check.",
-      "human_task": "record the Lambert-W closed form if the branch can be pinned down soundly, and add transcendental/special-function support plus the min-clip to the checker.",
-      "date": "2026-09-03"
+      "obstruction": "R13's scalar numeric-root fallback is the right shape for this FOC (1/theta_k - log(1/theta_k) = const, no elementary closed form; sp.solve raises, so the fallback does trigger) but it fails closed: the FOC carries un-pinned parameters (r, nu_k, T_k, gamma_k), where r is the LEADER's reward choice. _numeric_solve_stationarity bails on the remaining free symbols. No fixed_constants added: no source PDF for a numerical setup, and r is a decision variable, not a constant. The min-clip at theta_th is also not modelled.",
+      "human_task": "Either transcribe a paper numerical instance (nu_k, T_k, gamma_k, and a scenario reward r) into fixed_constants with a cite so R13's numeric fallback can root-find, or pin the Lambert-W branch soundly and add special-function plus min-clip support to the checker.",
+      "prior_round": "R3b",
+      "date": "2026-09-06"
     }
   },
   {
