@@ -2,6 +2,18 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status (2026-09-06):** Executed as part of a same-day full corpus-wide
+> sweep once `pdfs/`/`entries/` were confirmed present locally (R11/R12
+> had run earlier the same day with neither directory available). See
+> `docs/superpowers/notes/round-corpus-sweep-2026-09-06-delta.md` and the
+> umbrella spec's "PDF sweep follow-up" note for the complete trace. This
+> plan's own 6-entry target list (`2407_02845`, `Han2025paid_models`,
+> `Nguyen2025right_reward`, `Chu2023hierarchical`, `Luo2023unbiased`,
+> `Pandey2019crowd`) was covered by that sweep alongside the other 87
+> `MANUAL` entries; none of R13's specific targets got a new field this
+> pass (each stayed diagnosed for a genuine, confirmed reason — see the
+> delta doc's Contract/Stackelberg batch notes).
+
 ## Handoff from R12 (read before starting)
 
 **Filled in by R12's Task 8 Step 3 (R12 landed 2026-09-06).**

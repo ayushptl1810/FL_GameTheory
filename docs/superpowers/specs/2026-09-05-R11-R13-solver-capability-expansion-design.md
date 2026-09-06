@@ -97,6 +97,35 @@ round internals past what's needed to sequence them.
   No merge (no branch this program). Delta:
   `docs/superpowers/notes/round-R12-delta.md`; re-trace:
   `docs/superpowers/notes/round-R12-root-cause-recheck.md`.
+
+  **PDF sweep follow-up (2026-09-06, same day):** R11/R12 landed in an
+  environment with no `pdfs/`/`entries/` directories, so every
+  transcription task above found nothing and both rounds' "0 reclaimed"
+  results were a data-availability artifact, not a final answer. With
+  those directories confirmed present locally, a full corpus-wide
+  re-audit was run against all 93 `MANUAL` entries (not just R11/R12's
+  named targets) — see `docs/superpowers/notes/round-corpus-sweep-2026-09-06-delta.md`
+  for the complete trace. Also fixed in the same pass: the Stackelberg
+  vector-decision branch was still unreachable from the live pipeline
+  (`_try_stackelberg_latex` never built the symbol tuple `_stackelberg_vector_check`
+  needs — a routing gap beyond what R11's own "no PDFs" finding had
+  identified), a `_br_components_match` base-name collision bug, a
+  `_DEFINITION_CLAUSE_RE` regex bug that silently broke multi-clause
+  utility resolution, and a `MANUAL-backlog.md` encoding bug that crashed
+  `print_summary`. 12 entries got well-cited data transcribed from their
+  real PDFs; **0 reached entry-specific `VERIFIED`** — every one was
+  traced to a *further*, more specific code-level limit (two parser gaps,
+  two symbol-extraction misses, a SymPy sign-inference limit, a Sum-node
+  differentiation loss, two genuine data-completeness ceilings) and kept
+  `verdict_override: "MANUAL"` with a corrected diagnosis naming that
+  exact limit, restoring the `VERIFIED_TEMPLATE = 0` / `UNKNOWN = 0` gate.
+  Corpus counts unchanged (`VERIFIED` 12, `MANUAL` 93) but the diagnosis
+  catalogue is now corrected for these 12 entries and several
+  data-integrity bugs / mis-categorization candidates were additionally
+  surfaced (`Mai2022double_auction`, `Ng2020uav_auction_coalition`,
+  `Jiao2019auto_auction`, `Cheng2022uav`, `Yang2023buyers_market`,
+  `Zhang2024auction_comm`, `Le2021cellular_auction` — see the delta doc).
+
 - **R13 — Transcendental/implicit root-finding fallback.** Targets the
   ~8-10 entry transcendental-FOC / opaque-log-argument cluster across
   Contract and Stackelberg.

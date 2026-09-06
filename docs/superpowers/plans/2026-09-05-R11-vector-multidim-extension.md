@@ -2,6 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status (2026-09-06):** Executed. First pass ran in an environment with
+> no `pdfs/`/`entries/` directories, so 0 of 11 targets flipped (see
+> `docs/superpowers/notes/round-R11-delta.md`). Re-run the same day with
+> the PDFs confirmed present — a full corpus-wide sweep (not just this
+> plan's 11 targets) re-traced all 93 `MANUAL` entries against their real
+> PDFs, found and fixed a routing gap plus two other bugs, transcribed
+> well-cited data for 12 entries, and still landed 0 entry-specific
+> `VERIFIED` (each traced to a further specific code limit). See
+> `docs/superpowers/notes/round-corpus-sweep-2026-09-06-delta.md` for the
+> full per-entry trace and the umbrella spec's "PDF sweep follow-up" note.
+
 **Goal:** Reclaim `MANUAL → VERIFIED` for the entries where a vector/multi-dim
 decision structure blocks Track 1's exact symbolic solve, by adding a
 numeric (SciPy) fallback to Stackelberg's already-landed vector-decision

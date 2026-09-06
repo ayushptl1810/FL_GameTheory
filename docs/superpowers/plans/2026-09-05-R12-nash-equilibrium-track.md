@@ -2,6 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **Status (2026-09-06):** Executed. First pass ran in an environment with
+> no `pdfs/`/`entries/` directories, so 0 of 10 targets flipped (see
+> `docs/superpowers/notes/round-R12-delta.md`). Re-run the same day with
+> the PDFs confirmed present as part of a full corpus-wide sweep (not just
+> this plan's 10 targets) — see
+> `docs/superpowers/notes/round-corpus-sweep-2026-09-06-delta.md` and the
+> umbrella spec's "PDF sweep follow-up" note. No R12/Track-6 target got a
+> new field from that sweep (the 10 entries' real bail causes, per Task
+> 2's re-trace, are peer-prediction/Bayesian-persuasion/continuous-action
+> shapes Track 6 cannot represent, not missing data).
+
 ## Handoff from R11 (read before starting)
 
 **This section must be filled in by R11's Task 8 Step 3 before R12 begins.**
