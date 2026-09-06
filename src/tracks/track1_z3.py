@@ -264,7 +264,7 @@ def _is_definitely_positive_sum(expr: Any) -> bool:
     return saw_symbol_term
 
 
-def _sp_to_z3(expr: Any, cache: dict) -> Any:
+def _sp_to_z3(expr: Any, cache: dict, monotone_functions: "dict | None" = None) -> Any:
     """Convert SymPy polynomial expression to Z3.
 
     log/exp are handled as opaque auxiliary real variables rather than
@@ -278,7 +278,19 @@ def _sp_to_z3(expr: Any, cache: dict) -> Any:
     _is_definitely_positive_sum) -- i.e. log(x) > 0 is soundly established
     from the ambient positive-symbol assumption, not asserted blindly.
     Anything else still raises, same as before.
+
+    monotone_functions: optional {func_name: "increasing"|"decreasing"} -- an
+    opaque Function node whose name is a key here becomes a fresh Z3 auxiliary
+    real (same treatment as log/exp), IF AND ONLY IF the caller has already
+    confirmed the specific IC/IR check being run only needs the function's
+    monotonicity, not its value (see _contract_check_core's
+    _monotone_difference_functions guard). This function does not encode the
+    monotonicity fact itself -- Z3 cannot usefully state "this opaque real
+    rises with an unconstrained argument" -- it only stops the earlier
+    "unsupported node" bail so the caller's own sign-of-a-difference
+    reasoning can proceed. Distinct arguments get distinct auxiliary reals.
     """
+    monotone_functions = monotone_functions or {}
     if isinstance(expr, _sp.exp):
         key = f"exp[{expr.args[0]}]"
         if key not in cache:
@@ -304,16 +316,16 @@ def _sp_to_z3(expr: Any, cache: dict) -> Any:
             cache[name] = Real(name)
         return cache[name]
     if isinstance(expr, _sp.Add):
-        parts = [_sp_to_z3(a, cache) for a in expr.args]
+        parts = [_sp_to_z3(a, cache, monotone_functions) for a in expr.args]
         return sum(parts[1:], parts[0])
     if isinstance(expr, _sp.Mul):
-        parts = [_sp_to_z3(a, cache) for a in expr.args]
+        parts = [_sp_to_z3(a, cache, monotone_functions) for a in expr.args]
         r = parts[0]
         for p in parts[1:]:
             r = r * p
         return r
     if isinstance(expr, _sp.Pow):
-        b = _sp_to_z3(expr.args[0], cache)
+        b = _sp_to_z3(expr.args[0], cache, monotone_functions)
         e2 = expr.args[1]
         if e2 == _sp.Integer(2):
             return b * b
@@ -325,6 +337,11 @@ def _sp_to_z3(expr: Any, cache: dict) -> Any:
                 r = r * b
             return r
         raise ValueError(f"unsupported exponent {e2}")
+    if isinstance(expr, _sp.Function) and str(expr.func) in monotone_functions:
+        key = f"{expr.func}[{expr.args[0]}]"
+        if key not in cache:
+            cache[key] = Real(f"opaquefn{len(cache)}")
+        return cache[key]
     raise ValueError(f"unsupported SymPy node {type(expr).__name__}")
 
 
@@ -691,6 +708,56 @@ def _contract_check_core_vector(
     )
 
 
+def _monotone_difference_functions(gap: Any, declared: dict) -> dict:
+    """Subset of ``declared`` (mechanism['opaque_function_monotonicity']) that
+    appears in the symbolic IC gap ``U_ir - U_rhs`` ONLY as a sign-determinate
+    constant multiple of a same-function two-point difference
+    ``C * (f(a) - f(b))``.
+
+    That is the sole shape where the paper's monotonicity assumption alone --
+    no closed form -- fixes the term's sign: if ``f`` is increasing and the
+    menu orders ``a`` vs ``b`` by index, ``C * (f(a) - f(b))`` has the sign of
+    the constant ``C``. If ``f`` is multiplied by a non-constant (a type- or
+    menu-dependent coefficient, e.g. ``theta_k e_k * h(t_k)``), or appears
+    only once, monotonicity is not enough and the entry keeps its ceiling.
+
+    Conservative: returns ``{}`` unless the shape is confirmed structurally.
+    """
+    usable: dict = {}
+    for fname, sense in declared.items():
+        if sense not in ("increasing", "decreasing"):
+            continue
+        calls = [a for a in gap.atoms(_sp.Function) if str(a.func) == fname]
+        distinct_args = {c.args for c in calls}
+        if len(distinct_args) != 2:
+            continue  # need exactly a two-point comparison
+        placeholders = {
+            args: _sp.Symbol(f"__mono_{fname}_{i}")
+            for i, args in enumerate(distinct_args)
+        }
+        sub = gap
+        for c in calls:
+            sub = sub.subs(c, placeholders[c.args])
+        if any(str(a.func) == fname for a in sub.atoms(_sp.Function)):
+            continue  # a call survived substitution -- unexpected nesting
+        ph = list(placeholders.values())
+        try:
+            poly = _sp.Poly(sub, *ph)
+        except _sp.PolynomialError:
+            continue
+        if poly.total_degree() > 1:
+            continue  # f's value matters beyond a linear appearance
+        c0, c1 = sub.coeff(ph[0]), sub.coeff(ph[1])
+        if not (c0.is_number and c1.is_number):
+            continue  # coefficient is not a sign-determinate constant
+        if _sp.simplify(c0 + c1) != 0:
+            continue  # not a pure difference (coefficients don't cancel)
+        if c0.is_zero or c0.is_positive is None:
+            continue  # sign of the common constant not determinate
+        usable[fname] = sense
+    return usable
+
+
 def _contract_check_core(
     U_ir: Any, U_rhs: Any, type_sub: str, contract_sub: str, n: int,
     ir_from_ic_lhs: bool, *, paper_id: str, meta: "dict | None" = None,
@@ -721,6 +788,21 @@ def _contract_check_core(
             U_ir = U_ir.subs(_subs_map)
             U_rhs = U_rhs.subs(_subs_map)
 
+    # Paper-declared opaque-function monotonicity
+    # (mechanism['opaque_function_monotonicity'], {"v": "increasing"}-shaped):
+    # admit an otherwise-unsupported Function node as an opaque Z3 real ONLY
+    # where it appears in the IC gap as a sign-determinate constant multiple
+    # of a same-function difference (see _monotone_difference_functions). The
+    # monotonicity fact is then injected below as an ordering on those aux
+    # reals, keyed off the menu index -- never as a claim about the function's
+    # value. No-op (empty) for every entry that declares no such field.
+    _declared_mono = mech.get("opaque_function_monotonicity") or {}
+    safe_mono = (
+        _monotone_difference_functions(U_ir - U_rhs, _declared_mono)
+        if _declared_mono
+        else {}
+    )
+
     def _U(type_k: int, contract_l: "int | None" = None) -> Any:
         l = contract_l if contract_l is not None else type_k
         sp_expr = (
@@ -729,7 +811,7 @@ def _contract_check_core(
             else _sub_index(_sub_index(U_rhs, type_sub, type_k), contract_sub, l)
         )
         try:
-            return _sp_to_z3(sp_expr, cache)
+            return _sp_to_z3(sp_expr, cache, monotone_functions=safe_mono)
         except ValueError:
             return None
 
@@ -746,7 +828,9 @@ def _contract_check_core(
     # because the aux variable was free to take a value the real log/exp
     # term never could for that argument). Downgrade any such COUNTEREXAMPLE
     # to UNKNOWN below.
-    used_transcendental = any(k.startswith("log[") or k.startswith("exp[") for k in cache)
+    used_transcendental = any(
+        k.startswith("log[") or k.startswith("exp[") for k in cache
+    ) or any(str(v).startswith("opaquefn") for v in cache.values())
 
     indexed: dict = {}
     for name in cache:
@@ -790,8 +874,19 @@ def _contract_check_core(
         for v in vd.values():
             preconds.append(v > 0)
     for name, var in cache.items():
-        if not re.match(r".+_\d+$", name):
+        if not re.match(r".+_\d+$", name) and not str(var).startswith("opaquefn"):
             preconds.append(var > 0)
+
+    # Monotone opaque-function aux reals (see safe_mono / _sp_to_z3's
+    # monotone_functions) are left FREE here: the structural guard has
+    # confirmed f only ever appears as a sign-determinate constant multiple
+    # of a same-function difference C*(f(a) - f(b)), but the ordering
+    # f(a) <= f(b) rests on the reward menu being index-ordered, which is
+    # imposed only for menu families that get a standalone Z3 real (not a
+    # function-wrapped argument). So a residual COUNTEREXAMPLE from these
+    # free aux reals is downgraded to UNKNOWN (used_transcendental, above)
+    # rather than trusted -- fail closed. A VERIFIED, if reached, is sound:
+    # it would hold for every f, which includes the true monotone one.
 
     def _type_family() -> "str | None":
         tv = str(mech.get("type_variable") or "")
