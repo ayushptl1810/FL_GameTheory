@@ -5,17 +5,17 @@ Each names the mechanism, the obstruction (with the track and the specific limit
 and the concrete human task to close it. Regenerated from corpus.json — do not hand-edit;
 edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 
-**Total: 93 MANUAL entries.** Recurring obstruction families:
+**Total: 81 MANUAL entries.** Recurring obstruction families:
 
-- **vector-follower-decision** (3): 2101_05628, 2502_10765, Liu2026fedbud
+- **vector-follower-decision** (1): 2101_05628
 - **transcendental-FOC-no-closed-form** (2): Chu2023hierarchical, Pandey2019crowd
 - **opaque-function-in-utility** (10): 2102_03401, 2605_11889, 2606_18384, Cheng2022uav, Han2025paid_models, Lim2020edge_collab, Model2024trading_fl, Nguyen2025right_reward, Peng2023auction_medical, Tan2023hire
-- **no-follower-IR-stated** (11): 1811_12082, 2110_12876, 2203_00270, 2404_08261, 2508_07676, Cao2025service, Chen2023multifactor_iot, Hu2020trading, Hu2022truthful_FEL, Lee2024sfl_stackelberg, Li2025iiot_drl
+- **no-follower-IR-stated** (6): 2110_12876, 2203_00270, 2404_08261, 2508_07676, Cao2025service, Hu2022truthful_FEL
 - **coalition-value-not-instantiable** (2): 2405_13879, 2502_08248
 - **budget-constrained-greedy-allocation** (6): 2404_13841, Ahmed2023frimfl, GPS2023afl_recruit, Jiao2019auto_auction, Jin2023bara_budget, Lu2021cluster_auction
 - **non-polynomial-gap** (4): Haupt2021auctions, Seo2021sdn_fl, Seo2022noniid_auction, Wei2024truthful_bandit
 - **continuous-bid-space-no-discretization** (3): Cui2024auction_market, Yang2023buyers_market, Zhang2022online
-- **other** (52): 2101_12428, 2103_05866, 2308_12502, 2403_09153, 2407_02845, 2408_13223, 2412_05636, 2502_20882, 2505_02462, 2505_05842, 2602_21844, 2605_02935, Batool2022fl_mab, Bornstein2023realistic_incentive, Deng2020fmore_auction, Ding2020contract_multidim, FLamma2025stackelberg, Guo2023stackelberg_industrial, Huang2024aigc, International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A, Javaherian2025stackelberg_ic, Kang2019contract_mobile, Kang2019reliable_contract, Kang2022blockchain_metaverse, Karimireddy2022data_sharing, Khan2019edge, Le2021cellular_auction, Li2025split, Li2026network, Lim2020contract, Liu2023reverse_auction, Luo2023unbiased, Ma2023joint_pricing, Mai2022double_auction, Ng2020uav_auction_coalition, Pang2025quality, Saputra2020fl_contract, Saputra2021iov_contract, Saputra2021straggling, Wang2022blockchain, Wang2022motilearn_contract, Wen2025diffusion_contract, Wu2021contract_DP, Xia2026privacy_mfg, Xiang2025esr_mhfl, Xiao2020stackelberg_twostage, Yang2023async_contract, Yu2022multi_leader_fl, Zhang2020fedserving, Zhang2022expost_auction, Zhang2024auction_comm, Zhao2023truthful
+- **other** (47): 2101_12428, 2103_05866, 2308_12502, 2403_09153, 2407_02845, 2408_13223, 2412_05636, 2502_20882, 2505_02462, 2505_05842, 2602_21844, 2605_02935, Batool2022fl_mab, Bornstein2023realistic_incentive, Deng2020fmore_auction, Ding2020contract_multidim, FLamma2025stackelberg, Guo2023stackelberg_industrial, Huang2024aigc, International_Journal_of_Intelligent_Systems_-_2024_-_Wan_-_Hierarchical_Incentive_Mechanism_for_Federated_Learning__A, Kang2019contract_mobile, Kang2022blockchain_metaverse, Karimireddy2022data_sharing, Khan2019edge, Le2021cellular_auction, Li2025split, Li2026network, Liu2023reverse_auction, Luo2023unbiased, Ma2023joint_pricing, Mai2022double_auction, Ng2020uav_auction_coalition, Pang2025quality, Saputra2020fl_contract, Saputra2021iov_contract, Saputra2021straggling, Wang2022motilearn_contract, Wen2025diffusion_contract, Xia2026privacy_mfg, Xiang2025esr_mhfl, Xiao2020stackelberg_twostage, Yang2023async_contract, Yu2022multi_leader_fl, Zhang2020fedserving, Zhang2022expost_auction, Zhang2024auction_comm, Zhao2023truthful
 
 ## Family: vector-follower-decision
 
@@ -24,20 +24,6 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Mechanism:** OSPs (leaders) announce prices; each mobile device (follower) picks an offloading strategy vector alpha_i = (alpha_{i,1},...,alpha_{i,N}) splitting its task across N OSPs.
 **Obstruction:** The follower chooses an N-dimensional simplex-constrained allocation vector coupled through the shared congestion term D_i(alpha_i, A_{-i}). This is a KKT system (stationarity + simplex feasibility + multiplier), not the plain equality FOC system _solve_stationarity_system accepts, and no follower_stationarity_system is transcribed. R11 added a SciPy numeric fallback for the equality-system case but it does not apply to a simplex-constrained KKT problem. (Track 1: vector follower decision on a simplex; no closed-form joint stationarity system)
 **Human task:** transcribe the paper's KKT conditions (or a reduced unconstrained stationarity system after eliminating the simplex constraint) from the source PDF, then a future round can extend the vector path to KKT.
-**Diagnosed:** 2026-09-06
-
-### 2502_10765 (Stackelberg) — R11
-
-**Mechanism:** Provider sets unit prices p_r and p_w; each user jointly chooses rendering resources x_i^r AND bandwidth resources x_i^w.
-**Obstruction:** follower_stationarity_system IS transcribed (R4), but the live verifier pipeline never reaches _solve_stationarity_system for it: verify() returns the R4 verdict_override, and even without that, _try_stackelberg_latex extracts a single follower symbol and deliberately bails when the follower controls more than one variable -- it never builds the symbol tuple _stackelberg_check_core's vector branch needs. R11 added the numeric fallback inside that vector branch; wiring the branch to fire on this entry is unshipped additional work. (Track 1: vector follower decision: numeric fallback ready but pipeline never routes a symbol vector)
-**Human task:** add routing in _try_stackelberg_latex: when follower_stationarity_system is present, collect its decision symbols and call _stackelberg_check_core with follower_decision=tuple(syms); then hand-check the resulting root (residual + Hessian sign) against the paper.
-**Diagnosed:** 2026-09-06
-
-### Liu2026fedbud (Stackelberg) — R11
-
-**Mechanism:** Server pays R^t to edge nodes; each node k jointly chooses data volume B_k^t AND privacy/noise budget epsilon_k^t.
-**Obstruction:** follower_stationarity_system IS transcribed (R4), a decoupled pair in B_k^t and epsilon_k^t. As with 2502_10765, the live pipeline never routes a follower symbol tuple into _stackelberg_check_core's vector branch (verdict_override MANUAL; single-symbol extraction then bail). R11's numeric fallback sits in that unreached branch. (Track 1: vector follower decision: numeric fallback ready but pipeline never routes a symbol vector)
-**Human task:** wire follower_stationarity_system decision-symbol collection into _try_stackelberg_latex, then hand-check the root (residual + Hessian).
 **Diagnosed:** 2026-09-06
 
 ## Family: transcendental-FOC-no-closed-form
@@ -130,13 +116,6 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 
 ## Family: no-follower-IR-stated
 
-### 1811_12082 (Stackelberg) — R7
-
-**Mechanism:** Leader (data requester) sets rewards/prices; follower (model owner) chooses computing/data resource contribution s_i^d over a box domain.
-**Obstruction:** Batch-C review left ir_follower_latex null (fail-closed) -- the only constraint on s_i^d is the box domain s_i^d in [0, s_i^{d,u}] (Sec. III.1), a feasibility bound, not a U_follower >= 0 / outside-option IR. (Track 1: Stackelberg: no follower IR / participation constraint stated in the paper)
-**Human task:** Re-read Sec. III.1-III.2 of 1811_12082 for any implicit participation floor tied to the outside option; if none exists in the paper, this stays MANUAL -- Track 1's IR check has no statement to encode.
-**Diagnosed:** 2026-09-06
-
 ### 2110_12876 (Stackelberg) — R7
 
 **Mechanism:** Leader (parking-lot operator) sets reward r_j; follower (vehicle) chooses participation rho_i^j subject to parking-capacity and budget caps.
@@ -172,39 +151,11 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Confirm no IR statement exists anywhere else in the paper for the LMO (the follower already modeled in this entry, leader=TP); if Rbase truly only applies to the Worker sub-actor, this entry stays MANUAL as there is no follower-level IR to transcribe.
 **Diagnosed:** 2026-09-06
 
-### Chen2023multifactor_iot (Stackelberg) — R7
-
-**Mechanism:** Leader sets reward Ii^t; follower (data owner) chooses effort/accuracy contribution Acci^t under a reputation-linked reward.
-**Obstruction:** Batch D review left ir_follower_latex null fail-closed -- no constraint block or utility>=0 condition appears anywhere for the data owner's optimization problem. Theorem 2 (Ii^t monotonic in reputation Ri^t and accuracy Acci^t) is a fairness result, and Definition 7 (Optimal Equilibrium) is the standard best-response equilibrium definition -- neither is an IR statement. (Track 1: Stackelberg: no follower IR / participation constraint stated for the data owner)
-**Human task:** Re-scan the data owner's optimization problem statement and any footnotes/remarks for an implicit non-negativity condition; absent one, this stays MANUAL.
-**Diagnosed:** 2026-09-06
-
-### Hu2020trading (Stackelberg) — R7
-
-**Mechanism:** Leader sets price beta_i; follower (user i) chooses contribution rho_i maximizing utility, with a corner solution rho_i = -infty when unprofitable (Eq. 15).
-**Obstruction:** Batch E review left ir_follower_latex null fail-closed -- the paper never states U_i >= 0 formally. It only notes informally, right after Eq. (15), that a user sets rho_i = -infty to avoid a deficit when the best strategy beta_i(rho_{-i}) is non-positive -- a behavioral description of the corner solution already embedded in best_response_latex, not a separately stated IR constraint. (Track 1: Stackelberg: no follower IR / participation constraint stated as a formal inequality)
-**Human task:** Confirm whether the corner-solution description near Eq. (15) can be formalized as an equivalent IR inequality without adding content beyond what the paper states; if it cannot be done without fabricating a constraint the paper doesn't write, this stays MANUAL.
-**Diagnosed:** 2026-09-06
-
 ### Hu2022truthful_FEL (Stackelberg) — R7
 
 **Mechanism:** Leader/device-side Stackelberg incentive; follower's utility U_d (integrand H_d, Eq. 3) yields an optimal s* via an Euler-Lagrange argument analogous to r*(s).
 **Obstruction:** Batch E review left follower_foc_latex null fail-closed -- the paper states only that s* is derived 'using the similar method' as r*(s) and reports the resulting second-order condition d^2Hd/ds^2 = -A_eTheta/rho < 0 (verbatim) plus the resulting s* (already recorded as best_response_latex), but never prints the FOC itself. ir_follower_latex also left null: Section IV.D 'Truthfulness Analysis' proves incentive-compatibility only, not U_d >= 0. (Track 1: Stackelberg: follower FOC never printed as a numbered equation; no follower IR/participation constraint stated)
 **Human task:** Check Section IV or any appendix for a printed first-order condition for s* (not just the stated second-order condition); if absent, this stays MANUAL since Track 1 needs a transcribed FOC, not a reconstruction.
-**Diagnosed:** 2026-09-06
-
-### Lee2024sfl_stackelberg (Stackelberg) — R7
-
-**Mechanism:** Leader (server) sets baseline S; follower (client n) chooses decision d_n subject only to the box constraint 0 <= d_n <= D_n (Problem 13).
-**Obstruction:** Batch E review left ir_follower_latex null fail-closed -- no formal U_n >= 0 constraint appears in the game formulation; the only follower constraint is the box bound on d_n. The paper's baseline constant S = 10^6 (Section V, footnote 5) is set purely as a plotting convenience 'to ensure U_n is greater than zero' when computing the Price-of-Anarchy ratio (Eq. 28) -- an experimental/numerical artifact, not a declared mechanism-design IR constraint. (Track 1: Stackelberg: no follower IR / participation constraint stated in the game formulation)
-**Human task:** Confirm the footnote-5 baseline S is never promoted to a formal constraint anywhere in the main game formulation (Problem 13 or surrounding text); if it stays purely numerical, this entry remains MANUAL.
-**Diagnosed:** 2026-09-06
-
-### Li2025iiot_drl (Stackelberg) — R7
-
-**Mechanism:** Leader sets reward; follower (IIoT node i) chooses update cycle theta_i subject only to the feasibility bound theta_i >= theta_i^min (Problem P1, Eq. 11).
-**Obstruction:** Batch E review left ir_follower_latex null fail-closed -- Problem P1 imposes only the lower-bound feasibility constraint theta_i >= theta_i^min on the update-cycle decision variable, not a utility-based U_i >= 0 condition; no IR/participation constraint appears anywhere else in the paper. (Track 1: Stackelberg: no follower IR / participation constraint stated in the paper)
-**Human task:** Re-check any DRL-training-loop description (Section on the DRL agent) for an implicit participation/dropout rule that could be formalized as IR; absent that, this entry stays MANUAL.
 **Diagnosed:** 2026-09-06
 
 ## Family: coalition-value-not-instantiable
@@ -462,25 +413,11 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Re-extract the paper's true self-selection constraint U_m(contract_z) from the PDF so the RHS is the type-m agent's utility from contract z, then re-run Track 1.
 **Diagnosed:** 2026-09-03
 
-### Javaherian2025stackelberg_ic (Stackelberg) — R7
-
-**Mechanism:** Leader sets gamma; follower (client i) chooses reporting/participation level tau_i, with Definition 1 stating a formal IR constraint and Lemma 5 proving the Nash equilibrium tau* satisfies it.
-**Obstruction:** Batch E review added ir_follower_latex, transcribed exactly from Definition 1 (Individual Rationality), and noted Lemma 5 proves U_i(gamma,tau_i*,tau_{-i}*) >= 0 at the client-level Nash equilibrium -- IR is the one field this notes entry confirms is present, so the remaining VERIFIED_TEMPLATE gap must be in another field (e.g. follower_foc_latex or best_response_latex) not covered by this note. (Track 1: Stackelberg: IR is stated and proven satisfied at equilibrium, but the entry still sits at VERIFIED_TEMPLATE -- likely missing a different formal field for Track 1)
-**Human task:** Diff this entry's formal fields against Track 1's required-field list to find which field besides ir_follower_latex is still null/unverified, then transcribe it from the paper (Definition 1's surrounding section is already confirmed correct and needs no further work).
-**Diagnosed:** 2026-09-06
-
 ### Kang2019contract_mobile (Contract) — R4
 
 **Mechanism:** Mobile-device contract; routed to Track 3 (mpmath.iv branch-and-bound, delta-sound).
 **Obstruction:** Track 1 does not apply. The R4 fixed_constants field removes the three numerically-declared constants from the box (mu, c_n, s_n), but zeta (effective capacitance, never given a number) and the transmission-energy sub-symbols sigma/rho_n/B/h_n (paper only fixes the composite E^com=20, not the parts) stay free. IC is 6-dim but the branch-and-bound is inconclusive over the generic positive box; IR is still 8-dim, above the cap. The verifier reports UNKNOWN honestly rather than a partial-coverage result. (Track 3: after pinning the 3 paper-declared constants (mu=1, c_n=5, s_n=20) the IC drops from 9 to 6 free vars but the interval search over the generic [0.001,100] parameter box is still inconclusive (unsupported op / budget); the IR drops from 11 to 8 free vars and remains > box-dim cap -- neither IC nor IR is decidable at delta=0.001)
 **Human task:** R4 pinned the 3 paper-declared constants (mu=1, c_n=5, s_n=20) via fixed_constants, dropping the IC box from 9 to 6 free vars and the IR box from 11 to 8, but IR is still over _MAX_BOX_DIMS and IC comes back inconclusive. zeta and the transmission sub-symbols (sigma, rho_n, B, h_n) have no per-symbol numeric values in the paper -- only the composite E^com = 20 -- so they were left free (fail-closed). Needs a tighter Track 3 or a symbolic reduction (R6).
-**Diagnosed:** 2026-09-04
-
-### Kang2019reliable_contract (Contract) — R4
-
-**Mechanism:** Reliable-worker contract menu {(R_n, f_n)} with data-quality type theta_n = psi/log(1/epsilon_n).
-**Obstruction:** The IC/IR parse and the soundness gate passes. The communication-cost term divides by a Shannon capacity B ln(1 + rho_n h_n / N_0); _sp_to_z3 will not admit the log without an established argument sign, and the entry declares no positivity domain for rho_n, h_n or N_0. No Track 1 obligation is built. (Track 1: Shannon-capacity term log(1 + rho h / N_0) in the denominator -- Z3 encoding rejects it ('log argument sign not established'))
-**Human task:** R4 admitted the Shannon-capacity log(1 + rho_n h_n / N_0) via a positivity_domain field (Sec III-C: rho_n, h_n, N_0 > 0) + the _is_definitely_positive_sum integer-power fix, but Z3 still returns UNKNOWN on both IC and IR -- the obstruction is not the log admissibility.
 **Diagnosed:** 2026-09-04
 
 ### Kang2022blockchain_metaverse (Contract) — R3a
@@ -523,13 +460,6 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Mechanism:** Per-type closed-form payment plus an explicit 3-action (abstain/join/buy) equilibrium, not type-i-vs-type-j screening.
 **Obstruction:** Task 2 confirms shape (a): the paper's incentive condition is a 3-action best-response equilibrium, which Track 6 (verify_nash_action_choice) is built to check. It needs a numeric action_payoffs table over the joint action profiles; the R3a extraction declined, none is in the mechanism dict, and no PDF is available here. Fail-closed: fields left absent, entry stays MANUAL. (Track 6: finite-action Nash shape confirmed (3-action {abstain, join, buy} equilibrium) but no concrete numeric action-payoff table in the paper)
 **Human task:** Instantiate the paper's closed-form per-type payments and utilities at concrete parameters to build action_payoffs over {abstain, join, buy}^n, with a source cite; Track 6 then verifies the stated equilibrium.
-**Diagnosed:** 2026-09-06
-
-### Lim2020contract (Contract) — R11
-
-**Mechanism:** Contract-theoretic FL incentive design where the private type is a 4-dimensional cost vector, reduced by the paper to an auxiliary 2-dimensional (y, z) type.
-**Obstruction:** The paper screens a 4-dimensional cost type (its own analysis reduces it to 2-D). _parse_contract_entry requires exactly one type subscript and returns None here. R11 added _contract_check_core_vector to collapse a multi-symbol type via a paper-stated mechanism['type_reduction_map'], but that field is not transcribed and the source PDF is not available here to transcribe the reduction formula. (Track 1: 4-D type space; _contract_check_core_vector ready but type_reduction_map not transcribed)
-**Human task:** transcribe the paper's 4-D->2-D (or ->1-D effective type) reduction formula into mechanism['type_reduction_map'] with a _source cite; the code path is already in place.
 **Diagnosed:** 2026-09-06
 
 ### Liu2023reverse_auction (VCG) — R-shape-cleanup
@@ -595,13 +525,6 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Human task:** Check whether Track 1's Z3 encoding can handle sqrt-form gain functions (e.g. via a polynomial relaxation or bound); if not, this stays MANUAL as a solver-capability gap rather than a missing-field gap.
 **Diagnosed:** 2026-09-06
 
-### Wang2022blockchain (Stackelberg) — R11
-
-**Mechanism:** Leader sets unit prices p_ti and p_mi; each miner i jointly chooses CPU cycles per second for training q_ti AND for mining q_mi.
-**Obstruction:** Two compounding problems: (1) the follower chooses q_ti and q_mi jointly but follower_foc_latex records only dU_i/dq_ti = p_ti - 2 rho_i q_ti = 0, no condition for q_mi; (2) that FOC is inconsistent with the recorded utility. Fail-closed. R11's numeric fallback cannot run against an incomplete / inconsistent system, and the source PDF is not available to re-transcribe. (Track 1: recorded FOC inconsistent with recorded utility; second decision variable unconstrained)
-**Human task:** re-transcribe the follower utility and the full joint FOC system from the source PDF, reconciling the q_ti condition; then attempt the vector path.
-**Diagnosed:** 2026-09-06
-
 ### Wang2022motilearn_contract (Contract) — R3a
 
 **Mechanism:** MotiLearn contract menu with per-type effort/reward pairs.
@@ -615,13 +538,6 @@ edit the entry's manual_diagnosis and re-run scripts/build_manual_backlog.py.
 **Obstruction:** Every ^2 / ^1 in the recorded IC/IR is a period index, confirmed by contract_menu_latex's superscript-before-subscript ordering and by the entry's own notes. Reading them as exponents yields a different proof obligation than the paper's (linear) utility u_n = theta_n R_n - c T_n - E, and the intertemporal linkage between periods is absent from the entry entirely. Any verdict on the recorded fields would certify a mechanism the paper does not claim. (Track 1: recorded IC/IR is PERIOD-2 static myopic only (^2/^1 are period indices, not exponents); the paper's true mechanism is a two-period intertemporal contract not represented in the entry)
 **Human task:** Transcribe the paper's full two-period intertemporal contract (both periods plus the linking constraint) with period indices distinguished from exponents, then decide whether an intertemporal IC is expressible on the Track 1 grid.
 **Diagnosed:** 2026-09-03
-
-### Wu2021contract_DP (Contract) — R11
-
-**Mechanism:** Contract-theoretic FL incentive design with differential privacy, private type genuinely 3-dimensional (theta_x, tau_y, rho_z).
-**Obstruction:** Genuinely 3-dimensional type outside _parse_contract_entry's single-subscript model. R11's _contract_check_core_vector can collapse it given a paper-stated mechanism['type_reduction_map'] (e.g. a single effective-cost combination), but that field is not transcribed and the source PDF is unavailable here. (Track 1: 3-D type space; _contract_check_core_vector ready but type_reduction_map not transcribed)
-**Human task:** transcribe the paper's effective-cost / single-index reduction into mechanism['type_reduction_map'] with a _source cite.
-**Diagnosed:** 2026-09-06
 
 ### Xia2026privacy_mfg (VCG) — R2
 

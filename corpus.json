@@ -27,7 +27,28 @@
       "ir_follower_latex": null,
       "key_assumptions": [
         "unique interior optimum"
-      ]
+      ],
+      "fixed_constants": {
+        "b_1": 9.78,
+        "b_2": 9.15,
+        "b_3": 12.15,
+        "b_4": 11.17,
+        "b_5": 12.7,
+        "b_6": 9.15,
+        "b_7": 12.38,
+        "b_8": 13.5,
+        "b_9": 10.59,
+        "c_1": 15.28,
+        "c_2": 9.17,
+        "c_3": 14.31,
+        "c_4": 11.21,
+        "c_5": 9.12,
+        "c_6": 13.61,
+        "c_7": 13.27,
+        "c_8": 9.63,
+        "c_9": 14.32
+      },
+      "fixed_constants_source": "1811.12082, Sec. V (Performance Evaluation): coefficients of f_i(.) defined in (1): c=[c_i]=[15.28,9.17,14.31,11.21,9.12,13.61,13.27,9.63,14.32], b=[b_i]=[9.78,9.15,12.15,11.17,12.7,9.15,12.38,13.5,10.59] (a_i does not appear in the follower FOC (11), only b_i, c_i, q_i do)."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "formalized_ast": {
@@ -224,7 +245,6 @@
       "flagged": false,
       "date": "2026-09-04"
     },
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R7",
       "track": 1,
@@ -2025,7 +2045,7 @@
       "follower_utility_latex": "P_i = \\alpha_i \\log(1+\\mu x_i^r) + \\frac{\\beta_i x_i^w p_i h_i}{B_0\\varphi x_i^w+\\epsilon_i^2} - p_r x_i^r - p_w x_i^w",
       "follower_foc_latex": "\\frac{\\partial P_i}{\\partial x_i^r} = \\frac{\\mu\\alpha_i}{1+\\mu x_i^r} - p_r = 0, \\quad \\frac{\\partial P_i}{\\partial x_i^w} = \\frac{\\beta_i \\epsilon_i^2 h_i p_i}{(B_0\\varphi x_i^w+\\epsilon_i^2)^2} - p_w = 0",
       "best_response_latex": "x_i^{r*} = \\frac{\\alpha_i}{p_r} - \\frac{1}{\\mu}, \\quad x_i^{w*} = \\frac{1}{B_0\\varphi}\\left(\\sqrt{\\frac{\\beta_i h_i p_i \\epsilon_i^2}{p_w}} - \\epsilon_i^2\\right)",
-      "ir_follower_latex": "\\frac{\\partial P_i}{\\partial x_i^r}(0) \\geq 0, \\quad \\frac{\\partial P_i}{\\partial x_i^w}(0) \\geq 0 \\iff p_r \\leq \\mu\\alpha_i, \\quad p_w \\leq \\frac{\\beta_i h_i p_i}{\\epsilon_i^2}, \\quad \\forall u_i \\in \\mathcal{U}",
+      "ir_follower_latex": "p_r x_i^r + p_w x_i^w \\le B_i",
       "key_assumptions": [
         "quadratic cost",
         "unique interior optimum"
@@ -2034,10 +2054,10 @@
         "\\partial P_i / \\partial x_i^r = \\frac{\\mu\\alpha_i}{1+\\mu x_i^r} - p_r = 0",
         "\\partial P_i / \\partial x_i^w = \\frac{\\beta_i h_i p_i \\epsilon_i^2}{(B_0\\varphi x_i^w+\\epsilon_i^2)^2} - p_w = 0"
       ],
-      "follower_stationarity_system_source": "2502_10765, Eqs. (5) and (38)-(39) with lambda_1=0 (KKT Case 4-1: x_i^r>0, x_i^w>0, budget (13) slack), Sec. 3.2"
+      "follower_stationarity_system_source": "2502_10765, Eqs. (5) and (38)-(39) with lambda_1=0 (KKT Case 4-1: x_i^r>0, x_i^w>0, budget (13) slack), Sec. 3.2",
+      "ir_follower_latex_source": "2502.10765, Eq. (13), Sec. 3.1 Problem Formulation: the MSU u_i's optimization is max_{x_i^r,x_i^w} P_i s.t. x_i^r>=0, x_i^w>=0 (Eq. 12), and p_r x_i^r + p_w x_i^w <= B_i (Eq. 13), 'The constraint (13) indicates that the total expenditure on rendering and bandwidth resources cannot exceed B_i.' NOTE: this is a budget/feasibility cap on the follower's own decision, not a classic reservation-utility IR (U>=0) -- applied per fail-closed test: the checker should decline if its IR semantics require a utility-nonnegativity form."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R11",
       "track": 1,
@@ -3390,10 +3410,16 @@
         "reputation of data owners",
         "model accuracy",
         "reward rate"
-      ]
+      ],
+      "fixed_constants": {
+        "a_1": 3.7,
+        "a_5": 4.32,
+        "a_12": 4.79,
+        "a_20": 5.12
+      },
+      "fixed_constants_source": "Chen2023multifactor_iot, Sec. V-A, TABLE IV (Parameter Setting in Simulation): a_1=3.7, a_5=4.32, a_12=4.79, a_20=5.12, drawn from N(5,1) and used as fixed representative values throughout the reported experiments (Figs. 5-8)."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R7",
       "track": 1,
@@ -4164,13 +4190,14 @@
       "equilibrium_uniqueness": null,
       "leader_objective_latex": "U_s = \\frac{\\lambda}{2}\\left[1+\\exp\\left(-\\frac{1}{|U|}\\sum_{i\\in U}\\log(1+d\\eta^2\\sigma_i^2)\\right)\\right] - R",
       "follower_utility_latex": "U_i = \\frac{\\rho_i}{\\sum_{j\\in U}\\rho_j}R - c(\\nu_i,\\rho_i), \\quad c(\\nu_i,\\rho_i)=\\nu_i\\rho_i",
-      "follower_foc_latex": "\\frac{\\partial U_i}{\\partial\\rho_i} = \\frac{-R\\rho_i}{(\\sum_{j\\in U}\\rho_j)^2} + \\frac{R}{\\sum_{j\\in U}\\rho_j} - \\nu_i = 0",
-      "best_response_latex": "\\beta_i(\\rho_{-i}) = \\begin{cases} -\\infty, & \\text{if } R \\le \\nu_i \\sum_{j\\in U\\setminus\\{i\\}}\\rho_j; \\\\ \\sqrt{\\dfrac{R\\sum_{j\\in U\\setminus\\{i\\}}\\rho_j}{\\nu_i}} - \\sum_{j\\in U\\setminus\\{i\\}}\\rho_j, & \\text{o.w.} \\end{cases}",
+      "follower_foc_latex": "\\frac{\\partial U_i}{\\partial \\rho_i} = \\frac{-R\\rho_i}{\\left(\\sum_{j\\in\\mathcal{U}}\\rho_j\\right)^2} + \\frac{R}{\\sum_{j\\in\\mathcal{U}}\\rho_j} - \\nu_i = 0",
+      "best_response_latex": "\\beta_i(\\rho_{-i}) = \\begin{cases} -\\infty, & \\text{if } R \\le \\nu_i \\sum_{j\\in\\mathcal{U}\\setminus\\{i\\}} \\rho_j; \\\\ \\sqrt{\\dfrac{R\\sum_{j\\in\\mathcal{U}\\setminus\\{i\\}}\\rho_j}{\\nu_i}} - \\sum_{j\\in\\mathcal{U}\\setminus\\{i\\}}\\rho_j, & \\text{o.w.} \\end{cases}",
       "ir_follower_latex": null,
-      "key_assumptions": []
+      "key_assumptions": [],
+      "follower_foc_latex_source": "Hu2020trading, Eq. (13), p.4: printed derivative of U_i with respect to rho_i, set to zero ('By setting (13) to zero, beta_i(rho_{-i}) satisfies...').",
+      "best_response_latex_source": "Hu2020trading, Eq. (15), p.4: the paper's own stated closed-form best strategy beta_i(rho_{-i}), derived by setting the FOC (13) to zero."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R7",
       "track": 1,
@@ -4470,10 +4497,12 @@
       "equilibrium_uniqueness": null,
       "leader_objective_latex": "U_{server}(\\gamma,\\tau_i) = \\sum_{i=1}^N\\left[\\gamma\\left(1-\\frac{\\|w_i^t-w^t\\|}{\\|w^t\\|}\\right)+\\tau_i\\right] - t\\cdot\\gamma^2",
       "follower_utility_latex": "U_i(\\gamma,\\tau_i,\\tau_{-i}) = \\gamma\\left(1-\\frac{\\|w_i^t-w^t\\|}{\\|w^t\\|}\\right)\\tau_i - c_i\\tau_i^2",
-      "follower_foc_latex": "\\frac{d}{d\\tau_i}U_i(\\gamma,\\tau_i,\\tau_{-i}) = \\gamma\\left(1-\\frac{\\|w_i^t-w^t\\|}{\\|w^t\\|}\\right) - 2c_i\\tau_i = 0",
-      "best_response_latex": "\\tau_i^* = \\frac{\\gamma\\left(1-\\frac{\\|w_i^t-w^t\\|}{\\|w^t\\|}\\right)}{2c_i}",
+      "follower_foc_latex": "\\frac{d}{d\\tau_i}U_i(\\gamma,\\tau_i,\\tau_{-i}) = \\gamma \\cdot \\left(1 - \\frac{\\|w_i^t - w^t\\|}{\\|w^t\\|}\\right) - 2c_i\\tau_i = 0",
+      "best_response_latex": "\\tau_i^* = \\frac{\\gamma \\cdot \\left(1 - \\frac{\\|w_i^t - w^t\\|}{\\|w^t\\|}\\right)}{2c_i}",
       "ir_follower_latex": "U_i(\\gamma,\\tau_i,\\tau_{-i}) \\geq 0 \\quad \\forall i",
-      "key_assumptions": []
+      "key_assumptions": [],
+      "follower_foc_latex_source": "Javaherian2025stackelberg_ic, unnumbered display eq. p.4, Sec. IV-C: 'we first compute the derivative of the utility function with respect to tau_i ... Setting the derivative equal to zero and solving it for tau_i, we find the optimal local iterations for client i as: [tau_i^*].'",
+      "best_response_latex_source": "Javaherian2025stackelberg_ic, unnumbered display eq. immediately following the FOC derivation, p.4, Sec. IV-C."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "formalized_ast": {
@@ -4677,7 +4706,6 @@
       "flagged": false,
       "date": "2026-09-04"
     },
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R7",
       "track": 1,
@@ -4895,10 +4923,16 @@
         "\\rho_m > 0",
         "h_m > 0"
       ],
-      "positivity_domain_source": "Kang2019reliable (IEEE IoT-J, DOI 10.1109/JIOT.2019.2940820), Sec. III-C, transmission rate r_n = B ln(1 + rho_n h_n / N_0): rho_n is the transmission power of worker n, h_n is the channel gain of the peer-to-peer link between worker n and the task publisher, and N_0 is the background noise -- all strictly positive physical quantities by definition. The same channel parameters appear per-worker (rho_m, h_m) in the IC constraint (Eq. 19)."
+      "positivity_domain_source": "Kang2019reliable (IEEE IoT-J, DOI 10.1109/JIOT.2019.2940820), Sec. III-C, transmission rate r_n = B ln(1 + rho_n h_n / N_0): rho_n is the transmission power of worker n, h_n is the channel gain of the peer-to-peer link between worker n and the task publisher, and N_0 is the background noise -- all strictly positive physical quantities by definition. The same channel parameters appear per-worker (rho_m, h_m) in the IC constraint (Eq. 19).",
+      "fixed_constants": {
+        "zeta": 2,
+        "psi": 15,
+        "mu": 1,
+        "l": 1
+      },
+      "fixed_constants_source": "Kang2019reliable (IEEE IoT-J), Table II (numerical simulation parameters): 'zeta=2, psi=15, w=800, mu=1, l=1' stated as the fixed numeric settings used in experiments, for parameters in the client utility U_D(f_n) = R_n - mu[(psi/theta_n) zeta c_n s_n f_n^2 + sigma rho_n/(B ln(1+rho_n h_n/N_0))]. B, h_n, N_0, sigma, rho_n individually remain unresolved (only composite values given elsewhere)."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R4",
       "track": 1,
@@ -5231,12 +5265,13 @@
       "leader_objective_latex": "U_{MO}(R, L_c, \\mathbf{d}) = \\tau_1 \\ln\\!\\left(1 + \\frac{\\sum_{n=1}^N d_n}{d_{req}}\\right) + \\tau_2 \\frac{f_{FLOPs}(L_c)}{w_{FLOPs}} - R",
       "follower_utility_latex": "U_n(\\mathbf{d}, R, L_c) = \\psi_n R \\frac{d_n}{\\sum_{l=1}^N d_l} - d_n H_n - I_n + S",
       "follower_foc_latex": "\\frac{\\partial U_n(d_n,d_{-n},R,L_c)}{\\partial d_n} = \\psi_n R\\frac{\\sum_{l\\in N\\setminus n}d_l}{\\left(\\sum_{l=1}^N d_l\\right)^2} - H_n = 0",
-      "best_response_latex": "d_n^* = \\sqrt{\\frac{\\psi_n R\\sum_{l\\in N\\setminus n}d_l}{H_n}} - \\sum_{l\\in N\\setminus n}d_l",
+      "best_response_latex": "d_n^* = \\begin{cases} 0, & \\text{if } \\frac{\\psi_n R}{H_n} \\leq \\sum_{l\\in\\mathcal{N}\\setminus\\{n\\}} d_l, \\\\ \\sqrt{\\sum_{l\\in\\mathcal{N}\\setminus\\{n\\}} d_l}\\left(\\sqrt{\\frac{\\psi_n R}{H_n}} - \\sqrt{\\sum_{l\\in\\mathcal{N}\\setminus\\{n\\}} d_l}\\right), & \\text{if } 0 < d_n < D_n, \\\\ D_n, & \\text{otherwise}, \\end{cases}",
       "ir_follower_latex": null,
       "key_assumptions": [
         "competitive situations between clients and the SFL model owner",
         "energy consumption and privacy concerns"
-      ]
+      ],
+      "best_response_latex_source": "Lee2024sfl_stackelberg, Eq. (18)-(19), p.6: 'the BR function B_n(d_{-n},R,L_c) ... is given by ...' -- the paper's own closed-form piecewise best-response for a client's data contribution, restated as Eq. 20 in Theorem 4."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
     "formalized_ast": {
@@ -5381,7 +5416,6 @@
       "flagged": false,
       "date": "2026-09-04"
     },
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R7",
       "track": 1,
@@ -5486,16 +5520,16 @@
       "leader_objective_latex": "V = \\sum_{i \\in I_{all}}(\\beta G_i - R_i), \\quad G_i = \\tau M_i - \\lambda E_i",
       "follower_utility_latex": "U_i = R_i - C_i, \\quad R_i = r_i \\ln(1/\\theta_i), \\quad C_i = \\sigma_i/\\theta_i",
       "follower_foc_latex": "\\frac{\\partial U_i}{\\partial\\theta_i} = \\frac{\\sigma_i}{\\theta_i^2} - \\frac{r_i}{\\theta_i} = 0",
-      "best_response_latex": "\\theta_i^* = \\sigma_i/r_i",
+      "best_response_latex": "\\theta_i^* = \\begin{cases} \\theta_{i,\\max}, & \\theta_i > \\theta_{i,\\max}, \\\\ \\sigma_i/r_i, & \\theta_{i,\\min} < \\theta_i < \\theta_{i,\\max}, \\\\ \\theta_{i,\\min}, & \\theta_i < \\theta_{i,\\min}, \\end{cases}",
       "ir_follower_latex": null,
       "key_assumptions": [
         "heterogeneous IIoT devices",
         "limited resources",
         "privacy constraints"
-      ]
+      ],
+      "best_response_latex_source": "Li2025iiot_drl, Eq. (16), p.6: 'Solving the first-order derivative optimality condition ... the optimal update response is obtained as ...' derived from Eq. (15) dU_i/dtheta_i = sigma_i/theta_i^2 - r_i/theta_i = 0."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R7",
       "track": 1,
@@ -5626,10 +5660,13 @@
       "key_assumptions": [
         "single-crossing (Spence-Mirrlees)",
         "risk neutral clients"
-      ]
+      ],
+      "type_reduction_map": {
+        "Phi": "\\phi(\\alpha_y\\theta_y + \\psi + \\beta_z\\theta_z + \\zeta)"
+      },
+      "type_reduction_map_source": "Lim2020 (IEEE T-ITS), cost function defining phi(alpha_y theta_y + psi + beta_z theta_z + zeta): the contract menu Omega_n(A,B) = {omega_{y,z}^n} is indexed by a 2-D (y,z) pair (sensing-type y, computation-type z); client utility u_j^n(theta_j^n) = R_j^n(theta_j^n) - phi(alpha_j^n theta_j^n + psi_j^n + beta_j^n theta_j^n + zeta_j^n) reduces the type to a single scalar argument of phi driving the single-crossing/monotonicity ordering. 'Phi' is a descriptive effective-symbol label introduced for the verifier; the formula itself is transcribed verbatim from the corpus's existing cost_function_latex field."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R11",
       "track": 1,
@@ -5819,7 +5856,7 @@
       "leader_objective_latex": "\\min_{\\mathbf{R}} C(\\mathbf{R},\\mathbf{B},\\varepsilon)=\\sum_{t=0}^{T-1}\\left(\\gamma_1 R^t+\\sum_{k=1}^N\\frac{\\kappa_1^{T-1-t}\\kappa_3\\eta^2C^2}{(B_k^t)^2(\\varepsilon_k^t)^2}\\right)",
       "follower_utility_latex": "U_k(R,B_k,B_{-k},\\varepsilon_k,\\varepsilon_{-k}) = \\sum_{t=0}^{T-1}(P_k(t)-E_k(t)), \\quad P_k(t) = \\max\\left\\{0, \\frac{\\log(B_k^t\\varepsilon_k^t)}{\\sum_{i=1}^N\\log(B_i^t\\varepsilon_i^t)}R^t\\right\\}, \\quad E_k(t) = \\alpha_k(B_k^t)^2+\\beta_k(\\varepsilon_k^t)^2",
       "follower_foc_latex": null,
-      "best_response_latex": "(B_k^t)^* = \\sqrt{\\frac{\\gamma_2 R^t}{2\\phi^t(\\gamma_2\\alpha_k+Q_k^t)}}, \\quad (\\varepsilon_k^t)^* = \\sqrt{\\frac{\\gamma_2 R^t}{2\\phi^t(\\gamma_2\\beta_k+Z_k^t)}}",
+      "best_response_latex": "(B_k^t)^* = \\sqrt{\\frac{\\gamma_2 R^t}{2\\phi^t(\\gamma_2\\alpha_k + Q_k^t)}}, \\quad (\\varepsilon_k^t)^* = \\sqrt{\\frac{\\gamma_2 R^t}{2\\phi^t(\\gamma_2\\beta_k + Z_k^t)}}",
       "ir_follower_latex": null,
       "key_assumptions": [
         "convex expenditure formulation"
@@ -5828,10 +5865,10 @@
         "\\partial f / \\partial B_k^t = 2(\\gamma_2\\alpha_k+Q_k^t)B_k^t - \\frac{R^t}{\\phi^t}\\frac{1}{B_k^t} = 0",
         "\\partial f / \\partial \\varepsilon_k^t = 2(\\gamma_2\\beta_k+Z_k^t)\\varepsilon_k^t - \\frac{R^t}{\\phi^t}\\frac{1}{\\varepsilon_k^t} = 0"
       ],
-      "follower_stationarity_system_source": "Liu2026fedbud, Eq. (35) (Appendix II, proof of Proposition 6; the epsilon_k^t component is stated 'analogous and thus omitted'), objective Eq. (17) -- CAVEAT: this is a from-Eq.(17) reconstruction (paper Eqs. 34-36 carry a typo, missing gamma_2 on the alpha_k term) and does NOT reproduce the entry's stored best_response_latex (off by sqrt(gamma_2), traceable to the paper's own Eq.17-vs-Eq.38 inconsistency); reconcile before consuming in R6."
+      "follower_stationarity_system_source": "Liu2026fedbud, Eq. (35) (Appendix II, proof of Proposition 6; the epsilon_k^t component is stated 'analogous and thus omitted'), objective Eq. (17) -- CAVEAT: this is a from-Eq.(17) reconstruction (paper Eqs. 34-36 carry a typo, missing gamma_2 on the alpha_k term) and does NOT reproduce the entry's stored best_response_latex (off by sqrt(gamma_2), traceable to the paper's own Eq.17-vs-Eq.38 inconsistency); reconcile before consuming in R6.",
+      "best_response_latex_source": "Liu2026fedbud, Proposition 6, Eq. (18)-(19), p.4: closed-form solutions for the follower's joint data-volume/noise-budget decision, derived in Appendix A.2 (Eqs. 34-37)."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R11",
       "track": 1,
@@ -6931,15 +6968,20 @@
       "leader_objective_latex": "U_{mo} = f\\left(\\sum_{i=1}^N\\mu_i\\right) - \\xi\\sum_{i=1}^N\\left(\\frac{\\mu_i}{q_{ti}}+\\frac{\\psi}{q_{mi}}+\\frac{\\mu_i}{q_{ti}}p_{ti}+\\frac{\\psi}{q_{mi}}p_{mi}\\right)",
       "follower_utility_latex": "U_i = R_i - C_i, \\quad R_i = \\frac{\\mu_i}{q_{ti}}p_{ti} + \\frac{\\psi}{q_{mi}}p_{mi}, \\quad C_i = \\rho_i\\mu_iq_{ti}^2 + \\rho_i\\psi q_{mi}^2",
       "follower_foc_latex": "\\frac{\\partial U_i}{\\partial q_{ti}} = p_{ti} - 2\\rho_i q_{ti} = 0",
-      "best_response_latex": "q_{ti}^* = \\left(\\frac{p_{ti}}{\\rho_i}\\right)^{1/3}, \\quad q_{mi}^* = \\frac{\\psi}{T-\\mu_i(\\rho_i/p_{ti})^{1/3}}",
+      "best_response_latex": "q_{ti}^* = \\left(\\frac{p_{ti}}{\\rho_i}\\right)^{1/3}, \\quad q_{mi}^* = \\frac{\\psi}{T - \\mu_i\\left(\\frac{\\rho_i}{p_{ti}}\\right)^{1/3}}",
       "ir_follower_latex": "U_i \\geq 0",
       "key_assumptions": [
         "quadratic cost",
         "unique interior optimum"
-      ]
+      ],
+      "follower_stationarity_system": [
+        "\\frac{\\partial U_i}{\\partial q_{ti}} = -\\frac{\\mu_i p_{ti}}{q_{ti}^2} - 2\\rho_i q_{ti} = 0",
+        "\\frac{\\partial U_i}{\\partial q_{mi}} = -\\frac{\\psi p_{mi}}{q_{mi}^2} - 2\\rho_i q_{mi} = 0"
+      ],
+      "follower_stationarity_system_source": "Wang2022blockchain, Sec 3.1/3.2 p.5 (proof of Theorem 3.1, Appendix A): utility U_i = (mu_i/q_ti)p_ti + (psi/q_mi)p_mi - rho_i mu_i q_ti^2 - rho_i psi q_mi^2 (Eq. 1); paper states partial derivatives w.r.t. q_ti and q_mi used to prove concavity ahead of Theorem 3.1. NOTE: the corpus's prior manual_diagnosis incorrectly claimed the source PDF was unavailable -- pdfs/Wang2022blockchain.pdf exists and is readable; this diagnosis premise is corrected here.",
+      "best_response_latex_source": "Wang2022blockchain, Theorem 3.1, Eqs. (11)-(12), p.5."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R11",
       "track": 1,
@@ -7142,10 +7184,13 @@
       "key_assumptions": [
         "single-crossing (Spence-Mirrlees)",
         "risk neutral clients"
-      ]
+      ],
+      "type_reduction_map": {
+        "alpha": "\\theta_x - \\tau_y + \\rho_z"
+      },
+      "type_reduction_map_source": "Wu2021contract_DP, Sec V.A, Eq (19), p.6: 'the marginal cost alpha of data size for a type-(x,y,z) data owner as alpha(theta_x, tau_y, rho_z) = dC_{x,y,z}(D)/dD = theta_x - tau_y + rho_z'. alpha is then used as the sole ordering/screening variable for the rest of Section V (Theorems 3-5 stated in terms of the reduced index ordered by alpha, not the original 3-tuple). Sign of tau_y (negative) confirmed internally consistent against Eq. (12)."
     },
     "z3_verdict": "VERIFIED_TEMPLATE",
-    "verdict_override": "MANUAL",
     "manual_diagnosis": {
       "round": "R11",
       "track": 1,
