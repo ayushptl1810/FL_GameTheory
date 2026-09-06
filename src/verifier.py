@@ -373,9 +373,9 @@ def print_summary(
         for r in manual:
             print(f"  - {r.paper_id}: {r.notes}")
         try:
-            with open(backlog_path) as fh:
+            with open(backlog_path, encoding="utf-8") as fh:
                 blob = fh.read()
-        except OSError:
+        except (OSError, UnicodeDecodeError):
             blob = ""
         missing = [r.paper_id for r in manual if r.paper_id not in blob]
         if missing:
