@@ -208,3 +208,78 @@ against an already-audited ceiling, not a guessed estimate; corpus-effect
 numbers name the *targeted* entry counts (16 / 10 / 8-10) but do not promise
 flips, since numeric convergence and cross-check success are genuinely
 unknown until each round runs.
+
+## Program summary (post-R13)
+
+All three rounds landed 2026-09-06. Deltas:
+`round-R11-delta.md`, `round-R12-delta.md`, `round-R13-delta.md`.
+
+### Entries targeted vs. reclaimed
+
+| round | targeted | reclaimed | capability shipped |
+|---|---|---|---|
+| R11 | 11 | 0 | `_numeric_solve_stationarity` (SciPy joint-stationarity fallback), `_contract_check_core_vector` (paper-stated multi-symbol type collapse) |
+| R12 | 10 | 0 | `track_nash.py` — `verify_nash_action_choice`, `track=6` finite best-response check |
+| R13 | 6 | 0 | `_sp_to_z3` monotone-opaque-function admission + `_monotone_difference_functions` guard; scalar transcendental/implicit follower-FOC numeric-root fallback |
+| **total** | **27** | **0** | 4 tested, fail-closed capabilities, all currently dormant |
+
+Every round is a valid outcome under this spec's own clause — "any round
+that reclaims 0 entries but lands correct, tested, fail-closed capability is
+still a valid outcome" — and each updated the next plan (or, for R13, this
+summary) with what it learned.
+
+### Where the top-line count actually moved
+
+The R9-era corpus stood at `VERIFIED 5 / VERIFIED_TEMPLATE 6 / UNKNOWN 1`
+across the 105 in-scope entries. The single biggest mover in this whole
+program was **not** a solver capability: R11 Task 1 found that
+`antlr4-python3-runtime==4.11` (SymPy's LaTeX-parser dependency) was not
+installed, so *every* LaTeX-driven Track-1 path was silently failing closed.
+Installing it — zero code change — moved the corpus to
+`VERIFIED 12 / VERIFIED_TEMPLATE 0 / UNKNOWN 0`, where it has stayed through
+R12 and R13. Post-R13: **`VERIFIED 12`, `MANUAL 93`** across the 105
+in-scope entries.
+
+### The program's single most important process lesson
+
+R11's umbrella-spec assumption that a vector-Stackelberg decision path
+already existed and merely needed a numeric fallback was only half right:
+the branch (`_stackelberg_vector_check` / `_solve_stationarity_system`) was
+present but wired to **no corpus entry** — the live pipeline only ever
+passes a scalar follower symbol, and `follower_stationarity_system` is read
+by nothing. R11's numeric fallback was therefore landed correct and tested
+into an unreachable branch. R13 avoided repeating this by confirming its two
+sub-problems against the actual code at plan time (`_sp_to_z3` line numbers,
+`_contract_check_core`'s `_opaque_inline` wiring, the scalar FOC branch's
+`_sp.solve` call) before writing against them. **Future rounds must
+re-verify a spec's claim about what already exists in the codebase — and
+whether it is reachable from the live pipeline — before planning against
+it.**
+
+### Residual gaps (named, not silently dropped)
+
+- **No source PDFs in the repo.** All 27 targeted entries were ultimately
+  blocked on data no capability can synthesise: numeric payoff tables
+  (R12 shape-a), a paper numerical setup / `fixed_constants` (R13
+  Stackelberg), a monotonicity cite and a non-misparsed expectation operator
+  (R13 `Han2025paid_models`), `follower_stationarity_system` /
+  `type_reduction_map` transcriptions (R11). A round with the PDFs available
+  could re-attempt all three rounds' capabilities against real data — none
+  of the four is disproven, only un-fed.
+- **Peer-prediction / Bayesian-truth-serum BNE** (`Zhang2020fedserving`) and
+  **Bayesian persuasion** (`2505_05842`) — R12 Task 2 shapes (b) and (c).
+  Each needs its own track (proper-scoring-rule feasibility;
+  signal-scheme feasibility). Two entries today — not obviously enough to
+  justify a dedicated round yet, but the shapes are real and will recur in
+  Architect-generated mechanisms.
+- **Opaque expectation operator `E[·]`** — the LaTeX parser folds
+  `\mathbb{E}[·]` / `E[·]` into Euler's number, which silently corrupted
+  `Han2025paid_models` and contributes to `Luo2023unbiased`. A parser fix
+  (represent expectation as a dedicated opaque operator, then reason about
+  when it inherits monotonicity / sign from its argument) would unblock
+  R13's monotone-opaque-function path for at least one entry and is a
+  cleaner target than any solver widening.
+- **Continuous-action Nash / single-report truthfulness** — R12 shape (d),
+  5 entries. Closer to the Stackelberg FOC track than to a finite
+  enumeration; a continuous-best-response truthfulness check could fold
+  these in.
