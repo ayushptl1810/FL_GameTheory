@@ -1303,7 +1303,13 @@ def _demote_stray_function_calls(expr: Any) -> Any:
             return expr
 
 
-_DEFINITION_CLAUSE_RE = re.compile(r"^([A-Za-z\\][A-Za-z0-9_{}\\^,()-]*)\s*(?:\([^)]*\))?\s*=\s*(.+)$")
+# Function-name char class excludes '(' / ')' so a call like "c(\nu_i,\rho_i)"
+# captures just "c" as the name (group 1) and the parenthesized args are left
+# for the separate optional (?:\(...\))? group -- previously the char class
+# included '()' and greedily swallowed the whole "name(args)" into group 1,
+# so known_call_names ended up storing "c(\nu_i,\rho_i)" instead of "c" and
+# _strip_call_syntax's substitution never matched the main expression.
+_DEFINITION_CLAUSE_RE = re.compile(r"^([A-Za-z\\][A-Za-z0-9_{}\\^-]*)\s*(?:\([^)]*\))?\s*=\s*(.+)$")
 
 
 def _split_equation_clauses(s: str) -> list[str]:
