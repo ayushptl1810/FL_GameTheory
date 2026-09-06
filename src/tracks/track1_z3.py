@@ -1763,13 +1763,30 @@ def _try_stackelberg_latex(entry: dict) -> "VerificationResult | None":
     # If another free symbol shares e_sym's base name but a different
     # subscript (e.g. x_{r_i} vs x_{w_i} -- rendering vs. bandwidth, both
     # follower-purchased resources), the follower likely controls more
-    # than one variable and this pipeline only derives a FOC for one of
-    # them. Checking IR at e_sym's optimum while leaving the sibling
-    # variable "free" would evaluate utility at a point the follower
-    # never actually chooses -- a spurious COUNTEREXAMPLE risk, not a
-    # real one. Bail rather than assert either verdict.
+    # than one variable and this single-symbol pipeline can only derive a
+    # FOC for one of them. Route to the vector path (R11) when the paper's
+    # own joint stationarity system has been transcribed for exactly this
+    # symbol set; otherwise bail -- checking IR at e_sym's optimum while
+    # leaving a sibling variable "free" would evaluate utility at a point
+    # the follower never actually chooses, a spurious COUNTEREXAMPLE risk.
     e_base = _base_symbol_name(str(e_sym))
-    if any(_base_symbol_name(str(s)) == e_base for s in util_expr.free_symbols if s != e_sym):
+    siblings = [
+        s for s in util_expr.free_symbols
+        if s != e_sym and _base_symbol_name(str(s)) == e_base
+    ]
+    if siblings:
+        decision_syms = [e_sym, *siblings]
+        raw_system = mech.get("follower_stationarity_system")
+        if isinstance(raw_system, list) and len(raw_system) == len(decision_syms):
+            return _stackelberg_check_core(
+                util_expr,
+                follower_decision=tuple(decision_syms),
+                best_response_expr=None,
+                meta=mech,
+                entry_specific=True,
+                paper_id=entry.get("paper_id", "<unknown>"),
+                require_br_match=widened_via_opaque_sum,
+            )
         return None
 
     # Seam (Approach C): the LaTeX front-end above has resolved the paper's
@@ -1922,7 +1939,14 @@ def _numeric_solve_stationarity(
 
 def _br_components_match(br_latex: str, opt: dict) -> bool:
     """Parse 'x^* = ..., y^* = ...' clauses; every declared component must
-    equal opt[sym] symbolically. Missing a clause, or a mismatch -> False."""
+    equal opt[sym] symbolically. Missing a clause, or a mismatch -> False.
+
+    Keys by the FULL symbol name (via _norm_symbol_full), not the base name
+    -- two decision symbols sharing a base but differing by subscript (e.g.
+    x_{r} vs x_{w}, a genuine vector-decision shape) would otherwise
+    collapse to the same base-name key and silently overwrite each other,
+    passing a match that only checked one of the two components.
+    """
     try:
         # Rebind parse-minted symbols to opt's own symbols (by name) so the
         # symbolic difference below isn't defeated by assumption mismatches.
@@ -1936,19 +1960,19 @@ def _br_components_match(br_latex: str, opt: dict) -> bool:
             if "=" not in c:
                 continue
             lhs, rhs = c.split("=", 1)
-            base = _base_symbol_name(
+            full = _norm_symbol_full(
                 lhs.replace("^*", "").replace("^{*}", "").strip()
             )
             e = _lx_parse(_clean_stackelberg_latex(rhs))
-            parsed[base] = e.subs(
+            parsed[full] = e.subs(
                 {s: by_name[str(s)] for s in e.free_symbols if str(s) in by_name},
                 simultaneous=True,
             )
         for sym, val in opt.items():
-            b = _base_symbol_name(str(sym))
-            if b not in parsed:
+            full = _norm_symbol_full(str(sym))
+            if full not in parsed:
                 return False
-            if _sp.simplify(parsed[b] - val) != 0:
+            if _sp.simplify(parsed[full] - val) != 0:
                 return False
         return True
     except Exception:
